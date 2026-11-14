@@ -7,8 +7,8 @@ import { DeliveryImage } from '@/components/delivery-image'
 const examples = [
   {
     name: 'Aurora', category: 'Kitchen & bar', href: '/aurora',
-    title: 'A good evening starts with the menu.',
-    description: 'Explore a kitchen and bar menu, from a first look at the dishes to choosing something for the table.',
+    title: 'A closer look, before the first bite.',
+    description: 'Explore Aurora’s photo feed and dish details, then turn selected dishes in 3D to see them from every angle.',
     image: '/marketing/v2/menu-aurora.webp',
     alt: 'Captured guest menu for Aurora Kitchen & Bar, showing its list of dishes',
     label: 'Aurora Kitchen & Bar',
@@ -40,10 +40,10 @@ export default function MenuShowcase() {
     <div className="mk-container">
       <div className="mb-8 grid gap-6 md:mb-12 md:grid-cols-[1.2fr_1fr] md:items-end">
         <div>
-          <p className="mk-eyebrow mb-4">Take a seat</p>
-          <h2 id="examples-title" className="mk-h2 max-w-xl">Different tables.<br />The same attention to detail.</h2>
+          <p className="mk-eyebrow mb-4">Explore the experience</p>
+          <h2 id="examples-title" className="mk-h2 max-w-xl">See how a menu can feel.</h2>
         </div>
-        <p className="mk-lead max-w-md md:justify-self-end">Your restaurant has its own character. Your digital menu should, too. Explore these menu examples.</p>
+        <p className="mk-lead max-w-md md:justify-self-end">Move from the photo feed to dish details, with selected dishes to explore in 3D. See how each restaurant brings its own food and character to the menu.</p>
       </div>
 
       <div role="group" aria-label="Choose a menu example" className="mb-6 flex flex-wrap gap-2">
@@ -82,7 +82,7 @@ export default function MenuShowcase() {
             Explore the photo feed <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
             <span className="sr-only"> in a new tab</span>
           </a>
-          <p className="mk-muted mt-4 text-sm leading-relaxed">Selected dishes are available in 3D. Open a dish in the live menu to explore it on a supported device.</p>
+          <p className="mk-muted mt-4 text-sm leading-relaxed">3D is available for dishes with a model. Camera viewing requires a supported phone.</p>
           <div className="mt-10 flex items-start gap-3 border-t border-[var(--mk-line)] pt-6">
             <BookOpen className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
             <p className="mk-muted text-sm leading-relaxed">These are live examples to explore. Menu content and available ordering options depend on each restaurant.</p>

@@ -107,7 +107,7 @@ export default function MarketingFilm() {
       <div className="mk-film-copy">
         <p className="mk-eyebrow">Made to whet the appetite</p>
         <h2 id="marketing-film-title" className="mk-h2">Good food deserves a closer look.</h2>
-        <p className="mk-lead">From the first glance to the first choice. Put your dishes in the spotlight.</p>
+        <p className="mk-lead">Give guests a feel for the food before they choose. A visual menu invites them to look closer, explore the details and find their next dish.</p>
       </div>
       <div className="mk-film-player" style={{ position: 'relative', aspectRatio: '16 / 9', overflow: 'hidden' }}>
         <DeliveryImage src="/marketing/v3/restaurant-film-poster.webp" alt="A cinematic close-up of freshly prepared food"

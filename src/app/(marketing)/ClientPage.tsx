@@ -11,6 +11,7 @@ import MarketingFilm from '@/components/marketing/MarketingFilm'
 import { useMarketingMotionPreference } from '@/components/marketing/MarketingMotion'
 import { PROJECTS, PLANS, PRICING_PATH, formatUsd } from '@/lib/marketing/pricing'
 import { contrastRatio, readableTextColor, safeCssColor } from '@/lib/color-utils'
+import landingCopy from '@/lib/marketing/landing-copy.json'
 
 const AdminLoginModal = dynamic(() => import('@/components/auth/AdminLoginModal'), { ssr: false })
 
@@ -50,24 +51,13 @@ interface LandingData {
   footer?: FooterData | null
 }
 
-const steps = [
-  { step: '01', icon: ClipboardList, title: 'Bring your menu', body: 'Start with the dishes, prices and photos you already have. We help you choose the right setup.' },
-  { step: '02', icon: UtensilsCrossed, title: 'Make it your own', body: 'Your food, your logo, your languages. Add your own dishes or have our team put it together.' },
-  { step: '03', icon: QrCode, title: 'Set the table', body: 'Share your menu link or place a QR code at the table. Guests open it right in their browser.' },
-]
-const features = [
-  { icon: BookOpen, title: 'A menu with your character', body: 'Bring together your dishes, photography, descriptions and prices in a menu that feels like your restaurant.' },
-  { icon: Globe, title: 'A warmer welcome', body: 'Offer your menu in your chosen languages, so more guests can feel at home at your table.' },
-  { icon: QrCode, title: 'One small code. Your whole menu.', body: 'Share a link, print a QR code or add NFC stands. Guests open the menu without downloading an app.' },
-  { icon: ShoppingCart, title: 'More ways to serve', body: 'Start with a menu. Add table ordering or payments when they suit your service and selected plan.' },
-]
 const faqs = [
-  { q: 'What does it cost?', a: `Menu projects start at ${formatUsd(PROJECTS.diy.launch)}, with ongoing plans from ${formatUsd(PLANS.menu.monthly)}/month. Choose to add the items yourself or have our team build the menu. The pricing page explains both.` },
-  { q: 'Can you build the menu for me?', a: 'Yes. Send us your menu and dish photos, and our team can put it together. Prefer to add your own items? There is a project option for that, too.' },
+  { q: 'How is Xprout different from a QR menu?', a: 'A QR code is one way to open the menu. Xprout brings together a photo feed, dish details, your restaurant’s identity and interactive 3D for selected dishes. You choose whether to add ordering and other services.' },
+  { q: 'How does viewing a dish on the table work?', a: 'A dish needs a prepared 3D model. Guests can turn it on screen, and on supported phones they can use the camera to see it on their own table. Availability depends on the dish, phone and browser. No app download is needed.' },
+  { q: 'Can guests order and pay?', a: 'The Waiter plan supports staff ordering, tables and a kitchen display. Guest ordering is available with the Payments plan when enabled by your restaurant. Online payments also require a connected Stripe account. You can also choose a menu-only setup.' },
   { q: 'Can my menu be in multiple languages?', a: 'Yes. Choose the languages you need. Additional languages are available, with the options and prices explained on our pricing page.' },
-  { q: 'Do guests need to download an app?', a: 'No. Guests scan a QR code, tap an NFC stand or open your link. The menu opens in their phone browser. NFC stands and plates are sold separately.' },
-  { q: 'Can guests order and pay from the menu?', a: 'Table ordering and menu payments are available on the relevant plans. You can start with a read-only menu and choose the service that fits your restaurant.' },
-  { q: 'What happens to my data if I leave?', a: 'Your menu content is yours. Contact us and we can help you export it before you leave.' },
+  { q: 'Can you build the menu for me?', a: 'Yes. Send us your menu and dish photos, and our team can put it together. Prefer to add your own items? There is a project option for that, too. We can also discuss which dishes you would like to prepare for 3D.' },
+  { q: 'What does it cost?', a: `Menu projects start at ${formatUsd(PROJECTS.diy.launch)}, with ongoing plans from ${formatUsd(PLANS.menu.monthly)}/month. Choose to add the items yourself or have our team build the menu. The pricing page explains both.` },
 ]
 
 function FoodDrinkCombo({ className }: { className?: string }) {
@@ -76,7 +66,7 @@ function FoodDrinkCombo({ className }: { className?: string }) {
 function getIcon(name: string): React.ComponentType<{ className?: string }> {
   const icons: Record<string, React.ComponentType<{ className?: string }>> = {
     Globe, Globe2: Globe, QrCode, Sparkles, ShoppingCart, UserPlus, UtensilsCrossed, MessageCircle, Zap, Star, ChefHat,
-    CreditCard, BookOpen, Coffee, BarChart2, Search, Sandwich, CupSoda, FoodDrink: FoodDrinkCombo, Palette, ClipboardList, Link2,
+    CreditCard, BookOpen, Coffee, BarChart2, Search, Sandwich, CupSoda, FoodDrink: FoodDrinkCombo, Palette, ClipboardList, Link2, Box,
   }
   return icons[name] ?? Globe
 }
@@ -143,19 +133,19 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
     {hasMedia ? <div className="absolute inset-0 bg-[#14271d]/85" aria-hidden="true" /> : null}
     <div className="mk-container relative grid min-w-0 items-center gap-8 md:grid-cols-[1.1fr_1fr] md:gap-10 lg:gap-12">
       <div className="mk-hero-copy min-w-0">
-        <p className="mk-eyebrow mb-4">{s.badge ?? 'Digital menus, thoughtfully served'}</p>
+        <p className="mk-eyebrow mb-4">{s.badge ?? landingCopy.hero.badge}</p>
         <h1 id="hero-title" className="mk-display max-w-2xl">
-          {s.heading ?? 'Your food has a story.'}{' '}
-          <span className="block">{s.heading_highlight ?? 'Give it a menu to match.'}</span>
+          {s.heading ?? landingCopy.hero.heading}{' '}
+          <span className="block">{s.heading_highlight ?? landingCopy.hero.heading_highlight}</span>
         </h1>
-        <p className="mk-lead mt-5 max-w-lg">{s.subheading ?? 'A digital menu that feels like your restaurant. Beautiful dishes, clear choices and a little more time to enjoy the table.'}</p>
+        <p className="mk-lead mt-5 max-w-lg">{s.subheading ?? landingCopy.hero.subheading}</p>
         <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <button type="button" onClick={onLoginOpen} className={`mk-button ${dark ? 'mk-button--light' : ''}`}>
-            {s.cta_primary ?? 'Start'} <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+            {s.cta_primary ?? landingCopy.hero.cta_primary} <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
           </button>
-          <a href="#how-it-works" className="mk-button mk-button--outline">{s.cta_secondary ?? 'See how it works'}</a>
+          <a href="#experience" className="mk-button mk-button--outline">{s.cta_secondary ?? landingCopy.hero.cta_secondary}</a>
         </div>
-        <p className="mk-muted mt-4 text-sm leading-relaxed">Your own identity. A link to share.<br className="sm:hidden" /> No app for guests to download.</p>
+        <p className="mk-muted mt-4 text-sm leading-relaxed">3D for selected dishes. Camera view on supported phones. No app download.</p>
       </div>
       <div className="mk-hero-art relative min-w-0"><HeroTableShowcase /></div>
     </div>
@@ -164,9 +154,9 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
 
 function FeatureRibbon() {
   const items = [
-    { icon: QrCode, label: 'QR menus' },
-    { icon: BookOpen, label: 'Photo feeds' },
-    { icon: Box, label: 'Selected 3D' },
+    { icon: BookOpen, label: 'Photo-led menus' },
+    { icon: Box, label: 'Interactive 3D' },
+    { icon: UtensilsCrossed, label: 'On your table' },
     { icon: Palette, label: 'Your identity' },
   ]
   return <div className="mk-feature-ribbon">
@@ -179,14 +169,14 @@ function FeatureRibbon() {
 }
 
 function HowItWorks({ data }: { data?: HowItWorksData | null }) {
-  const resolved = data?.steps?.length ? data.steps.map((step, index) => ({
+  const resolved = (data?.steps?.length ? data.steps : landingCopy.how_it_works.steps).map((step, index) => ({
     step: step.step ?? String(index + 1).padStart(2, '0'), icon: getIcon(step.icon ?? ''), title: step.title, body: step.desc,
-  })) : steps
+  }))
   return <section id="how-it-works" className="mk-process mk-section scroll-mt-24 border-t border-[var(--mk-line)]" aria-labelledby="process-title">
     <div className="mk-container">
       <div className="mb-10 grid gap-5 md:mb-14 md:grid-cols-2 md:items-end">
-        <div><p className="mk-eyebrow mb-4">From your kitchen to their screen</p><h2 id="process-title" className="mk-h2 max-w-xl">{data?.title ?? 'Good service starts with a simple setup.'}</h2></div>
-        <p className="mk-lead max-w-md md:justify-self-end">{data?.subtitle ?? 'We make room for the way you work, whether you want to add the dishes yourself or leave the setup to us.'}</p>
+        <div><p className="mk-eyebrow mb-4">From your kitchen to their table</p><h2 id="process-title" className="mk-h2 max-w-xl">{data?.title ?? landingCopy.how_it_works.title}</h2></div>
+        <p className="mk-lead max-w-md md:justify-self-end">{data?.subtitle ?? landingCopy.how_it_works.subtitle}</p>
       </div>
       <ol className="grid gap-8 md:grid-cols-3 md:gap-10">
         {resolved.map(({ step, icon: Icon, title, body }, index) => <li key={`${step}-${index}`} className="min-w-0 border-t border-[var(--mk-line)] pt-6">
@@ -199,12 +189,12 @@ function HowItWorks({ data }: { data?: HowItWorksData | null }) {
 }
 
 function FeatureBlocks({ data }: { data?: FeaturesData | null }) {
-  const resolved = data?.items?.length ? data.items.map(item => ({ icon: getIcon(item.icon ?? ''), title: item.title, body: item.desc })) : features
+  const resolved = (data?.items?.length ? data.items : landingCopy.features.items).map(item => ({ icon: getIcon(item.icon ?? ''), title: item.title, body: item.desc }))
   return <section className="mk-dark mk-section" aria-labelledby="features-title">
     <div className="mk-container">
       <div className="mb-12 grid gap-6 md:grid-cols-[1.15fr_1fr] md:items-end">
-        <div><p className="mk-eyebrow mb-4">Made around your service</p><h2 id="features-title" className="mk-h2 max-w-xl">{data?.title ?? 'More than a menu. A better welcome.'}</h2></div>
-        <p className="mk-lead max-w-md md:justify-self-end">{data?.subtitle ?? 'Make the first look inviting, the choices clear and the next step easy. Choose the tools your restaurant needs.'}</p>
+        <div><p className="mk-eyebrow mb-4">Made for discovery</p><h2 id="features-title" className="mk-h2 max-w-xl">{data?.title ?? landingCopy.features.title}</h2></div>
+        <p className="mk-lead max-w-md md:justify-self-end">{data?.subtitle ?? landingCopy.features.subtitle}</p>
       </div>
       <div className="grid grid-cols-1 gap-x-12 gap-y-9 sm:grid-cols-2">
         {resolved.map(({ icon: Icon, title, body }, index) => <article key={`${title}-${index}`} className="grid min-w-0 grid-cols-[40px_1fr] gap-4 border-t border-[var(--mk-line)] pt-7 sm:gap-5">
@@ -212,7 +202,7 @@ function FeatureBlocks({ data }: { data?: FeaturesData | null }) {
           <div className="min-w-0"><h3 className="mb-3 text-xl font-semibold">{title}</h3><p className="mk-muted text-base leading-relaxed">{body}</p></div>
         </article>)}
       </div>
-      <p className="mk-muted mt-12 max-w-2xl border-t border-[var(--mk-line)] pt-6 text-sm leading-relaxed">Ordering, payments, selected 3D dishes and optional AI services depend on your plan and setup. Start with what your restaurant needs today.</p>
+      <p className="mk-muted mt-12 max-w-2xl border-t border-[var(--mk-line)] pt-6 text-sm leading-relaxed">3D models and AI are optional. Ordering and payments depend on your plan and enabled services.</p>
     </div>
   </section>
 }
@@ -254,10 +244,10 @@ function FooterCTABand({ data, onLoginOpen }: { data?: CtaData | null; onLoginOp
   return <section className="mk-invitation mk-dark mk-section relative isolate" aria-labelledby="invitation-title">
     {data?.bg_image_url ? <><DeliveryImage src={data.bg_image_url} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /><div className="absolute inset-0 bg-[#14271d]/90" aria-hidden="true" /></> : null}
     <div className="mk-container relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
-      <div><p className="mk-eyebrow mb-5">Your next chapter</p><h2 id="invitation-title" className="mk-h2 max-w-2xl whitespace-pre-line">{data?.heading ?? 'Something good is taking shape.'}</h2>
-        <p className="mk-lead mt-6 max-w-xl">{data?.text ?? 'Bring your menu, your ideas and your appetite for what comes next. We will help you put them on the table.'}</p>
+      <div><p className="mk-eyebrow mb-5">Your next chapter</p><h2 id="invitation-title" className="mk-h2 max-w-2xl whitespace-pre-line">{data?.heading ?? landingCopy.cta.heading}</h2>
+        <p className="mk-lead mt-6 max-w-xl">{data?.text ?? landingCopy.cta.text}</p>
       </div>
-      <div className="md:justify-self-end"><button type="button" onClick={onLoginOpen} className="mk-button mk-button--light w-full sm:w-auto">{data?.button ?? 'Start'} <ArrowRight className="size-4" aria-hidden="true" /></button></div>
+      <div className="md:justify-self-end"><button type="button" onClick={onLoginOpen} className="mk-button mk-button--light w-full sm:w-auto">{data?.button ?? landingCopy.cta.button} <ArrowRight className="size-4" aria-hidden="true" /></button></div>
     </div>
   </section>
 }

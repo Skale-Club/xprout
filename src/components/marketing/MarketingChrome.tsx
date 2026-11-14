@@ -39,8 +39,8 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
       <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="mk-nav-brand shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
       <div className="mk-nav-links">{links}</div>
       <div className="mk-nav-actions">
-        {startHref ? <Link href={startHref} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></Link>
-          : <button type="button" onClick={onLoginOpen} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></button>}
+        {startHref ? <Link href={startHref} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your project</span></Link>
+          : <button type="button" onClick={onLoginOpen} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your project</span></button>}
         <button ref={toggle} type="button" className="mk-nav-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="marketing-mobile-navigation" onClick={() => setOpen(value => !value)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
       </div>
     </div>
@@ -55,8 +55,8 @@ export function Footer({ data, appName, logoUrl }: { data?: FooterData | null; a
       <div className="mk-footer-grid">
         <div>
           <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="inline-block"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
-          <p className="mk-lead mt-5 max-w-xs">Good food deserves a great first impression.</p>
-          <p className="mt-4 text-xs text-[var(--mk-muted)]">Digital menus. Real hospitality.</p>
+          <p className="mk-lead mt-5 max-w-xs">Visual menus that bring your food closer.</p>
+          <p className="mt-4 text-xs text-[var(--mk-muted)]">Photography. Interactive 3D. Your hospitality.</p>
         </div>
         <div><span className="mk-footer-label">Explore {appName ?? BRAND_NAME}</span><ul className="mk-footer-links">
           <li><Link href="/#experience">The menu experience</Link></li>

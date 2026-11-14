@@ -1,4 +1,5 @@
 import { BRAND_NAME, BRAND_URL } from '@/lib/brand'
+import landingCopy from '@/lib/marketing/landing-copy.json'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { getPlatformAppearance } from '@/lib/data/platform-appearance-runtime'
@@ -28,9 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: {
       template: `%s | ${BRAND_NAME}`,
-      default: `${BRAND_NAME} | Digital menu for restaurants`,
+      default: `${BRAND_NAME} | ${landingCopy.seo.titleSuffix}`,
     },
-    description: 'A digital menu platform built for restaurant service, QR code ordering, and menu operations.',
+    description: landingCopy.seo.description,
     metadataBase: new URL(appUrl),
     applicationName: BRAND_NAME,
     appleWebApp: {

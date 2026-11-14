@@ -142,7 +142,8 @@ const ROWS: Row[] = [
   { label: 'Visits and dish analytics', menu: true, waiter: true, payments: true },
   { label: 'Changes done by our team', menu: `${CHANGES_PER_MONTH} / month`, waiter: `${CHANGES_PER_MONTH} / month`, payments: `${CHANGES_PER_MONTH} / month` },
   { group: 'At the table' },
-  { label: 'Guests order from their table', menu: false, waiter: true, payments: true },
+  { label: 'Staff take orders at the table', menu: false, waiter: true, payments: true },
+  { label: 'Guests order from their phone', menu: false, waiter: false, payments: true },
   { label: 'Call the waiter from the phone', menu: false, waiter: true, payments: true },
   { label: 'Orders on the kitchen display', menu: false, waiter: true, payments: true },
   { label: 'One QR code per table', menu: false, waiter: true, payments: true },
@@ -172,11 +173,11 @@ function PlansSection() {
     },
     waiter: {
       lead: 'Bring the menu into your service.',
-      features: ['Everything in Menu', 'Guests order from their table', 'Kitchen display and waiter calls'],
+      features: ['Everything in Menu', 'Staff take orders at the table', 'Kitchen display and waiter calls'],
     },
     payments: {
       lead: 'From choosing a dish to paying for it.',
-      features: ['Everything in Waiter', 'Enabled online payments and pickup', 'Payments into your Stripe account'],
+      features: ['Everything in Waiter', 'Guest ordering, online payments and pickup', 'Payments into your Stripe account'],
     },
   }
   const seg = `min-h-12 rounded-full px-4 py-3 text-base font-medium ${focus}`

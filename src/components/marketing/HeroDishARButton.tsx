@@ -42,7 +42,7 @@ export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: Hero
   useEffect(() => {
     const checkFallback = () => {
       if (window.location.hash !== AR_UNAVAILABLE_HASH) return
-      setNotice('AR could not open on this device. You can still turn the dish here.')
+      setNotice('Camera viewing could not open on this phone. You can still turn the dish here.')
       window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`)
     }
     checkFallback()
@@ -55,7 +55,7 @@ export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: Hero
     const href = getHeroArAction(dishId, platform, window.location.href)
     if (!href) {
       onExplore3D?.()
-      setNotice('Drag to turn the dish. Open this page on a compatible iPhone or Android phone to see it on your table in AR.')
+      setNotice('Drag to turn the dish. Open this page on a supported iPhone or Android phone to see it on your table through the camera.')
       return
     }
     setNotice('')
@@ -65,8 +65,8 @@ export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: Hero
 
   return <div className="mk-hero-ar">
     <button type="button" onClick={launch} className="mk-hero-ar-button min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
-      aria-label={platform ? `View ${dish.title} in your space in AR` : `View ${dish.title} in 3D`}>
-      <Box size={17} aria-hidden="true" /><span>View in 3D</span>
+      aria-label={platform ? `See it on your table: ${dish.title}` : `Explore in 3D: ${dish.title}`}>
+      <Box size={17} aria-hidden="true" /><span>{platform ? 'See it on your table' : 'Explore in 3D'}</span>
     </button>
     <p className="mk-hero-ar-status" role="status" aria-live="polite">{notice}</p>
   </div>

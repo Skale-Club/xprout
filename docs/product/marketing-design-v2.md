@@ -3,6 +3,10 @@
 Status: local implementation and review; not deployed. Owner chose the ivory/forest
 editorial direction with contrasting dark sections on 2026-11-14.
 
+The current copy leads with visual discovery, selected 3D dishes and supported
+phone camera viewing, with service options qualified by plan. QR/NFC are access
+methods. See [the copy revision and explicit settings plan](landing-copy-v3.md).
+
 ## Direction
 
 Premium hospitality, generous editorial typography and real food/product imagery.
