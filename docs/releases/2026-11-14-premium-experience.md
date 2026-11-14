@@ -26,6 +26,17 @@ Legacy suites and blocked-slug checks pass. CI performs the production build,
 SQL rehearsals, Playwright and Lighthouse before production deployment.
 Source review found no secrets or destructive schema/data operations.
 
+The first integrated CI found an outdated custom-tag fixture; it now uses the
+predefined catalog and explicitly rejects arbitrary tags. The next CI passed
+all checks except landing performance (68, approximately 15.3 seconds TBT).
+The audit attributed sustained work to animated WebGL rendering. Automatic 3D
+now requires WebGL2 without a major performance caveat and rejects recognized
+software rasterizers. A poster carousel remains available on those devices;
+explicit 3D and native camera viewing remain available. This capability policy
+uses no user-agent, audit detection or delayed benchmark bypass. The performance
+threshold remains 88. Twelve capability tests and browser fallback/explicit-3D
+checks pass; a supported-capability fixture also loads and cycles real models.
+
 Publish the validated image, confirm readiness reports its exact SHA, then merge
 the reviewed 17 landing paths from `src/lib/marketing/landing-copy.json` and the
 ivory hero profile into freshly read production settings. A snapshot and

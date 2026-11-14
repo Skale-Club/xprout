@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useMarketingMotionPreference } from './MarketingMotion'
 import HeroDishARButton from './HeroDishARButton'
+import { canAutomaticallyRender3D } from '@/lib/marketing/automatic-3d'
 
 const dishes = [
   { id: 'picanha', name: 'Premium Picanha' },
@@ -23,6 +24,7 @@ export default function HeroTableShowcase() {
   const [visible, setVisible] = useState(false)
   const [activeDocument, setActiveDocument] = useState(true)
   const [idle, setIdle] = useState(false)
+  const [automatic3D, setAutomatic3D] = useState(false)
   const [explicit, setExplicit] = useState(false)
   const [libraryReady, setLibraryReady] = useState(false)
   const [loaded, setLoaded] = useState('')
@@ -37,7 +39,7 @@ export default function HeroTableShowcase() {
   const source = `/marketing/v3/dish-${dish.id}`
   const modelSource = `${source}.glb${retry > 0 ? `?retry=${retry}` : ''}`
   const modelKey = `${dish.id}-${retry}`
-  const enabled = explicit || (idle && motion !== 'reduced')
+  const enabled = explicit || (idle && automatic3D && motion !== 'reduced')
   const ready = loaded === modelKey
 
   useEffect(() => {
@@ -71,9 +73,15 @@ export default function HeroTableShowcase() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
     let idleHandle: number | undefined
+    const prepare = () => {
+      // Avoid loading a renderer that would monopolize the CPU on software WebGL.
+      // The matching posters keep the carousel available; 3D remains an opt-in.
+      setAutomatic3D(canAutomaticallyRender3D(document.createElement('canvas')))
+      setIdle(true)
+    }
     const schedule = () => {
-      if ('requestIdleCallback' in window) idleHandle = window.requestIdleCallback(() => setIdle(true), { timeout: 4000 })
-      else timer = setTimeout(() => setIdle(true), 1200)
+      if ('requestIdleCallback' in window) idleHandle = window.requestIdleCallback(prepare, { timeout: 4000 })
+      else timer = setTimeout(prepare, 1200)
     }
     if (document.readyState === 'complete') schedule()
     else window.addEventListener('load', schedule, { once: true })
@@ -126,10 +134,10 @@ export default function HeroTableShowcase() {
   }, [enabled, libraryReady, modelKey])
 
   useEffect(() => {
-    if (motion !== 'playing' || !visible || !activeDocument || !ready || failed || hovered || focused || manual) return
+    if (motion !== 'playing' || !visible || !activeDocument || !(enabled ? ready : idle) || failed || hovered || focused || manual) return
     const timer = setTimeout(() => setSelected(current => (current + 1) % dishes.length), 7000)
     return () => clearTimeout(timer)
-  }, [motion, visible, activeDocument, ready, failed, hovered, focused, manual, selected])
+  }, [motion, visible, activeDocument, enabled, ready, idle, failed, hovered, focused, manual, selected])
 
   useEffect(() => {
     const element = viewer.current as (HTMLElement & { play?: () => void; pause?: () => void }) | null
@@ -149,7 +157,7 @@ export default function HeroTableShowcase() {
   const controlClass = 'min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current'
 
   return <div ref={root} className="mk-table-showcase" role="region" aria-roledescription="carousel" aria-label="Interactive dish demonstration"
-    data-current-dish={dish.id} data-model-ready={ready && !failed}
+    data-current-dish={dish.id} data-model-ready={ready && !failed} data-automatic-3d={automatic3D}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
     <div className="mk-table-scene" style={{ position: 'relative' }}>
