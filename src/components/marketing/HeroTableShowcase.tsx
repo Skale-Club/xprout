@@ -147,7 +147,7 @@ export default function HeroTableShowcase() {
   }
   const controlClass = 'min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current'
 
-  return <div ref={root} className="mk-table-showcase" role="region" aria-roledescription="carousel" aria-label="Dishes at the Aurora table"
+  return <div ref={root} className="mk-table-showcase" role="region" aria-roledescription="carousel" aria-label="Interactive dish demonstration"
     data-current-dish={dish.id} data-model-ready={ready && !failed}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
@@ -171,8 +171,8 @@ export default function HeroTableShowcase() {
       </button> : null}
     </div>
     <div className="mk-table-caption">
-      <div><span className="mk-eyebrow">Aurora · {dish.category}</span><p>{dish.name}</p></div>
-      <Link href="/aurora" prefetch={false} className={controlClass}>Explore the menu</Link>
+      <div><span className="mk-eyebrow">3D preview · {dish.category}</span><p>{dish.name}</p></div>
+      <Link href="/aurora" prefetch={false} className={controlClass}>Open demo menu</Link>
     </div>
     <div className="mk-table-controls" aria-label="Choose a dish">
       <button type="button" className={controlClass} aria-label="Previous dish" onClick={() => choose((selected + dishes.length - 1) % dishes.length)}><ArrowLeft size={18} aria-hidden="true" /></button>

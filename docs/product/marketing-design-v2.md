@@ -47,11 +47,13 @@ reduced motion and keep primary content visible without an entrance animation.
 ## Pages
 
 Landing: editorial hero with 3D dishes over a fixed photographed table; a usable live-demo
-selection linking to Aurora, Bella Vista and Celes; a clear setup process; a
+selection linking to three anonymous demonstration menus; a clear setup process; a
 contrasting product-capabilities section; a concise pricing entry; FAQ; closing
 invitation. Existing login-modal behavior and configured text/media remain.
 The previous food film appears in a separate muted autoplay/loop section after the
 menu examples. See marketing-hero-3d.md for implementation, media budgets and evidence.
+Internal restaurant names/logos are absent from marketing labels and captures;
+see [the demonstration presentation contract](marketing-demo-presentation.md).
 
 Pricing: brief explanation of one-time setup plus ongoing service; three project
 options; monthly/annual plan comparison; grouped extras; a useful estimator;

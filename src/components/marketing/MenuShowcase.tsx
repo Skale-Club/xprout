@@ -6,28 +6,28 @@ import { DeliveryImage } from '@/components/delivery-image'
 
 const examples = [
   {
-    name: 'Aurora', category: 'Kitchen & bar', href: '/aurora',
+    name: 'Photo menu', category: 'Photo-led menu', href: '/aurora',
     title: 'A closer look, before the first bite.',
-    description: 'Explore Aurora’s photo feed and dish details, then turn selected dishes in 3D to see them from every angle.',
-    image: '/marketing/v2/menu-aurora.webp',
-    alt: 'Captured guest menu for Aurora Kitchen & Bar, showing its list of dishes',
-    label: 'Aurora Kitchen & Bar',
+    description: 'Browse a photo-led menu and open the dish details, with selected dishes to explore from every angle in 3D.',
+    image: '/marketing/v3/demo-photo-menu.webp',
+    alt: 'Illustrative photo feed showing a dish, description and price',
+    label: 'Photo menu demonstration',
   },
   {
-    name: 'Bella Vista', category: 'Italian restaurant', href: '/bella-vista',
+    name: 'Italian menu', category: 'Italian menu', href: '/bella-vista',
     title: 'Let the food do the talking.',
     description: 'Browse an Italian menu with generous dish photography and the detail guests want before they choose.',
-    image: '/marketing/v2/menu-bella-vista.webp',
-    alt: 'Captured guest menu for Bella Vista, showing its list of Italian dishes',
-    label: 'Bella Vista',
+    image: '/marketing/v3/demo-italian-menu.webp',
+    alt: 'Illustrative Italian menu showing a pasta dish in the photo feed',
+    label: 'Italian menu demonstration',
   },
   {
-    name: 'Celes', category: 'Confections', href: '/celes',
+    name: 'Dessert feed', category: 'Dessert feed', href: '/celes',
     title: 'Save a little room for something sweet.',
     description: 'See a different expression of the same platform: a confectionery menu made around its own food and identity.',
-    image: '/marketing/v2/menu-celes.webp',
-    alt: 'Captured guest menu for Celes Confections, showing its photo feed',
-    label: 'Celes Confections',
+    image: '/marketing/v3/demo-dessert-feed.webp',
+    alt: 'Illustrative dessert feed showing a full-screen dish photograph',
+    label: 'Dessert feed demonstration',
   },
 ] as const
 
@@ -64,17 +64,17 @@ export default function MenuShowcase() {
           <figcaption className="text-center text-sm text-[var(--mk-ink)]">
             <span className="block font-semibold">{example.label}</span>
             <span className="mk-muted mt-1 block text-xs tabular-nums">Preview / {String(selected + 1).padStart(2, '0')} of {String(examples.length).padStart(2, '0')}</span>
-            <span className="mk-muted mt-1 block text-xs">A captured preview. Open the menu to explore.</span>
+            <span className="mk-muted mt-1 block text-xs">An illustrative preview. Open the demo to explore.</span>
           </figcaption>
         </figure>
         <div className="flex min-w-0 flex-col justify-center p-6 sm:p-10 lg:p-14">
           <div aria-live="polite" aria-atomic="true"><div key={example.name} className="mk-copy-swap">
-            <p className="mk-eyebrow mb-5">{example.category} · Menu example</p>
+            <p className="mk-eyebrow mb-5">{example.category} · Demo</p>
             <h3 className="mk-h2 mb-5">{example.title}</h3>
             <p className="mk-lead mb-8">{example.description}</p>
           </div></div>
           <a href={example.href} target="_blank" rel="noopener noreferrer" className="mk-button w-full sm:w-fit">
-            Open {example.name} <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
+            Open demo menu <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
             <span className="sr-only"> menu in a new tab</span>
           </a>
           <a href={`${example.href}?view=feed`} target="_blank" rel="noopener noreferrer"
@@ -85,7 +85,7 @@ export default function MenuShowcase() {
           <p className="mk-muted mt-4 text-sm leading-relaxed">3D is available for dishes with a model. Camera viewing requires a supported phone.</p>
           <div className="mt-10 flex items-start gap-3 border-t border-[var(--mk-line)] pt-6">
             <BookOpen className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-            <p className="mk-muted text-sm leading-relaxed">These are live examples to explore. Menu content and available ordering options depend on each restaurant.</p>
+            <p className="mk-muted text-sm leading-relaxed">Explore these demonstrations to try the menu, dish details and photo feed. Available features vary by setup.</p>
           </div>
         </div>
       </div>
