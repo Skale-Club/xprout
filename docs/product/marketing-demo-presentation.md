@@ -36,7 +36,8 @@ white marks and its existing shadow; the hero also uses white over the photo. Pr
 and next buttons remain 44px navigation targets; the indicator exposes the
 current position accessibly. Direct numbered jumps are replaced by the same
 display-only indicator used in AR. Hero wrapping and AR endpoint behavior stay
-unchanged. Store invitations are consistent across hero, showcase and footer.
+unchanged. Store visits are offered in the dedicated demo section; navigation
+and footer lead to that section.
 
 Lightweight syntax checks and six server-rendered indicator states pass. A full
 typecheck/browser check was not run while the machine remained at critical RAM.
@@ -49,8 +50,8 @@ Owner feedback places the dish name over the photo, like the AR name strip.
 The hero groups its centered Inter dish name and previous/next arrows in a
 nonblocking overlay at the top of the photo. White text and shadows match the
 AR treatment. The overlay ignores pointer input except
-on the 44px arrow controls, preserving model dragging. The footer retains the
-category and demo-store link; it no longer repeats the dish name.
+on the 44px arrow controls, preserving model dragging. The card ends at the
+photograph: the extra category label and demo-store footer have been removed.
 The photo/model sizing, native launch, wheel/idle behavior and links are unchanged.
 
 Follow-up validation closes the earlier memory-related browser gap: TypeScript
@@ -78,3 +79,24 @@ indicators aligned with the button inside the image, one entry, navigation/posit
 activation, no page errors and no overflow. Emulated Android retains camera
 wording, bottom-right placement and no overlap at 320/390px. Nine focused tests and scoped ESLint pass.
 Reviewed 320/390/1440px captures. Evidence: `output/hero-controls-base/2026-11-14`.
+
+## Dedicated demo-store section
+
+The owner removed the meaningless “3D preview / Main” label and store invitation
+from the hero. Its frame now contains only the photographed scene, dish name,
+navigation, position marks and camera/3D entry. Unused category data and footer
+styles are removed. The photo/model behavior and dimensions are unchanged.
+
+The existing anonymous demonstration block is the dedicated **Demo store**
+section, with `#demo-store`, heading **Visit the demo store.**, an explanation
+of the guest experience and the three existing illustrative styles/links. The
+navigation, footer and secondary hero action lead to this section; external
+store visits originate inside it. `#experience` remains as an inner anchor for
+existing links. No redundant second demo block or customer claims are added.
+
+Four browser widths (320/390/768/1440px) verify no hero footer/link/category label,
+a working section anchor, the old anchor, three demo destinations/new-tab
+behavior, no page errors and no overflow. Scoped ESLint and four existing
+marketing content/layout tests pass. Reviewed mobile hero and desktop section
+captures; no new public media assets or settings writes. Evidence:
+`output/demo-store-section/2026-11-14`. Local review only; no deployment.

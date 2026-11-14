@@ -4,15 +4,14 @@ import MorsePositionIndicator from '@/components/ui/MorsePositionIndicator'
 
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react'
-import Link from 'next/link'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useMarketingMotionPreference } from './MarketingMotion'
 import HeroDishARButton from './HeroDishARButton'
 
 const dishes = [
-  { id: 'picanha', name: 'Premium Picanha', category: 'Main' },
-  { id: 'burger', name: 'Artisan Burger', category: 'Main' },
-  { id: 'tiramisu', name: 'Tiramisu', category: 'Dessert' },
+  { id: 'picanha', name: 'Premium Picanha' },
+  { id: 'burger', name: 'Artisan Burger' },
+  { id: 'tiramisu', name: 'Tiramisu' },
 ] as const
 
 /** One photographed table, one active dish model, and a matching transparent poster. */
@@ -182,10 +181,6 @@ export default function HeroTableShowcase() {
       </button> : null}
     </div>
 
-    <div className="mk-table-caption">
-      <span className="mk-eyebrow">3D preview · {dish.category}</span>
-      <Link href="/aurora" prefetch={false} className={controlClass}>Visit the demo store</Link>
-    </div>
 
     <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</span>
   </div>

@@ -46,8 +46,9 @@ reduced motion and keep primary content visible without an entrance animation.
 
 ## Pages
 
-Landing: editorial hero with 3D dishes over a fixed photographed table; a usable live-demo
-selection linking to three anonymous demonstration menus; a clear setup process; a
+Landing: editorial hero with 3D dishes over a fixed photographed table, without
+an extra caption/footer; a dedicated Demo store section linking to three anonymous
+demonstration menus; a clear setup process; a
 contrasting product-capabilities section; a concise pricing entry; FAQ; closing
 invitation. Existing login-modal behavior and configured text/media remain.
 The previous food film appears in a separate muted autoplay/loop section after the

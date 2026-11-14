@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, ArrowUpRight } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { BRAND_NAME } from '@/lib/brand'
 import { DeliveryImage } from '@/components/delivery-image'
 import PlatformSignature from '@/components/branding/PlatformSignature'
@@ -30,7 +30,7 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
     return () => window.removeEventListener('keydown', escape)
   }, [open])
   const links = <>
-    <Link className="mk-nav-link" href="/#experience" onClick={() => setOpen(false)}>The experience</Link>
+    <Link className="mk-nav-link" href="/#demo-store" onClick={() => setOpen(false)}>Demo store</Link>
     <Link className="mk-nav-link" href="/#how-it-works" onClick={() => setOpen(false)}>How it works</Link>
     <Link className="mk-nav-link" href={PRICING_PATH} aria-current={activePage === 'pricing' ? 'page' : undefined} onClick={() => setOpen(false)}>Pricing</Link>
   </>
@@ -59,10 +59,9 @@ export function Footer({ data, appName, logoUrl }: { data?: FooterData | null; a
           <p className="mt-4 text-xs text-[var(--mk-muted)]">Photography. Interactive 3D. Your hospitality.</p>
         </div>
         <div><span className="mk-footer-label">Explore {appName ?? BRAND_NAME}</span><ul className="mk-footer-links">
-          <li><Link href="/#experience">The menu experience</Link></li>
+          <li><Link href="/#demo-store">Demo store</Link></li>
           <li><Link href="/#how-it-works">How it works</Link></li>
           <li><Link href={PRICING_PATH}>Plans &amp; pricing</Link></li>
-          <li><Link href="/aurora" className="inline-flex items-center gap-2">Visit the demo store <ArrowUpRight size={14} /></Link></li>
         </ul></div>
         <div><span className="mk-footer-label">The essentials</span><ul className="mk-footer-links">
           <li><Link href="/privacy">Privacy policy</Link></li>

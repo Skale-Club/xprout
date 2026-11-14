@@ -36,14 +36,14 @@ export default function MenuShowcase() {
   const [selected, setSelected] = useState(0)
   const example = examples[selected]
 
-  return <section id="experience" className="mk-experience mk-section scroll-mt-24" aria-labelledby="examples-title">
-    <div className="mk-container">
+  return <section id="demo-store" className="mk-experience mk-section scroll-mt-24" aria-labelledby="examples-title">
+    <div id="experience" className="mk-container">
       <div className="mb-8 grid gap-6 md:mb-12 md:grid-cols-[1.2fr_1fr] md:items-end">
         <div>
-          <p className="mk-eyebrow mb-4">Explore the experience</p>
-          <h2 id="examples-title" className="mk-h2 max-w-xl">See how a menu can feel.</h2>
+          <p className="mk-eyebrow mb-4">Try Xprout</p>
+          <h2 id="examples-title" className="mk-h2 max-w-xl">Visit the demo store.</h2>
         </div>
-        <p className="mk-lead max-w-md md:justify-self-end">Move from the photo feed to dish details, with selected dishes to explore in 3D. See how each restaurant brings its own food and character to the menu.</p>
+        <p className="mk-lead max-w-md md:justify-self-end">Browse a complete menu, explore the photo feed and open selected dishes in 3D. Choose a demonstration to try the guest experience.</p>
       </div>
 
       <div role="group" aria-label="Choose a menu example" className="mb-6 flex flex-wrap gap-2">

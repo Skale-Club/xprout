@@ -143,7 +143,7 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
           <button type="button" onClick={onLoginOpen} className={`mk-button ${dark ? 'mk-button--light' : ''}`}>
             {s.cta_primary ?? landingCopy.hero.cta_primary} <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
           </button>
-          <a href="#experience" className="mk-button mk-button--outline">{s.cta_secondary ?? landingCopy.hero.cta_secondary}</a>
+          <a href="#demo-store" className="mk-button mk-button--outline">{s.cta_secondary ?? landingCopy.hero.cta_secondary}</a>
         </div>
         <p className="mk-muted mt-4 text-sm leading-relaxed">3D for selected dishes. Camera view on supported phones. No app download.</p>
       </div>
