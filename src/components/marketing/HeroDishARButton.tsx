@@ -35,7 +35,7 @@ const platformSnapshot = () => {
 }
 const serverPlatformSnapshot = () => null
 
-export default function HeroDishARButton({ dishId }: { dishId: HeroDishId }) {
+export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: HeroDishId; onExplore3D?: () => void }) {
   const platform = useSyncExternalStore(subscribePlatform, platformSnapshot, serverPlatformSnapshot)
   const [notice, setNotice] = useState('')
 
@@ -50,11 +50,14 @@ export default function HeroDishARButton({ dishId }: { dishId: HeroDishId }) {
     return () => window.removeEventListener('hashchange', checkFallback)
   }, [])
 
-  if (!platform) return null
   const dish = dishes[dishId]
   const launch = () => {
     const href = getHeroArAction(dishId, platform, window.location.href)
-    if (!href) return
+    if (!href) {
+      onExplore3D?.()
+      setNotice('Drag to turn the dish. Open this page on a compatible iPhone or Android phone to see it on your table in AR.')
+      return
+    }
     setNotice('')
     if (platform === 'quick-look') openQuickLook(href)
     else window.location.assign(href)
@@ -62,7 +65,7 @@ export default function HeroDishARButton({ dishId }: { dishId: HeroDishId }) {
 
   return <div className="mk-hero-ar">
     <button type="button" onClick={launch} className="mk-hero-ar-button min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
-      aria-label={`View ${dish.title} in your space in AR`}>
+      aria-label={platform ? `View ${dish.title} in your space in AR` : `View ${dish.title} in 3D`}>
       <Box size={17} aria-hidden="true" /><span>View in 3D</span>
     </button>
     <p className="mk-hero-ar-status" role="status" aria-live="polite">{notice}</p>

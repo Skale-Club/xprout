@@ -152,7 +152,7 @@ export default function HeroTableShowcase() {
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
     <div className="mk-table-scene" style={{ position: 'relative' }}>
-      <HeroDishARButton dishId={dish.id} />
+      <HeroDishARButton dishId={dish.id} onExplore3D={() => { setExplicit(true); setManual(true) }} />
       <DeliveryImage src="/marketing/v3/table-photo.webp" alt="" aria-hidden="true" draggable={false} className="mk-table-photo"
         width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px" preload
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />

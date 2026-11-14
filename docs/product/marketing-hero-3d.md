@@ -34,7 +34,10 @@ The library/model load after page load and an idle opportunity, when visible.
 Reduced motion and data saving keep a static poster until explicit Explore in
 3D. JavaScript-free content remains visible. Model failures/timeouts retain the
 poster; Retry uses a new attempt URL to bypass the library's failed-URL cache.
-Supported phones/tablets have a View in3D pill that opens native AR only on tap.
+The View in3D pill is always visible, including desktop and resized previews.
+On supported phones/tablets it opens native AR only on tap; elsewhere it enables
+the inline3D view and explains how to access phone AR. Capability detection must
+not hide the entry point.
 Shared launch helpers use published original GLBs for Android Scene Viewer and
 USDZs for iOS Quick Look, with real-scale resizing off. No AR model or Three/WebXR
 library is preloaded for this button. Six original asset URLs return200 with
