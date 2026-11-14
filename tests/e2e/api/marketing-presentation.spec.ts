@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test'
 
+// Network fixtures must own the frame request; the production SW otherwise
+// forwards navigation outside page.route and reaches the real identity entry.
+test.use({ serviceWorkers: 'block' })
+
 const entry = '<html><body style="margin:0;background:#f3efe5"><main style="height:360px;padding:24px;box-sizing:border-box"><h1>Welcome back.</h1><label>Phone<input type="tel"></label></main></body></html>'
 
 test.beforeEach(async ({ page }) => {
