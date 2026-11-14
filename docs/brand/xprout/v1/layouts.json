@@ -26,21 +26,28 @@
     ]
   },
   "horizontal": {
-    "w": 1075.5155165075823,
-    "h": 225.65651028664055,
+    "w": 963.1543518142191,
+    "h": 219.04148580222773,
     "symbolHeight": 202,
+    "alignment": {
+      "reference": "initial capital X contour; cap top to baseline/body bottom; descenders and diacritics excluded",
+      "sourceBodyBounds": [
+        16.3140489858687,
+        193.11198629815513
+      ]
+    },
     "items": [
       {
         "kind": "symbol",
         "x": 0,
-        "y": 11.828255143320277,
+        "y": 0,
         "scale": 0.6539248623899249
       },
       {
         "kind": "wordmark",
         "x": 272.93576869784545,
-        "y": 0,
-        "scale": 1
+        "y": 24.976886955716836,
+        "scale": 0.86
       }
     ]
   },

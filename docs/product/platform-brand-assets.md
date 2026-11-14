@@ -43,10 +43,10 @@ references therefore resolve to the approved forest/ivory tile after deployment.
 The versioned ICO is available for explicit metadata; no legacy source favicon
 existed to overwrite.
 
-The horizontal signature's original viewBox is
-`0 0 1176.5155165075823 326.6565102866406`; preserve this aspect ratio. Visible
-artwork is 1075.5155165075823×225.65651028664055, with 50.5 units of clearspace
-around it. The manual's 160px visible horizontal minimum needs about 175px total
+The horizontal signature's current viewBox is
+`0 0 1064.1543518142191 320.0414858022277`; preserve this aspect ratio. Visible
+artwork is 963.1543518142191 by 219.04148580222773, with 50.5 units of clearspace
+around it. The manual's 160px visible horizontal minimum needs about 177px total
 SVG width. SVG image sizing must not stretch it into a square tile.
 
 ## Verification
@@ -64,3 +64,5 @@ Platform components and metadata use the versioned assets; custom platform logos
 The operator `scripts/ops/update-xprout-platform-brand.mjs` is read-only by default. It records a public configuration backup and tenant palette digest. After deploy, `--apply --expected-release <full SHA>` verifies the published icon bytes, production container/release/database identity, singleton and original favicon under the existing advisory lock, then changes only `favicon_url` and its timestamp. Read-back proves the palette digest is unchanged. `--rollback --expected-release <full SHA>` restores the backed-up reference. Receipts are ignored operational evidence, never secrets.
 
 A browser refresh fetches the new HTML and versioned assets. An existing installed PWA may refresh its OS icon on its platform schedule. The Journal records actual deployment and visual validation; generated files alone are not deployment proof.
+
+Horizontal alignment uses the initial capital X cap-to-baseline body bounds, excluding the p descender and any diacritics. Both the symbol and typographic body centers are y=101; the descender extends below naturally.

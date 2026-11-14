@@ -41,7 +41,7 @@ describe('approved platform identity preserves explicit configuration', () => {
     const markup = renderToStaticMarkup(createElement(PlatformSignature, { tone: 'ivory' }))
     expect(markup).toContain('alt="Xprout"')
     expect(markup).toContain(PLATFORM_BRAND_ASSETS.horizontalIvory)
-    expect(markup).toContain('aspect-ratio:1176.5155165075823 / 326.6565102866406')
+    expect(markup).toContain('aspect-ratio:1064.1543518142191 / 320.0414858022277')
     expect(markup).not.toContain('<span')
   })
   it('uses the signature only for the default Xprout identity in navigation and footer', () => {
