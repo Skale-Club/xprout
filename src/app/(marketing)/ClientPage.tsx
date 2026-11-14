@@ -255,6 +255,16 @@ function FooterCTABand({ data, onLoginOpen }: { data?: CtaData | null; onLoginOp
 export default function ClientLandingPage({ platformLanding, appName, logoUrl }: { platformLanding?: unknown; appName?: string | null; logoUrl?: string | null }) {
   const landing = platformLanding && typeof platformLanding === 'object' ? platformLanding as LandingData : null
   const [loginOpen, setLoginOpen] = useState(false)
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('signin') !== '1') return
+    const frame = window.requestAnimationFrame(() => {
+      setLoginOpen(true)
+      url.searchParams.delete('signin')
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
   return <div className="min-h-screen bg-[var(--mk-paper)] text-[var(--mk-ink)]">
       <Nav appName={appName} logoUrl={logoUrl} onLoginOpen={() => setLoginOpen(true)} />
       <main>

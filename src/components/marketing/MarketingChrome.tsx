@@ -39,12 +39,13 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
       <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="mk-nav-brand shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
       <div className="mk-nav-links">{links}</div>
       <div className="mk-nav-actions">
-        {startHref ? <Link href={startHref} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your project</span></Link>
-          : <button type="button" onClick={onLoginOpen} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your project</span></button>}
+        {startHref ? <Link href={startHref} onClick={() => setOpen(false)} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your project</span></Link>
+          : <button type="button" onClick={() => { setOpen(false); onLoginOpen?.() }} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your project</span></button>}
         <button ref={toggle} type="button" className="mk-nav-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="marketing-mobile-navigation" onClick={() => setOpen(value => !value)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
       </div>
     </div>
     {open ? <div id="marketing-mobile-navigation" className="mk-mobile-nav">{links}</div> : null}
+    <div aria-hidden="true" className="mk-scroll-progress" />
   </nav>
 }
 

@@ -57,7 +57,6 @@ export default function MarketingMotion({ children }: { children: ReactNode }) {
   }, [playing])
 
   return <div ref={root} data-motion={playing ? 'on' : 'off'} className="mk-motion-surface">
-    <div aria-hidden="true" className="mk-scroll-progress" />
     {children}
   </div>
 }

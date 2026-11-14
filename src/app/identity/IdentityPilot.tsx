@@ -3,7 +3,7 @@
 import { DeliveryImage } from '@/components/delivery-image'
 import PlatformSignature from '@/components/branding/PlatformSignature'
 import GradientTopLine from '@/components/ui/GradientTopLine'
-import { platformLogoUrl } from '@/lib/platform-brand'
+import { isDefaultPlatformLogo, platformLogoUrl } from '@/lib/platform-brand'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { googleProof, phoneProof, type IdentityWebConfig } from '@/lib/auth/identity-browser'
 import { requireLoginAuthority } from '@/lib/auth/browser-login-authority'
@@ -256,12 +256,12 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
   }
 
 
-  // ── Inside the marketing site's popup: the platform sign-in on the site's own dark card (logo, Google first,
+  // ── Inside the marketing site's popup: the platform sign-in on the site's own ivory card (logo,
   // then the phone with its country), so nobody leaves the page to sign in.
   if (embedded && !brand && continueToApp && !customerFlow && !existingAccountLink && !staffAccess) {
-    const fieldClass = 'block h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-[16px] text-platform-ivory placeholder:text-zinc-400 transition-[border-color,box-shadow] focus:border-primary-on-dark focus:outline-none focus:ring-2 focus:ring-primary-on-dark disabled:opacity-50'
-    const primary = 'flex h-14 w-full items-center justify-center gap-2 rounded-full bg-primary text-base font-black text-primary-foreground transition-all enabled:hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50'
-    const label = 'mb-2 ml-1 block text-[11px] font-bold uppercase tracking-widest text-zinc-400'
+    const fieldClass = 'block h-12 w-full rounded-xl border border-[#283F32]/20 bg-white px-4 text-[16px] text-[#283F32] placeholder:text-[#283F32]/50 transition-[border-color,box-shadow] focus:border-[#283F32] focus:outline-none focus:ring-2 focus:ring-[#283F32]/20 disabled:opacity-50'
+    const primary = 'flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-base font-semibold text-primary-foreground transition-opacity enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50'
+    const label = 'mb-2 ml-1 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#283F32]/75'
     const submit = () => void run(async () => {
       // Development on localhost: Xpot's development code instead of SMS (dev-phone-client.ts).
       if (DEV_PHONE_SIGN_IN) {
@@ -290,24 +290,23 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
       attempt.current = await phoneProof(config, e164)
       setSentPhone(e164); setSent(true); setMessage('')
     })
-    return <main className="platform-dark relative overflow-hidden bg-zinc-900 px-6 pb-6 pt-8 text-platform-ivory" style={{ colorScheme: 'dark' }}>
-      {/* The frame's page must share the card's colour and scheme, or the browser paints a white backdrop
-          behind it that shows as a light edge around the popup. */}
-      <style>{'html,body{background:#18181b;color-scheme:dark;--scrollbar-thumb:rgb(255 255 255 / 0.24)}'}</style>
-      {/* Soft brand glow under the popup's gradient top line. */}
-      <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-24 w-48 -translate-x-1/2 rounded-full bg-platform-brand-accent/10 blur-3xl" />
-      <section aria-labelledby="identity-title" className="relative">
+    return <main className="relative overflow-hidden bg-[#F3EFE5] px-6 pb-6 pt-8 text-[#283F32]" style={{ colorScheme: 'light' }}>
+      {/* Match the iframe page to the popup card, including its scrollbar. */}
+      <style>{'html:has(.platform-popup-identity),body:has(.platform-popup-identity){background:#F3EFE5;color-scheme:light;--scrollbar-thumb:rgb(40 63 50 / 0.3)}'}</style>
+      <section aria-labelledby="identity-title" className="platform-popup-identity relative">
         <div className="mb-8 text-center">
 
-          <DeliveryImage src={platformLogoUrl(platformLogo)} width={48} height={48} sizes="48px" alt="" className="mx-auto mb-5 size-12 object-contain" />
-          <h1 id="identity-title" className="text-2xl font-black tracking-tight">Xprout</h1>
-          <p className="mt-2 text-sm font-bold text-zinc-400">{sent ? `Enter the code we sent to ${phoneLabel(sentPhone) || sentPhone}` : 'Sign in to your menu dashboard'}</p>
+          {isDefaultPlatformLogo(platformLogo)
+            ? <PlatformSignature tone="forest" className="mx-auto mb-7" />
+            : <DeliveryImage src={platformLogoUrl(platformLogo)} width={48} height={48} sizes="48px" alt="Xprout" className="mx-auto mb-7 size-12 object-contain" />}
+          <h1 id="identity-title" className="text-[30px] font-semibold tracking-tight">Welcome back.</h1>
+          <p className="mt-2 text-sm leading-6 text-[#283F32]/75">{sent ? `Enter the code we sent to ${phoneLabel(sentPhone) || sentPhone}` : 'Sign in to your menu dashboard'}</p>
         </div>
-        {error ? <p role="alert" className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-[14px] font-medium leading-snug text-red-200">{error}</p> : null}
-        {message ? <p role="status" className="mb-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-[14px] font-medium leading-snug text-emerald-200">{message}</p> : null}
+        {error ? <p role="alert" className="mb-4 rounded-xl border border-[#602021]/20 bg-[#602021]/5 px-4 py-3 text-[14px] font-medium leading-snug text-[#602021]">{error}</p> : null}
+        {message ? <p role="status" className="mb-4 rounded-xl border border-[#283F32]/20 bg-white/70 px-4 py-3 text-[14px] font-medium leading-snug text-[#283F32]">{message}</p> : null}
         {sent ? <button type="button" disabled={busy}
           onClick={() => { attempt.current?.cancel(); attempt.current = null; setSent(false); setCode(''); setError('') }}
-          className="mb-4 flex min-h-11 items-center gap-1 text-xs font-bold text-zinc-400 transition-colors hover:text-zinc-200">
+          className="mb-4 flex min-h-12 items-center gap-1 text-sm font-medium text-[#283F32]/75 transition-colors hover:text-[#602021]">
           <ChevronLeft className="size-3.5" aria-hidden="true" /> Use another number
         </button> : null}
         {/* The phone comes first: it is how the platform signs people in. */}
@@ -319,7 +318,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
               onChange={event => setCode(event.target.value.replace(/\D/g, ''))} onFocus={keepFieldVisible} disabled={busy} />
           </div> : <div>
             <label htmlFor="identity-phone" className={label}>Phone</label>
-            <PhoneField ghost id="identity-phone" value={phone} onChange={setPhone} tone="dark"
+            <PhoneField ghost id="identity-phone" value={phone} onChange={setPhone} tone="light"
               countryLabel="Country" countrySearchLabel="Search country" enterKeyHint="send" required
               onFocus={keepFieldVisible} className={fieldClass} />
           </div>}
@@ -330,17 +329,17 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
         </form>
         {!sent ? <>
           <div className="my-6 flex items-center gap-3" aria-hidden="true">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">or</span>
-            <div className="h-px flex-1 bg-white/10" />
+            <div className="h-px flex-1 bg-[#283F32]/15" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#283F32]/65">or</span>
+            <div className="h-px flex-1 bg-[#283F32]/15" />
           </div>
           <button type="button" disabled={busy} onClick={() => void run(async () => { await complete(await googleProof(config)) })}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-3.5 text-sm font-bold text-platform-ivory transition-all hover:scale-[1.02] hover:bg-white/10 active:scale-95 disabled:opacity-50">
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-[#283F32]/20 bg-white px-4 text-sm font-semibold text-[#283F32] transition-colors hover:border-[#283F32]/40 hover:bg-white/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#283F32] disabled:opacity-50">
             <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
             Continue with Google
           </button>
         </> : null}
-        <p className="mt-6 px-4 text-center text-[11px] font-medium leading-relaxed text-zinc-400">By signing in, you agree to the platform terms of use and privacy policy.</p>
+        <p className="mt-6 px-4 text-center text-[12px] font-medium leading-relaxed text-[#283F32]/70">By signing in, you agree to the platform terms of use and privacy policy.</p>
       </section>
     </main>
   }

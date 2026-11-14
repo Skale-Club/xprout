@@ -12,6 +12,7 @@ import SignInFrameDialog from '@/components/auth/SignInFrameDialog'
 import GradientTopLine from '@/components/ui/GradientTopLine'
 import { readLoginAuthority, requireLoginAuthority, type LoginAuthority } from '@/lib/auth/browser-login-authority'
 import { ownedLoginDestination } from '@/lib/auth/browser-owned-login'
+import { developmentSignInRedirect } from '@/lib/auth/development-sign-in'
 
 interface Props {
   open: boolean
@@ -31,13 +32,15 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
 
   useEffect(() => {
     if (!open) return
+    const canonical = developmentSignInRedirect(window.location.href, process.env.NODE_ENV === 'development')
+    if (canonical) { window.location.assign(canonical); return }
     let active = true
     setAuthority(null)
     void readLoginAuthority().then(async value => {
       // Already signed in: "Start" goes straight to the panel instead of showing a sign-in card
       // (the dialog keeps its loading state until the page changes).
       if (value === 'owned') {
-        const session = await fetch('/api/identity/session', { credentials: 'same-origin', cache: 'no-store' }).catch(() => null)
+        const session = await fetch('/api/identity/session', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(5000) }).catch(() => null)
         if (session?.ok) {
           window.location.assign(new URL(await ownedLoginDestination('/'), window.location.origin).href)
           return
@@ -129,7 +132,7 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
     unavailable={authority === 'unavailable'}
     title="Sign in to Xprout"
     closeLabel="Close sign in"
-    tone="dark"
+    tone="marketing"
     // Top corner, as on the site's e-mail sign-in card.
     closeTop={12}
     onClose={onClose}
