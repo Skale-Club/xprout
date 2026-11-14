@@ -229,13 +229,13 @@ export interface ContactLinks {
   instagram: { url: string; handle: string } | null
 }
 
-/** The contact links a restaurant filled in, normalized; each null when missing or unusable. */
+/** Normalized contact links; a usable phone takes precedence over WhatsApp. */
 export function contactLinks(
   settings: ({ whatsapp?: string | null; phone?: string | null; instagram?: string | null } & PhoneContext) | null | undefined,
   whatsappMessage?: string | null,
 ): ContactLinks {
   const tel = telUrl(settings?.phone, settings)
-  const whatsapp = whatsappUrl(settings?.whatsapp, whatsappMessage, settings)
+  const whatsapp = tel ? null : whatsappUrl(settings?.whatsapp, whatsappMessage, settings)
   return {
     whatsapp,
     whatsappLabel: whatsapp ? phoneLabel(settings?.whatsapp, settings) : null,

@@ -1,3 +1,4 @@
+import { MAX_DISH_TAG_LENGTH, PREDEFINED_DISH_TAGS } from '@/lib/menu/dish-tags'
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -28,7 +29,7 @@ const settingsShape = z
     instagram: z.string().nullable(),
     whatsapp: z.string().nullable(),
     business_hours: z.any(),
-    custom_tags: z.array(z.string()),
+    custom_tags: z.array(z.string().max(MAX_DISH_TAG_LENGTH).refine(value => PREDEFINED_DISH_TAGS.some(tag => tag.toLowerCase() === value.trim().toLowerCase()), 'Invalid predefined tag')).max(PREDEFINED_DISH_TAGS.length),
     orders_enabled: z.boolean(),
     direct_orders_enabled: z.boolean(),
     currency: z.string(),

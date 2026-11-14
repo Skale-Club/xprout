@@ -12,14 +12,14 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { Plus, Package, Trash2, Edit3, X, ChevronRight, AlertCircle, ShieldCheck, Star, Utensils, Tag, Image as ImageIcon, CheckCircle2, GalleryVerticalEnd } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
-import { dishFeature, normalizeTags, tagColor, tagStyle } from '@/lib/menu/dish-tags'
+import { dishFeature, normalizeTags, PREDEFINED_DISH_TAGS, tagColor, tagStyle } from '@/lib/menu/dish-tags'
 import DishFeaturePill from '@/components/menu/DishFeaturePill'
 
 interface ProductWithCategory extends Product {
   category: { id: string; name: string } | null
 }
 
-const DEFAULT_TAGS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Spicy', 'Chef\'s special']
+const TAGS = PREDEFINED_DISH_TAGS
 
 const CURRENCY_SYMBOL: Record<string, string> = {
   USD: '$', BRL: 'R$', EUR: '€', GBP: '£',
@@ -52,8 +52,7 @@ async function ownedProductRequest<T>(url: string, method: string, body?: unknow
   return result as T
 }
 
-export default function ProductsClient({ products: initial, categories, tenantId, menuId, activeMenuName, availableTags, currency = 'USD', canManage, ownedSource }: Props) {
-  const TAGS = availableTags?.length ? availableTags : DEFAULT_TAGS
+export default function ProductsClient({ products: initial, categories, tenantId, menuId, activeMenuName, currency = 'USD', canManage, ownedSource }: Props) {
   const [products, setProducts] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)

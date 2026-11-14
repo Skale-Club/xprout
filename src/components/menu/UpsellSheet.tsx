@@ -101,7 +101,7 @@ export default function UpsellSheet({
                         : <span className="flex size-full items-center justify-center text-zinc-300"><UtensilsCrossed className="size-6" /></span>}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="line-clamp-2 text-[15px] font-semibold leading-snug text-zinc-900">{product.name}</span>
+                      <span className={`line-clamp-2 text-[15px] text-zinc-900 ${ui.dishTitleCompact}`}>{product.name}</span>
                       <span className="mt-0.5 block text-[14px] font-medium tabular-nums" style={{ color: priceColor }}>{formatMoney(product.price, currency, lang)}</span>
                     </span>
                     {added ? (

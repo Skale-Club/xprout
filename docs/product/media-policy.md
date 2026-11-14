@@ -12,6 +12,11 @@ External embeds must use lightweight posters, lazy loading and explicit playback
 
 ## Image contract
 
+Tenant browser icons reuse the stored logo. When a tenant has no logo, its
+fallback is an inline 64×64 SVG with at most two initials, bounded to 1 KiB
+of encoded URL bytes (`src/lib/tenant-metadata.ts`); it requires no remote
+fetch or raster processing and never substitutes the platform identity.
+
 The authoritative raster encoder is `src/lib/media/optimize-image.ts`; shared limits live in `image-policy.ts` and are used by `src/lib/upload.ts` and native tenant image ingestion. The current profiles cap the **actual encoded output**, not estimated compression:
 
 | Profile | Maximum long edge | Maximum encoded bytes |

@@ -21,10 +21,10 @@ export default function DishFeaturePill({ tag, lang, tone = 'solid', className =
   const glass = tone === 'glass'
   return (
     <span
-      className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase leading-none tracking-wider ${glass ? 'border-white/15 bg-black/25 backdrop-blur' : 'border-transparent'} ${className}`}
+      className={`inline-flex w-fit max-w-full items-center overflow-hidden whitespace-nowrap rounded-full border px-2.5 py-1 text-[9px] font-black uppercase leading-none tracking-wider ${glass ? 'border-white/15 bg-black/25 backdrop-blur' : 'border-transparent'} ${className}`}
       style={glass ? { color: color.background } : { backgroundColor: color.background, color: color.text }}
     >
-      {translateTag(tag, lang)}
+      <span className="min-w-0 truncate">{translateTag(tag, lang)}</span>
     </span>
   )
 }

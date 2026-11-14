@@ -22,10 +22,12 @@ export default function DishHeading({ name, price, size = 'sheet', as: Tag = 'h2
   priceStyle?: CSSProperties
 }) {
   const metrics = ui.dishHeading[size]
+  const hasPrice = price != null && price !== ''
   return (
     <div className={`flex items-end justify-between gap-4 ${className}`}>
-      <Tag className={`min-w-0 ${metrics.title} ${ui.dishTitle} ${titleClassName}`}>{name}</Tag>
-      {price != null && price !== '' && (
+      <Tag className={`min-w-0 ${hasPrice ? metrics.titleMaxWidth : 'w-full'} ${metrics.title} ${ui.dishTitle} ${titleClassName}`}
+        style={hasPrice ? undefined : { textWrap: 'wrap' }}>{name}</Tag>
+      {hasPrice && (
         <div className={`shrink-0 text-right ${metrics.price} ${ui.price} ${priceClassName}`} style={priceStyle}>{price}</div>
       )}
     </div>

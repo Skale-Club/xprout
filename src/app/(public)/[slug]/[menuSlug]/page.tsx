@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const noindex = isTenantNoindex(settings)
 
   return {
-    title,
+    title: { absolute: title },
     description,
     metadataBase: new URL(canonicalUrl),
     ...(keywords.length ? { keywords } : {}),

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MAX_DISH_TAG_LENGTH, PREDEFINED_DISH_TAGS } from '@/lib/menu/dish-tags'
 import { MENU_LANGUAGE_CODES } from '@/components/menu/menu-i18n'
 import { LAUNCH_CHECKLIST_STATUSES } from '../launch-checklist'
 
@@ -6,7 +7,7 @@ const tenant=z.string().min(1).max(200),uuid=z.string().uuid(),text=z.string().m
 const position=z.number().int().min(-2147483648).max(2147483647),money=z.number().min(0).max(99999999.99),nullableText=text.nullable()
 const role=z.enum(['superadmin','store-admin','store-staff','customer']),cycle=z.enum(['monthly','annual'])
 const product={ name,price:money,description:nullableText.optional(),original_price:money.nullable().optional(),category_id:uuid.nullable().optional(),image_url:nullableText.optional(),
-  is_available:z.boolean().optional(),is_featured:z.boolean().optional(),show_in_feed:z.boolean().optional(),tags:z.array(z.string().max(100)).max(50).optional(),position:position.optional() }
+  is_available:z.boolean().optional(),is_featured:z.boolean().optional(),show_in_feed:z.boolean().optional(),tags:z.array(z.string().max(MAX_DISH_TAG_LENGTH).refine(value => PREDEFINED_DISH_TAGS.some(tag => tag.toLowerCase() === value.trim().toLowerCase()), 'Invalid product tag')).max(1).optional(),position:position.optional() }
 const location={ name,slug:z.string().min(1).max(200),address:nullableText.optional(),city:nullableText.optional(),phone:nullableText.optional(),business_hours:z.unknown().optional(),menu_id:uuid.nullable().optional(),
   region:nullableText.optional(),postal_code:nullableText.optional(),country:nullableText.optional(),latitude:z.number().min(-90).max(90).optional(),longitude:z.number().min(-180).max(180).optional(),is_active:z.boolean().optional() }
 const plan={ name,description:nullableText.optional(),monthly_price:money,annual_price:money,transaction_fee_pct:z.number().min(0).max(9.9999),features:z.array(z.string().max(100)).max(100).optional(),is_active:z.boolean().optional(),sort_order:position.optional() }

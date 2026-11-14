@@ -53,8 +53,8 @@ import BottomSheet from '@/components/ui/BottomSheet'
 import LanguagePicker from './LanguagePicker'
 import { dishFeature } from '@/lib/menu/dish-tags'
 import DishFeaturePill from './DishFeaturePill'
-import UpsellSheet from './UpsellSheet'
-import { buildUpsellSteps, canQuickAdd, type UpsellStep } from './upsell'
+import { ui } from './menu-ui'
+import { buildCartSuggestions, canQuickAdd } from './upsell'
 import {
   Instagram,
   Mail,
@@ -66,7 +66,6 @@ import {
   Sparkles,
   Plus,
   Minus,
-  Check,
   UtensilsCrossed,
   Clapperboard,
 } from 'lucide-react'
@@ -223,7 +222,6 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const orderAttemptRef = useRef<IdempotencySlot | null>(null)
   const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const categoryFilterRef = useRef<HTMLDivElement | null>(null)
-  const autoOpenedRef = useRef(false)
 
   const settings = tenant.tenant_settings
   const primaryColor = settings?.primary_color ?? BRAND_PRIMARY
@@ -335,60 +333,22 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   )
   const checkoutOrderType = orderFields.order_type
 
-  // ── "Complete your order" (see upsell.ts) ─────────────────────────────────
-  // After a dish goes into the cart, offer what usually comes next. `choosing`
-  // = a suggestion with required choices is open in the product modal; adding
-  // it (or closing it) brings the guest back to the same step.
-  const upsellEnabled = capabilities.upsell
-  const [upsell, setUpsell] = useState<{
-    triggerId: string
-    steps: UpsellStep[]
-    index: number
-    added: string[]
-    choosing: boolean
-  } | null>(null)
+  // Suggestions belong to the cart and are expanded only by the guest.
+  const [returnToCart, setReturnToCart] = useState(false)
+  const cartSuggestions = useMemo(() => directOrdersEnabled && capabilities.upsell
+    ? buildCartSuggestions({ cartProductIds: cart.map(item => item.product.id), products, categories })
+    : [], [directOrdersEnabled, capabilities.upsell, cart, products, categories])
 
-  function startUpsell(product: Product) {
-    if (!upsellEnabled) return
-    const added = products.find(p => p.id === product.id) ?? product
-    const steps = buildUpsellSteps({
-      added,
-      cartProductIds: [...cart.map(item => item.product.id), product.id],
-      products,
-      categories,
-    })
-    if (!steps.length) return
-    setUpsell({ triggerId: product.id, steps, index: 0, added: [], choosing: false })
-    analyticsTracker?.track({ event_name: 'upsell_shown', product_id: product.id, source: 'upsell' })
-  }
-
-  function acceptUpsell(product: Product, quantity: number) {
-    analyticsTracker?.track({ event_name: 'upsell_accepted', product_id: product.id, quantity, source: 'upsell' })
-    setUpsell(prev => prev && { ...prev, choosing: false, added: prev.added.includes(product.id) ? prev.added : [...prev.added, product.id] })
-  }
-
-  function quickAddUpsell(product: Product) {
-    addToCart(product, {}, product.price, undefined, null, null, 'upsell', 1)
-    acceptUpsell(product, 1)
-  }
-
-  function chooseUpsell(product: Product) {
-    setUpsell(prev => prev && { ...prev, choosing: true })
-    openProduct(product, 'upsell')
-  }
-
-  function finishUpsell() {
-    // Tracked outside the state updater: React may run updaters twice.
-    if (upsell && upsell.added.length === 0) {
-      analyticsTracker?.track({ event_name: 'upsell_skipped', product_id: upsell.triggerId, source: 'upsell' })
+  function selectCartSuggestion(product: Product) {
+    if (!directOrdersEnabled || !capabilities.upsell) return
+    if (canQuickAdd(optionGroupsByProductId[product.id])) {
+      addToCart(product, {}, product.price, undefined, null, null, 'upsell', 1)
+      analyticsTracker?.track({ event_name: 'upsell_accepted', product_id: product.id, quantity: 1, source: 'cart' })
+    } else {
+      setReturnToCart(true)
+      setCartOpen(false)
+      openProduct(product, 'upsell')
     }
-    setUpsell(null)
-  }
-
-  function nextUpsellStep() {
-    if (!upsell) return
-    if (upsell.index < upsell.steps.length - 1) setUpsell({ ...upsell, index: upsell.index + 1 })
-    else finishUpsell()
   }
 
   function openProduct(product: Product, source: 'grid' | 'featured' | 'detail' | 'cart' | 'feed' | 'upsell') {
@@ -830,11 +790,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       ? restoreCart(readStored<StoredCartItem[]>(browserStorage('local'), cartKey, now, CART_TTL_MS), products)
       : []
 
-    if (savedCart.length) {
-      // Restoring is not "adding": don't pop the desktop drawer open for it.
-      autoOpenedRef.current = true
-      setCart(savedCart)
-    }
+    if (savedCart.length) setCart(savedCart)
     if (screen.placedOrder) {
       setConfirmedCart(restoreCart(screen.placedOrder.items, products))
       setOrderId(screen.placedOrder.id)
@@ -887,31 +843,17 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, tipCents, defaultOrderType,
     orderSuccess, orderId, confirmedCart])
 
-  // Auto-open the side panel once on desktop when the first item is added.
-  useEffect(() => {
-    if (cart.length === 0) {
-      autoOpenedRef.current = false
-      return
-    }
-    if (!autoOpenedRef.current && typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
-      setCartOpen(true)
-      autoOpenedRef.current = true
-    }
-  }, [cart.length])
-
-
   // The cart drawer's actual on-screen visibility (CartPanel uses the same
   // `cartOpen && !checkoutOpen`); the chat widget steps aside while it is open.
   const cartPanelVisible = directOrdersEnabled && cartOpen && !checkoutOpen
   const editingItem = editingCartKey ? cart.find(i => i.cartKey === editingCartKey) ?? null : null
 
   function closeProductModal() {
+    if (returnToCart || editingCartKey) setCartOpen(true)
+    setReturnToCart(false)
     setSelectedProduct(null)
     setSelectedProductSource('detail')
     setEditingCartKey(null)
-    if (cart.length > 0 && typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
-      setCartOpen(true)
-    }
   }
 
   // ── Presentation ───────────────────────────────────────────────────────────
@@ -993,6 +935,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   ]
   const activeTab = visibleCategory ?? tabs[0]?.id ?? null
   const showOrderBar = directOrdersEnabled && cart.length > 0 && !cartOpen && !checkoutOpen && activeMenuView === 'list'
+  const showContactFooter = activeMenuView === 'list' && !!(hasContact || footerBrand)
 
   return (
     <div className="menu-root min-h-screen bg-menu text-zinc-900" lang={localeFor(selectedLanguage)}>
@@ -1137,9 +1080,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         <section
           ref={el => { categoryRefs.current[FEATURED_TAB] = el }}
           data-category-id={FEATURED_TAB}
-          className="mx-auto max-w-5xl scroll-mt-16 pt-6 sm:pt-8"
+          className="w-full scroll-mt-16 pt-6 sm:pt-8"
         >
-          <h2 className="px-5 text-[20px] font-semibold tracking-tight text-zinc-900 sm:px-8">{copy.featured}</h2>
+          <h2 className={`mx-auto max-w-5xl px-5 text-zinc-900 sm:px-8 ${ui.sectionTitle}`}>{copy.featured}</h2>
           <FeaturedCarousel
             className="mt-3 px-5 pb-2 sm:px-8"
             items={clone => featured.map(p => {
@@ -1158,7 +1101,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                       ? <DishPhoto src={image} alt="" fit="cover" sizes="(max-width: 640px) 156px, 220px" />
                       : <DishPlaceholder />}
                   </div>
-                  <p className="mt-2 line-clamp-2 text-[14px] font-semibold leading-snug text-zinc-900 sm:text-[15px]">{p.name}</p>
+                  <p className={`mt-2 line-clamp-2 text-[14px] text-zinc-900 sm:text-[15px] ${ui.dishTitleCompact}`}>{p.name}</p>
                   <p className="mt-0.5 text-[14px] font-bold tabular-nums" style={{ color: accentText }}>{priceOf(p).text}</p>
                 </button>
               )
@@ -1169,7 +1112,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
 
       <main
         className="mx-auto max-w-5xl space-y-8 px-4 pt-6 sm:px-8 sm:pt-8"
-        style={{ paddingBottom: showOrderBar ? 112 : 48 }}
+        style={{ paddingBottom: showContactFooter ? 0 : showOrderBar ? 112 : 48 }}
       >
         {activeMenuView === 'list' && filtered.length === 0 && (
           <div className="py-20 text-center">
@@ -1209,7 +1152,6 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
             onAdd={(product, size) => {
               if (size) addToCart(product, size.selectedOptions, size.price, undefined, undefined, size.editorState, 'feed')
               else addToCart(product, {}, product.price, undefined, undefined, undefined, 'feed')
-              startUpsell(product)
             }}
             onIncrement={product => {
               const key = buildCartKey(product.id, {})
@@ -1260,7 +1202,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                 data-category-id={section.id}
                 className="scroll-mt-16"
               >
-                <h2 className="px-1 text-[20px] font-semibold tracking-tight text-zinc-900">{section.title}</h2>
+                <h2 className={`px-1 text-zinc-900 ${ui.sectionTitle}`}>{section.title}</h2>
                 {section.description && <p className="mt-0.5 px-1 text-[14px] text-zinc-500">{section.description}</p>}
                 <div className="mt-3 grid gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                   {section.items.map(p => {
@@ -1283,7 +1225,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                           cartQuantity: customizable ? 0 : qty,
                           // A dish with choices to make opens its sheet instead of
                           // going into the order without them.
-                          onAdd: customizable ? () => openProduct(p, 'grid') : () => { addToCart(p, {}, p.price); startUpsell(p) },
+                          onAdd: customizable ? () => openProduct(p, 'grid') : () => addToCart(p, {}, p.price),
                           onIncrement: () => updateCartQuantity(key, qty + 1),
                           onDecrement: () => updateCartQuantity(key, qty - 1),
                         } : {})}
@@ -1298,12 +1240,12 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       </main>
 
       {/* Contact and credits: tappable cards (call, WhatsApp, Instagram, email, map), then the credit line */}
-      {activeMenuView === 'list' && (hasContact || footerBrand) && (
-        <footer className="mt-4 border-t border-zinc-200/70" style={{ marginBottom: showOrderBar ? 88 : 0 }}>
+      {showContactFooter && (
+        <footer className="mt-8 border-t border-zinc-200/70" style={{ marginBottom: showOrderBar ? 88 : 0 }}>
           <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
             {hasContact && (
               <>
-                <h2 className="text-[20px] font-semibold tracking-tight text-zinc-900">{copy.contactTitle}</h2>
+                <h2 className={`text-zinc-900 ${ui.sectionTitle}`}>{copy.contactTitle}</h2>
                 <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {contacts.phone && (
                     <ContactCard href={contacts.phone.url} icon={<Phone className="size-[18px]" />} caption={copy.contactPhone} value={contacts.phone.label} color={primaryColor} numeric />
@@ -1359,19 +1301,15 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           product={shownProduct}
           details={dishDetailsFor(tenant.slug, shownProduct)}
           extraImages={extraDishImagesFor(tenant.slug, shownProduct)}
-          onPrevProduct={!editingCartKey && !upsell?.choosing && prevProduct ? () => openProduct(prevProduct, 'detail') : undefined}
-          onNextProduct={!editingCartKey && !upsell?.choosing && nextProduct ? () => openProduct(nextProduct, 'detail') : undefined}
+          onPrevProduct={!editingCartKey && !returnToCart && prevProduct ? () => openProduct(prevProduct, 'detail') : undefined}
+          onNextProduct={!editingCartKey && !returnToCart && nextProduct ? () => openProduct(nextProduct, 'detail') : undefined}
           primaryColor={primaryColor}
           accentColor={accentColor}
           priceColor={accentText}
           currency={currency}
           whatsapp={whatsapp}
           lang={selectedLanguage}
-          onClose={() => {
-            closeProductModal()
-            // Back to the "Complete your order" step it was opened from.
-            if (upsell?.choosing) setUpsell({ ...upsell, choosing: false })
-          }}
+          onClose={closeProductModal}
           onWhatsApp={openWhatsApp}
           showcase={!directOrdersEnabled}
           contact={settings}
@@ -1400,6 +1338,13 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
             source: 'detail',
           })}
           initialEditorState={editingItem?.editorState ?? null}
+          cartQuantityFor={directOrdersEnabled ? options => cart.find(item => item.cartKey === buildCartKey(selectedProduct.id, options))?.quantity ?? 0 : undefined}
+          onDecreaseCartQuantity={directOrdersEnabled ? options => {
+            const key = buildCartKey(selectedProduct.id, options)
+            const item = cart.find(line => line.cartKey === key)
+            if (item) updateCartQuantity(key, item.quantity - 1)
+          } : undefined}
+          onOpenCart={directOrdersEnabled ? () => { closeProductModal(); setCartOpen(true) } : undefined}
           onCustomizationStarted={directOrdersEnabled ? () => analyticsTracker?.track({
             event_name: 'product_customization_started',
             product_id: selectedProduct.id,
@@ -1410,38 +1355,17 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                 if (editingCartKey) {
                   replaceCartItem(editingCartKey, selectedProduct, selectedOptions, unitPrice, note, ingredientModifications, editorState)
                   closeProductModal()
-                } else if (upsell?.choosing) {
+                } else if (selectedProductSource === 'upsell') {
                   addToCart(selectedProduct, selectedOptions, unitPrice, note, ingredientModifications, editorState, 'upsell', quantity ?? 1)
-                  acceptUpsell(selectedProduct, quantity ?? 1)
-                  closeProductModal()
+                  analyticsTracker?.track({ event_name: 'upsell_accepted', product_id: selectedProduct.id, quantity: quantity ?? 1, source: 'cart' })
                 } else {
                   addToCart(selectedProduct, selectedOptions, unitPrice, note, ingredientModifications, editorState, undefined, quantity ?? 1)
-                  closeProductModal()
-                  startUpsell(selectedProduct)
                 }
               }
             : undefined}
         />
         )
       })()}
-
-      {upsell && !upsell.choosing && !selectedProduct && (
-        <UpsellSheet
-          steps={upsell.steps}
-          stepIndex={upsell.index}
-          triggerName={(products.find(p => p.id === upsell.triggerId) ?? baseProducts.find(p => p.id === upsell.triggerId))?.name ?? ''}
-          addedIds={new Set(upsell.added)}
-          lang={selectedLanguage}
-          currency={currency}
-          primaryColor={primaryColor}
-          priceColor={accentText}
-          canQuickAdd={product => canQuickAdd(optionGroupsByProductId[product.id])}
-          onAdd={quickAddUpsell}
-          onChoose={chooseUpsell}
-          onNext={nextUpsellStep}
-          onClose={finishUpsell}
-        />
-      )}
 
       {chatAddonEnabled && activeMenuView === 'list' && (
         <AiChatWidget
@@ -1512,6 +1436,13 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           lang={selectedLanguage}
           primaryColor={primaryColor}
           open={cartOpen && !checkoutOpen}
+          suggestions={cartSuggestions}
+          priceColor={accentText}
+          canQuickAddSuggestion={product => canQuickAdd(optionGroupsByProductId[product.id])}
+          onSelectSuggestion={selectCartSuggestion}
+          onSuggestionsOpen={() => {
+            if (cart[0]) analyticsTracker?.track({ event_name: 'upsell_shown', product_id: cart[0].product.id, source: 'cart' })
+          }}
           onClose={() => setCartOpen(false)}
           onCheckout={() => setCheckoutOpen(true)}
           onEdit={editItem}
@@ -1620,12 +1551,10 @@ function ContactCard({ href, icon, caption, value, color, external, numeric, wra
 
 /**
  * One dish. Phones: a row, text left and photo right, the photo flush with the card's right, top and bottom
- * edges (square at least, taller with long text; it crops, never squashes). The price is plain text at the
- * foot of the text column. The add control sits on the photo's bottom-right corner, as US ordering menus do
- * (Toast, DoorDash, Uber Eats): a white "+" circle; on tap it shows a check for a moment, then becomes a white
- * "- 1 +" pill in the same corner, so the "+" never moves. A dish with choices opens its sheet instead.
- * Larger screens: a card with the photo on top; the control keeps its corner on the photo. The whole card
- * opens the dish. Tap areas are 44px (the visible circles are 32-36px).
+ * edges (square at least, taller with long text; it crops, never squashes). The text column pairs the
+ * plain-text price with a quiet +, keeping controls off the food photo. Its reserved slot also fits the
+ * quantity stepper; narrow columns wrap the slot below the price before adding, so it stays put.
+ * Larger screens put the photo on top. Choices still open the dish sheet. Controls are 44px high.
  */
 function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQuantity, onAdd, onIncrement, onDecrement, hasArModel = false }: {
   product: Product; lang: string; currency: string; primaryColor: string; onOpen: () => void
@@ -1643,22 +1572,12 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
   const promo = !price.from && product.original_price && product.original_price > product.price ? product.original_price : null
   const showStepper = !!onIncrement && !!onDecrement && quantity > 0
   const showAdd = !!onAdd && !showStepper
-  // The check after a direct add: shown for a moment where the "+" was, then the stepper takes its place.
-  const [justAdded, setJustAdded] = useState(false)
-  useEffect(() => {
-    if (!justAdded) return
-    const t = setTimeout(() => setJustAdded(false), 700)
-    return () => clearTimeout(t)
-  }, [justAdded])
-  const showCheck = justAdded && showStepper
-  // A 44px tap area around a smaller visible circle.
   const cardFeature = dishFeature(product)
-  const hit = "relative before:absolute before:-inset-1.5 before:content-['']"
   return (
     <article
       data-analytics-product-id={product.id}
       data-analytics-source="grid"
-      className="group relative grid grid-cols-[minmax(0,1fr)_7.5rem] grid-rows-[1fr_auto] overflow-hidden rounded-2xl bg-white shadow-card transition-shadow hover:shadow-[0_2px_6px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.08)] sm:flex sm:flex-col"
+      className="group relative grid grid-cols-[minmax(0,1fr)_clamp(8rem,28vw,10rem)] grid-rows-[1fr_auto] overflow-hidden rounded-2xl bg-white shadow-card transition-shadow hover:shadow-[0_2px_6px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.08)] sm:flex sm:flex-col"
     >
       <button
         type="button"
@@ -1666,57 +1585,54 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
         aria-label={product.name}
         className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
       />
-      <div className="pointer-events-none col-start-1 row-start-1 flex min-w-0 flex-col px-3.5 pt-3 sm:order-2 sm:px-4 sm:pt-4">
-        <h3 className="line-clamp-2 text-[16px] font-semibold leading-snug text-zinc-900">{product.name}</h3>
+      <div className="pointer-events-none col-start-1 row-start-1 flex min-w-0 flex-col px-5 pt-5 sm:order-2">
+        <h3 className={`line-clamp-2 text-[16px] text-zinc-900 ${ui.dishTitleCompact}`}>{product.name}</h3>
         {product.description && (
           <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">{product.description}</p>
         )}
-        {/* One feature pill per dish, the system-wide pill (docs/product/dish-tags.md). */}
-        {cardFeature && <DishFeaturePill tag={cardFeature} lang={lang} className="mt-2" />}
       </div>
-      {/* The price, plain text, at the foot of the text column. "From" (sizes) or the struck old price (promotions) go on a small line above. */}
-      <div className="pointer-events-none col-start-1 row-start-2 px-3.5 pt-2 pb-3 sm:order-3 sm:mt-auto sm:px-4 sm:pb-4">
-        {(price.fromLabel || promo) && (
-          <p className="mb-0.5 text-[11px] font-medium leading-tight text-zinc-500">
-            {price.fromLabel ?? <span className="tabular-nums text-zinc-500 line-through">{formatMoney(promo as number, currency, lang)}</span>}
-          </p>
-        )}
-        <span className="whitespace-nowrap text-[15px] font-bold tabular-nums" style={{ color: accentText }}>{price.amount}</span>
-      </div>
-      <div className="pointer-events-none relative col-start-2 row-span-2 row-start-1 min-h-[7.5rem] bg-zinc-100 sm:order-1 sm:aspect-[4/3] sm:min-h-0 sm:w-full">
-        {image
-          ? <Image src={image} alt="" fill sizes="(max-width: 640px) 120px, (max-width: 1024px) 50vw, 33vw" className="object-cover object-center transition-transform duration-500 sm:group-hover:scale-[1.03]" />
-          : <DishPlaceholder />}
-        {hasArModel && (
-          <ArBadge lang={lang} className="absolute top-1.5 left-1.5 flex size-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm sm:top-3 sm:left-3" />
-        )}
+      {/* Unit price and ordering controls share a footer, never the photo. */}
+      <div className="pointer-events-none col-start-1 row-start-2 flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2 px-5 pt-3 pb-5 sm:order-3 sm:mt-auto">
+        <div className="shrink-0">
+          {(price.fromLabel || promo) && (
+            <p className="mb-0.5 text-[11px] font-medium leading-tight text-zinc-500">
+              {price.fromLabel ?? <span className="tabular-nums text-zinc-500 line-through">{formatMoney(promo as number, currency, lang)}</span>}
+            </p>
+          )}
+          <span className="whitespace-nowrap text-[15px] font-bold tabular-nums" style={{ color: accentText }}>{price.amount}</span>
+        </div>
         {(showAdd || showStepper) && (
-          <div className="pointer-events-auto absolute right-2 bottom-2 z-10 sm:right-3 sm:bottom-3">
-            {showCheck ? (
-              <span role="status" aria-label={fill(copy.addNamed, { name: product.name })} className="flex size-9 items-center justify-center rounded-full bg-white text-zinc-900 shadow-[0_1px_4px_rgb(0_0_0/0.18)]">
-                <Check className="size-[18px]" strokeWidth={2.5} />
-              </span>
-            ) : showStepper ? (
-              <div className="flex h-9 items-center gap-1 rounded-full bg-white px-0.5 text-zinc-900 shadow-[0_1px_4px_rgb(0_0_0/0.18)]">
-                <button type="button" onClick={onDecrement} aria-label={fill(copy.removeNamed, { name: product.name })} className={`${hit} flex size-8 items-center justify-center rounded-full active:bg-zinc-100`}>
+          <div className="pointer-events-auto relative z-10 ml-auto flex w-[104px] shrink-0 justify-end">
+            {showStepper ? (
+              <div className="flex h-11 w-full items-center justify-between rounded-full bg-zinc-100 text-zinc-900">
+                <button type="button" onClick={onDecrement} aria-label={fill(copy.removeNamed, { name: product.name })} className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-zinc-200">
                   <Minus className="size-4" strokeWidth={2.5} />
                 </button>
                 <span className="min-w-4 text-center text-[14px] font-semibold tabular-nums" aria-live="polite">{quantity}</span>
-                <button type="button" onClick={onIncrement} aria-label={fill(copy.addNamed, { name: product.name })} className={`${hit} flex size-8 items-center justify-center rounded-full active:bg-zinc-100`}>
+                <button type="button" onClick={onIncrement} aria-label={fill(copy.addNamed, { name: product.name })} className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-zinc-200">
                   <Plus className="size-4" strokeWidth={2.5} />
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => { setJustAdded(true); onAdd?.() }}
-                aria-label={fill(copy.addNamed, { name: product.name })}
-                className={`${hit} flex size-9 items-center justify-center rounded-full bg-white text-zinc-900 shadow-[0_1px_4px_rgb(0_0_0/0.18)] transition-[scale] active:scale-90`}
-              >
-                <Plus className="size-[18px]" strokeWidth={2.5} />
+              <button type="button" onClick={onAdd} aria-label={fill(copy.addNamed, { name: product.name })}
+                className="flex size-11 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-zinc-200 active:bg-zinc-200">
+                <Plus className="size-[18px] shrink-0" strokeWidth={2.5} aria-hidden="true" />
               </button>
             )}
           </div>
+        )}
+      </div>
+      <div className="pointer-events-none relative col-start-2 row-span-2 row-start-1 min-h-[clamp(8rem,28vw,10rem)] bg-zinc-100 sm:order-1 sm:aspect-[4/3] sm:min-h-0 sm:w-full">
+        {image
+          ? <Image src={image} alt="" fill sizes="(max-width: 639px) clamp(128px, 28vw, 160px), (max-width: 1024px) 50vw, 33vw" className="object-cover object-center transition-transform duration-500 sm:group-hover:scale-[1.03]" />
+          : <DishPlaceholder />}
+        {cardFeature && (
+          <div className="absolute inset-x-2 top-2 flex sm:inset-x-3 sm:top-3">
+            <DishFeaturePill tag={cardFeature} lang={lang} tone={image ? 'glass' : 'solid'} className="max-w-full" />
+          </div>
+        )}
+        {hasArModel && (
+          <ArBadge lang={lang} className="absolute bottom-2 left-2 flex size-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm sm:bottom-3 sm:left-3" />
         )}
       </div>
     </article>

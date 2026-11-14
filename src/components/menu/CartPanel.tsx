@@ -2,7 +2,8 @@
 
 import { useEffect, useSyncExternalStore } from 'react'
 import Image from 'next/image'
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, UtensilsCrossed } from 'lucide-react'
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, UtensilsCrossed, ChevronDown } from 'lucide-react'
+import type { Product } from '@/types/database'
 import type { CartItem } from './menu-utils'
 import { getProductImages, summarizeOptions, summarizeIngredientMods } from './menu-utils'
 import { formatMoney, getMenuCopy, itemsLabel, fill } from './menu-i18n'
@@ -30,6 +31,7 @@ function subscribeWide(onChange: () => void) {
 export default function CartPanel({
   cart, currency, lang, primaryColor, open,
   onClose, onCheckout, onEdit, onRemove, onUpdateQuantity,
+  suggestions = [], priceColor = '#18181b', canQuickAddSuggestion, onSelectSuggestion, onSuggestionsOpen,
 }: {
   cart: CartItem[]
   currency: string
@@ -41,6 +43,11 @@ export default function CartPanel({
   onEdit: (cartKey: string) => void
   onRemove: (cartKey: string) => void
   onUpdateQuantity: (cartKey: string, quantity: number) => void
+  suggestions?: Product[]
+  priceColor?: string
+  canQuickAddSuggestion?: (product: Product) => boolean
+  onSelectSuggestion?: (product: Product) => void
+  onSuggestionsOpen?: () => void
 }) {
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
   const count = cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -106,7 +113,7 @@ export default function CartPanel({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="line-clamp-2 text-[15px] font-semibold leading-snug text-zinc-900">{item.product.name}</p>
+                        <p className={`line-clamp-2 text-[15px] text-zinc-900 ${ui.dishTitleCompact}`}>{item.product.name}</p>
                         <button
                           type="button"
                           onClick={() => onRemove(item.cartKey)}
@@ -158,6 +165,45 @@ export default function CartPanel({
                 </div>
               )
             })
+          )}
+          {cart.length > 0 && suggestions.length > 0 && onSelectSuggestion && (
+            <details
+              data-cart-suggestions
+              onToggle={event => { if (event.currentTarget.open) onSuggestionsOpen?.() }}
+              className="group border-t border-zinc-200 pt-2"
+            >
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-1 text-[14px] font-medium text-zinc-600 transition-colors hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 [&::-webkit-details-marker]:hidden">
+                {copy.upsellTitle}
+                <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <ul className="space-y-2 pt-1 pb-2">
+                {suggestions.slice(0, 4).map(product => {
+                  const image = getProductImages(product)[0]
+                  const quick = canQuickAddSuggestion?.(product) ?? false
+                  return (
+                    <li key={product.id} className="flex items-center gap-3 rounded-xl bg-white p-2">
+                      <span className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+                        {image
+                          ? <Image src={image} alt="" fill sizes="48px" className="object-cover" />
+                          : <span className="flex size-full items-center justify-center"><UtensilsCrossed className="size-5 text-zinc-300" /></span>}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={`line-clamp-2 text-[14px] text-zinc-900 ${ui.dishTitleCompact}`}>{product.name}</span>
+                        <span className={`mt-0.5 block text-[14px] ${ui.price}`} style={{ color: priceColor }}>{money(product.price)}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onSelectSuggestion(product)}
+                        aria-label={quick ? fill(copy.addNamed, { name: product.name }) : `${copy.upsellChoose} ${product.name}`}
+                        className={`flex h-11 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 transition-colors hover:bg-zinc-100 active:bg-zinc-200 ${quick ? 'w-11' : 'px-3 text-[13px] font-semibold'}`}
+                      >
+                        {quick ? <Plus className="size-4" aria-hidden="true" /> : copy.upsellChoose}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </details>
           )}
         </div>
 

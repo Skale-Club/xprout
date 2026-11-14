@@ -51,7 +51,7 @@ export default function FeedSizeSheet({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className={`${ui.label} text-zinc-500`}>{copy.selectOption}</p>
-              <h2 className={`mt-1 truncate ${ui.sheetTitle}`}>{productName}</h2>
+              <h2 className={`mt-1 truncate text-[22px] ${ui.dishTitleCompact}`}>{productName}</h2>
             </div>
             <button type="button" onClick={onClose} aria-label={copy.close} className="flex size-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100">
               <X className="size-5" />

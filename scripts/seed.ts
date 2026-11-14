@@ -416,7 +416,7 @@ async function seed() {
       description: 'Still mineral water 500ml',
       price: 6.00,
       image_url: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=500',
-      tags: ['Gluten-free', 'Vegan'],
+      tags: [],
       translations: { en: { name: 'Mineral Water 500ml', description: 'Still mineral water 500ml' } }
     },
     {

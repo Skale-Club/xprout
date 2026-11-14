@@ -77,3 +77,13 @@ it('destructive tools retain both the server switch and explicit confirmation',a
   vi.stubEnv('MCP_ALLOW_DESTRUCTIVE','true'); expect((await executeNativeMcpTool('delete_user',{ user_id:record,confirm:false },actor,deps)).isError).toBe(true)
   expect(state.data).not.toHaveBeenCalled()
 })
+
+it('rejects unsupported product feature tags in native contracts', () => {
+  for (const name of ['create_product', 'update_product']) {
+    const schema = nativeMcpTools.find(tool => tool.name === name)!.schema
+    const args = samples[name]
+    for (const tags of [null, 'Vegan', ['Unknown'], ['Vegan', 'Spicy'], ['x'.repeat(25)]]) expect(schema.safeParse({ ...args, tags }).success).toBe(false)
+    expect(schema.safeParse({ ...args, tags: ['New'] }).success).toBe(true)
+    expect(schema.safeParse({ ...args, tags: [] }).success).toBe(true)
+  }
+})

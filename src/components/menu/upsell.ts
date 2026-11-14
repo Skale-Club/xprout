@@ -1,6 +1,7 @@
 /**
- * "Complete your order": the steps offered after a guest adds a dish, like a
- * counter asking "any fries with that? a drink? dessert?".
+ * "Complete your order": recommendation rules for the optional cart section.
+ * Course groups remain an internal ranking primitive; they never open a
+ * sequence after the guest adds a dish.
  *
  * Built from what the restaurant set up:
  * - dishes it hand-picked for this one (products.upsell_product_ids), first;
@@ -85,6 +86,32 @@ export function buildUpsellSteps(args: {
   }
 
   return steps.slice(0, MAX_UPSELL_STEPS)
+}
+
+/** Optional cart suggestions, never a sequence that interrupts adding a dish. */
+export function buildCartSuggestions(args: {
+  cartProductIds: Iterable<string>
+  products: Product[]
+  categories: Array<Pick<Category, 'id'> & { course?: string | null }>
+}): Product[] {
+  const inCart = new Set(args.cartProductIds)
+  const available = args.products.filter(product => product.is_available !== false)
+  const byId = new Map(available.map(product => [product.id, product]))
+  const added = [...inCart].map(id => byId.get(id)).filter((product): product is Product => !!product)
+  const suggestions = new Map<string, Product>()
+  const include = (product: Product | undefined) => {
+    if (product && !inCart.has(product.id) && suggestions.size < MAX_SUGGESTIONS_PER_STEP) suggestions.set(product.id, product)
+  }
+  // Keep the restaurant's explicit pairings ahead of automatic course suggestions.
+  for (const product of added) {
+    for (const id of product.upsell_product_ids ?? []) include(byId.get(id))
+  }
+  for (const product of added) {
+    for (const step of buildUpsellSteps({ added: product, cartProductIds: inCart, products: available, categories: args.categories })) {
+      step.products.forEach(include)
+    }
+  }
+  return [...suggestions.values()]
 }
 
 /**

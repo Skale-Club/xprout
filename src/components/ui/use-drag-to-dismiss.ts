@@ -73,6 +73,9 @@ export function useDragToDismiss({
       const dx = t.clientX - startX
       dy = t.clientY - startY
       if (state === 'pending') {
+        // Stop native rubber-band scrolling before axis lock: otherwise the
+        // first few pixels can expose the sheet background above its photo.
+        if (atTop && dy > 0 && dy > Math.abs(dx) && e.cancelable) e.preventDefault()
         if (Math.max(Math.abs(dx), Math.abs(dy)) < AXIS_LOCK_PX) return
         if (atTop && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
           state = 'dragging'

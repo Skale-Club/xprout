@@ -3,9 +3,8 @@
  *
  * Rule (docs/product/dish-tags.md): a dish has ONE tag, shown as one pill
  * everywhere (card, feed, dish sheet, admin), so it never takes much space.
- * The admin lets the owner pick one; saves keep only the most important tag
- * when more arrive (old data, API/MCP callers). Each known tag has its own
- * colour; a free-text tag the restaurant typed is neutral grey.
+ * The admin lets the owner pick one predefined tag. Reads tolerate legacy
+ * values; writes reject unsupported or multiple tags.
  *
  * To add a tag: give it a colour and a rank here, and its translations in
  * TAG_COPY (src/components/menu/menu-i18n.ts).
@@ -26,7 +25,12 @@ const KNOWN_TAGS: ReadonlyArray<{ tag: string; color: TagColor }> = [
   { tag: 'Vegan', color: { background: '#d1fae5', text: '#047857' } },          // emerald
   { tag: 'Vegetarian', color: { background: '#dcfce7', text: '#15803d' } },     // green
   { tag: 'Gluten-Free', color: { background: '#fef3c7', text: '#b45309' } },    // amber
+  { tag: 'New', color: { background: '#f4f4f5', text: '#52525b' } },           // zinc
 ]
+
+export const PREDEFINED_DISH_TAGS: readonly string[] = KNOWN_TAGS.map(({ tag }) => tag)
+export const MAX_DISH_TAG_LENGTH = 24
+const CANONICAL_TAGS = new Map(PREDEFINED_DISH_TAGS.map(tag => [tag.toLowerCase(), tag]))
 
 const NEUTRAL: TagColor = { background: '#f4f4f5', text: '#52525b' } // zinc
 
@@ -45,8 +49,7 @@ export function tagStyle(tag: string): { backgroundColor: string; color: string 
 }
 
 /**
- * The single tag a compact surface shows: the highest-ranked known tag, else
- * the dish's first free-text tag, else null.
+ * The single tag a compact surface shows: the highest-ranked known tag.
  */
 export function primaryTag(tags: ReadonlyArray<string> | null | undefined): string | null {
   const list = (tags ?? []).filter(t => typeof t === 'string' && t.trim())
@@ -56,11 +59,11 @@ export function primaryTag(tags: ReadonlyArray<string> | null | undefined): stri
   for (const tag of list) {
     const rank = RANK.get(tag.trim().toLowerCase())
     if (rank !== undefined && rank < bestRank) {
-      best = tag
+      best = CANONICAL_TAGS.get(tag.trim().toLowerCase()) ?? null
       bestRank = rank
     }
   }
-  return best ?? list[0]
+  return best
 }
 
 /** Every tag of a dish, known tags first in priority order, then free-text ones as typed. */
@@ -82,8 +85,19 @@ export function dishFeature(product: { tags?: ReadonlyArray<string> | null; is_f
   return primaryTag(product.tags) ?? (product.is_featured ? "Chef's special" : null)
 }
 
-/** What gets saved: at most one tag, the most important of those given. */
+/** Tolerant read/UI normalization: discard unsupported legacy text. */
 export function normalizeTags(tags: ReadonlyArray<string> | null | undefined): string[] {
   const tag = primaryTag(tags)
   return tag ? [tag.trim()] : []
+}
+
+/** Strict write validation; an empty array explicitly clears the feature. */
+export function validateDishTags(input: unknown): string[] {
+  if (!Array.isArray(input) || input.length > 1) throw new Error('Invalid product tags')
+  if (!input.length) return []
+  const value = input[0]
+  if (typeof value !== 'string' || value.length > MAX_DISH_TAG_LENGTH) throw new Error('Invalid product tags')
+  const tag = CANONICAL_TAGS.get(value.trim().toLowerCase())
+  if (!tag) throw new Error('Invalid product tags')
+  return [tag]
 }

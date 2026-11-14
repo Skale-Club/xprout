@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Product } from '@/types/database'
-import { buildUpsellSteps, canQuickAdd, parseCourse } from '@/components/menu/upsell'
+import { buildCartSuggestions, buildUpsellSteps, canQuickAdd, parseCourse } from '@/components/menu/upsell'
 
 const categories = [
   { id: 'c-main', course: 'main' },
@@ -66,6 +66,38 @@ describe('buildUpsellSteps', () => {
   it('leaves out dishes already in the cart', () => {
     const steps = buildUpsellSteps({ added: burger, cartProductIds: ['burger', 'fries'], products: menu, categories })
     expect(kinds(steps)[0]).toBe('drink:juice,cola')
+  })
+})
+
+describe('optional cart suggestions', () => {
+  it('offers nothing for an empty or unknown cart', () => {
+    for (const cartProductIds of [[], ['missing']]) {
+      expect(buildCartSuggestions({ cartProductIds, products: menu, categories })).toEqual([])
+    }
+  })
+
+  it('prioritizes explicit pairings across the whole cart before automatic courses', () => {
+    const paired = { ...sticker, upsell_product_ids: ['brownie', 'juice'] }
+    const result = buildCartSuggestions({ cartProductIds: ['burger', 'sticker'], products: [...menu.filter(p => p.id !== sticker.id), paired], categories })
+    expect(result.map(p => p.id)).toEqual(['brownie', 'juice', 'fries', 'salad'])
+  })
+
+  it('never suggests unavailable, missing or already-added products', () => {
+    const paired = { ...burger, upsell_product_ids: ['ghost', 'cola', 'brownie'] }
+    const products = [paired, { ...cola, is_available: false }, brownie]
+    expect(buildCartSuggestions({ cartProductIds: ['burger', 'brownie'], products, categories })).toEqual([])
+  })
+
+  it('deduplicates suggestions across cart items and caps the optional list at four', () => {
+    const otherMain = dish('other-main', 'c-main')
+    const result = buildCartSuggestions({ cartProductIds: ['burger', 'other-main'], products: [...menu, otherMain], categories })
+    expect(result).toHaveLength(4)
+    expect(new Set(result.map(p => p.id)).size).toBe(4)
+  })
+
+  it('updates course suggestions after another cart item is added', () => {
+    const result = buildCartSuggestions({ cartProductIds: ['burger', 'cola', 'fries'], products: menu, categories })
+    expect(result.map(p => p.id)).toEqual(['brownie'])
   })
 })
 

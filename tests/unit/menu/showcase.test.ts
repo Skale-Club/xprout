@@ -97,6 +97,22 @@ describe('WhatsApp item text', () => {
 })
 
 describe('contact links', () => {
+  it.each(['+1 330-313-0832', '+1 212-555-0123'])('prefers a formatted US phone over WhatsApp %s', whatsapp => {
+    expect(contactLinks({ phone: '(330) 313-0832', whatsapp, country: 'US' })).toMatchObject({
+      phone: { url: 'tel:+13303130832', label: '(330) 313-0832' },
+      whatsapp: null,
+      whatsappLabel: null,
+    })
+  })
+
+  it.each([undefined, '', 'invalid', '12'])('uses WhatsApp when phone is unusable: %s', phone => {
+    expect(contactLinks({ phone, whatsapp: '(330) 313-0832', country: 'US' }, 'Hello')).toMatchObject({
+      phone: null,
+      whatsapp: 'https://wa.me/13303130832?text=Hello',
+      whatsappLabel: '(330) 313-0832',
+    })
+  })
+
   it('normalizes a WhatsApp number to digits', () => {
     expect(whatsappDigits('+1 (555) 123-4567')).toBe('15551234567')
     expect(whatsappDigits('(12)')).toBeNull()

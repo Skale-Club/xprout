@@ -3,7 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { createServiceClient } from '@/lib/supabase/server'
 import { slugify } from '@/lib/utils'
 import { MENU_LANGUAGE_CODES } from '@/components/menu/menu-i18n'
-import { normalizeTags } from '@/lib/menu/dish-tags'
+import { MAX_DISH_TAG_LENGTH, PREDEFINED_DISH_TAGS, validateDishTags } from '@/lib/menu/dish-tags'
 import {
   checkDestructiveAllowed,
   errorResult,
@@ -203,7 +203,6 @@ export function registerMenuWriteTools(server: McpServer): void {
 
       const update: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(fields)) if (v !== undefined) update[k] = v
-      if (Array.isArray(update.tags)) update.tags = normalizeTags(update.tags as string[]) // one tag per dish
       if (Object.keys(update).length === 0) return errorResult('Nada para atualizar.')
 
       if (update.is_default === true) {
@@ -318,7 +317,7 @@ export function registerMenuWriteTools(server: McpServer): void {
         is_available: z.boolean().optional(),
         is_featured: z.boolean().optional(),
         show_in_feed: z.boolean().optional().describe('Exibir no feed visual mobile (default true)'),
-        tags: z.array(z.string()).optional(),
+        tags: z.array(z.string().max(MAX_DISH_TAG_LENGTH).refine(value => PREDEFINED_DISH_TAGS.some(tag => tag.toLowerCase() === value.trim().toLowerCase()), 'Invalid product tag')).max(1).optional(),
         position: z.number().int().optional(),
       },
       annotations: { readOnlyHint: false },
@@ -354,7 +353,7 @@ export function registerMenuWriteTools(server: McpServer): void {
           is_available: is_available ?? true,
           is_featured: is_featured ?? false,
           show_in_feed: show_in_feed ?? true,
-          tags: normalizeTags(tags),
+          tags: validateDishTags(tags ?? []),
           position: position ?? 0,
         })
         .select()
@@ -382,7 +381,7 @@ export function registerMenuWriteTools(server: McpServer): void {
         is_available: z.boolean().optional(),
         is_featured: z.boolean().optional(),
         show_in_feed: z.boolean().optional().describe('Exibir no feed visual mobile'),
-        tags: z.array(z.string()).optional(),
+        tags: z.array(z.string().max(MAX_DISH_TAG_LENGTH).refine(value => PREDEFINED_DISH_TAGS.some(tag => tag.toLowerCase() === value.trim().toLowerCase()), 'Invalid product tag')).max(1).optional(),
         position: z.number().int().optional(),
       },
       annotations: { readOnlyHint: false },
@@ -393,6 +392,7 @@ export function registerMenuWriteTools(server: McpServer): void {
       if (!tenantId) return errorResult(`Tenant não encontrado: ${tenant}`)
       const update: Record<string, unknown> = {}
       for (const [k, v] of Object.entries(fields)) if (v !== undefined) update[k] = v
+      if ('tags' in update) update.tags = validateDishTags(update.tags)
       if (Object.keys(update).length === 0) return errorResult('Nada para atualizar.')
 
       const { data, error } = await service
