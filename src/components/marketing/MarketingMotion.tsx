@@ -1,31 +1,19 @@
 'use client'
 
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
-import { Pause, Play } from 'lucide-react'
-
-const preferenceKey = 'xprout.marketing.motion.v1'
-const preferenceEvent = 'xprout-marketing-motion'
-type MotionPreference = 'playing' | 'paused' | 'reduced'
-let sessionPreference: 'playing' | 'paused' | undefined
+type MotionPreference = 'playing' | 'reduced'
 
 function snapshot(): MotionPreference {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches
     || (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return 'reduced'
-  if (sessionPreference) return sessionPreference
-  try { return localStorage.getItem(preferenceKey) === 'paused' ? 'paused' : 'playing' }
-  catch { return 'playing' }
+  return 'playing'
 }
 
 function subscribe(notify: () => void) {
   const media = window.matchMedia('(prefers-reduced-motion: reduce)')
-  const storage = (event: StorageEvent) => { if (event.key === preferenceKey) { sessionPreference = undefined; notify() } }
   media.addEventListener('change', notify)
-  window.addEventListener('storage', storage)
-  window.addEventListener(preferenceEvent, notify)
   return () => {
     media.removeEventListener('change', notify)
-    window.removeEventListener('storage', storage)
-    window.removeEventListener(preferenceEvent, notify)
   }
 }
 
@@ -68,17 +56,8 @@ export default function MarketingMotion({ children }: { children: ReactNode }) {
     return () => { observer.disconnect(); surface.removeEventListener('focusin', revealFocus) }
   }, [playing])
 
-  const toggle = () => {
-    sessionPreference = playing ? 'paused' : 'playing'
-    try { localStorage.setItem(preferenceKey, sessionPreference) } catch { /* Session preference still works. */ }
-    window.dispatchEvent(new Event(preferenceEvent))
-  }
-  const label = playing ? 'Pause motion' : 'Resume motion'
   return <div ref={root} data-motion={playing ? 'on' : 'off'} className="mk-motion-surface">
     <div aria-hidden="true" className="mk-scroll-progress" />
     {children}
-    {preference !== 'reduced' ? <button type="button" onClick={toggle} className="mk-motion-toggle" aria-label={label} aria-pressed={!playing} title={label}>
-      {playing ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}<span>{label}</span>
-    </button> : null}
   </div>
 }

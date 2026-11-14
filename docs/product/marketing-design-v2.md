@@ -122,14 +122,12 @@ under a pointer, and keyboard focus immediately makes the relevant section visib
 An optional CSS scroll progress indicator uses a supported scroll timeline with
 a static fallback. No animation library or new media download is added.
 
-The visible Pause motion / Resume motion control persists a local preference
-across marketing pages (`xprout.marketing.motion.v1`). System reduced motion and
-data saving disable decorative animation and omit that control. Server-rendered
-content is visible before JavaScript, and pausing reveals all pending sections.
-An explicitly configured legacy hero video also obeys Pause/Resume and pauses
-offscreen or when the document is hidden; reduced motion avoids its source request.
-These controls and normal-motion behavior are verified in a real Chromium run;
-older browsers retain visible content when IntersectionObserver is unavailable.
+Owner feedback removed the floating Pause/Resume control. Motion follows system
+reduced-motion and data-saving preferences; the old stored Pause preference is
+ignored. Server-rendered content remains visible before JavaScript. An explicitly
+configured legacy hero video pauses offscreen or when the document is hidden;
+reduced motion avoids its source request. Older browsers retain visible content
+when IntersectionObserver is unavailable.
 
 Review evidence: `output/premium-motion/2026-11-14`. The private UI recording is
 delivered as a 1200×900, 24 fps, silent H.264 MP4 with fast-start metadata, capped
@@ -160,8 +158,9 @@ Evidence: output/compact-hero/2026-11-14. This remains a local review.
 
 Owner feedback adds140px branding below768px in the shared marketing header;
 desktop remains195px, with an unchanged outlined master and44px minimum link
-target. The film autoplays muted and loops when visible, with native Pause,
-offscreen suspension and preference-aware fallback. Hero dishes are about13%
+target. The film autoplays muted and loops when visible, without native player
+controls or a floating Pause button. Its 16% cropped enlargement keeps the Veo
+mark outside the frame. Offscreen suspension and preference-aware fallback remain. Hero dishes are about13%
 larger, rotate horizontally through drag without wheel zoom, and stop their
 current idle animation after user manipulation. The photo cannot be dragged.
 Supported phones/tablets receive a View in3D pill that opens the selected dish

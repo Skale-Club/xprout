@@ -26,7 +26,7 @@ The carousel advances after seven seconds only when the selected model has
 loaded, the page and scene are visible, motion is enabled, and the visitor is
 not hovering or focusing it. Manual controls stop automatic selection. User
 camera manipulation also latches the current dish's idle animation off. Hover,
-focus, offscreen state, hidden documents and shared Pause motion stop dish
+focus, offscreen state, hidden documents and system reduced motion stop dish
 animation. Automatic changes do not flood the live announcement region;
 manual selection announces the dish. Menu links open the real Aurora menu.
 
@@ -51,13 +51,16 @@ No cart action is added.
 
 The former hero video now appears in a separate dark editorial section after
 the menu examples. Its burger, pizza and sushi footage is presented as a food
-film, not a recording of app functionality. The existing source watermark is
-retained. A lazy poster loads first; entering view attaches the video source and
-starts muted playback in a loop. Native controls remain available. Playback
-pauses offscreen, in hidden documents or when shared motion is paused. Native
-pause is respected until visibility changes or explicit resume. Reduced motion,
-data saving and autoplay refusal retain a manual fallback. The source is not
-attached offscreen or replaced for every loop.
+film, not a recording of app functionality. Per owner feedback, the video and
+poster are enlarged by 16% inside the existing clipped 16:9 frame, keeping the
+source watermark outside the visible crop. Original media bytes are unchanged.
+A lazy poster loads first; entering view starts muted inline playback in a loop.
+The native player controls and floating marketing Pause/Resume button are removed;
+video pointer interaction, picture-in-picture and remote playback are disabled.
+Old saved Pause preferences no longer leave visitors silently paused. Playback
+still suspends offscreen and in hidden documents. System reduced motion, data
+saving and autoplay refusal retain a manual fallback. The source is not attached
+offscreen or replaced for every loop.
 
 The old source is retained privately. The 13.67-second clip was reduced from
 17,540,180 B to1,567,618 B, silent H.264/yuv420p,1280×720,24fps, fast-start.
@@ -97,11 +100,11 @@ evidence are delivered under N:/My Drive/Xprout/Website/Hero3D.
 
 Normal-motion browser tests cover real animation time, a fixed camera/photo,
 automatic and manual switching, one active model, no initial eager loading of
-all models, Pause, hover/focus/offscreen behavior, reduced motion, data saving,
+all models, hover/focus/offscreen behavior, reduced motion, data saving,
 static no-JavaScript content, failed model loading and successful Retry.
 Follow-up checks cover real horizontal dragging without native image drag,
 scroll without zoom, latched idle stop, muted autoplay, an actual loop, native
-pause, visibility resume and reduced-motion fallback. Native URL tests cover all
+visibility suspension/resume and reduced-motion fallback. Native URL tests cover all
 three dishes and both routes; emulated-phone tests verify Quick Look image-first
 anchors, selected-dish changes, no original-model preload, Android fallback and
 desktop omission. Native phone camera placement was not tested.
@@ -115,3 +118,15 @@ The forest header and compact hero stay in place. Pricing calculations and
 configured landing copy/colors remain unchanged. Publication still requires the
 four explicit settings merges recorded in marketing-design-v2.md, normal CI
 and live verification. Production remains5336b99, with no push or deploy here.
+
+
+## Film presentation refinement (2026-11-14)
+
+Browser checks at 390px and 1440px confirm no floating toggle or native controls,
+muted inline autoplay despite an old saved Pause preference, real playback time
+advancement and loop wrap, offscreen suspension, no page errors or horizontal
+overflow. Reduced motion retains a lazy poster. Pizza-scene captures were reviewed
+at both widths: no Veo symbol or player chrome is visible. Evidence is in
+`output/film-chrome/2026-11-14`. TypeScript, scoped lint and 11 existing targeted
+tests pass. No new media assets or byte budgets, production settings or release.
+This presentation change is not an accessibility conformance certification.
