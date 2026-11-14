@@ -22,6 +22,8 @@ const eslintConfig = defineConfig([
     "test-results/**",
   ]),
   {
+    // Match Next's plugin scope; CommonJS scripts do not load the React plugins.
+    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
     rules: {
       // Supabase generics and complex DB types make `any` pragmatic — warn, don't block
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -37,6 +39,14 @@ const eslintConfig = defineConfig([
       'react-hooks/static-components': 'warn',
       // Unescaped entities — cosmetic, fix incrementally
       'react/no-unescaped-entities': 'warn',
+    },
+  },
+  {
+    files: ["scripts/**/*.cjs"],
+    languageOptions: { sourceType: "commonjs" },
+    rules: {
+      // These Node scripts intentionally use CommonJS imports.
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
 ]);
