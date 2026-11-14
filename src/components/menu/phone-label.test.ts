@@ -45,8 +45,26 @@ test('call and WhatsApp links carry the full international number', () => {
   assert.equal(whatsappUrl('(11) 99999-8888', null, BR), 'https://wa.me/5511999998888')
   const { phone, whatsapp, whatsappLabel } = contactLinks({ phone: '+1 330-313-0832', whatsapp: '5511999998888', ...BR })
   assert.deepEqual(phone, { url: 'tel:+13303130832', label: '+1 330 313 0832' })
-  assert.equal(whatsapp, 'https://wa.me/5511999998888')
-  assert.equal(whatsappLabel, '(11) 99999-8888')
+  assert.equal(whatsapp, null)
+  assert.equal(whatsappLabel, null)
+})
+
+test('WhatsApp contact is a fallback when the phone cannot make a call', () => {
+  for (const phone of [undefined, '', 'invalid', '12']) {
+    const links = contactLinks({ phone, whatsapp: '+1 330-313-0832', country: 'US' })
+    assert.equal(links.phone, null)
+    assert.equal(links.whatsapp, 'https://wa.me/13303130832')
+    assert.equal(links.whatsappLabel, '(330) 313-0832')
+  }
+})
+
+test('US call contact takes precedence over matching or different WhatsApp numbers', () => {
+  for (const whatsapp of ['+1 330-313-0832', '+1 212-555-0123']) {
+    const links = contactLinks({ phone: '(330) 313-0832', whatsapp, country: 'US' })
+    assert.deepEqual(links.phone, { url: 'tel:+13303130832', label: '(330) 313-0832' })
+    assert.equal(links.whatsapp, null)
+    assert.equal(links.whatsappLabel, null)
+  }
 })
 
 test('the call link keeps the full number while the label is the readable one', () => {

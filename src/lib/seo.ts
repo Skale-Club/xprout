@@ -1,4 +1,5 @@
 import { BRAND_URL } from '@/lib/brand'
+import landingCopy from '@/lib/marketing/landing-copy.json'
 import type { TenantSettings, BusinessHours, Category, Product } from '@/types/database'
 import { subdomainBase, tenantSubdomainHost } from './tenant-subdomain'
 
@@ -407,11 +408,6 @@ export function buildSoftwareApplicationJsonLd(opts: { name: string }): object {
     name: opts.name,
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
-      description: 'Free during beta',
-    },
+    description: landingCopy.seo.description,
   }
 }

@@ -1,0 +1,26 @@
+{
+  "family": "Xprout Fraunces",
+  "original_family": "Fraunces",
+  "style": "normal",
+  "weight": 600,
+  "axes": {
+    "wght": 600,
+    "opsz": 72,
+    "SOFT": 50,
+    "WONK": 1
+  },
+  "asset": "public/fonts/marketing/fraunces-semibold-latin.woff2",
+  "bytes": 25956,
+  "sha256": "de8342ca3d3de24d6ac24eed90f621ff6db6d9e06390f635c6540ff977ecceeb",
+  "budget_bytes": 46080,
+  "source_file": "output/branding/xprout/xprout-brand-pack-v1/fonts/Fraunces/Fraunces[SOFT,WONK,opsz,wght].ttf",
+  "source_sha256": "177ff6c0f14e5550a3c624247cd1189611d4eb65d000b14944c63d967958abbb",
+  "upstream_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/fraunces/Fraunces%5BSOFT%2CWONK%2Copsz%2Cwght%5D.ttf",
+  "license": "SIL Open Font License 1.1",
+  "license_file": "OFL-Fraunces.txt",
+  "license_sha256": "bdf4c22802eaf804f998195871c6b8938aac2ac14b2d78a8bd66a6f1eced833b",
+  "transformation": "fontTools 4.65.0 full-axis static instantiation and Unicode subset; WOFF2 Brotli encoded with installed Node standard zlib; modified family renamed Xprout Fraunces. No outline redraw.",
+  "coverage": "Available glyphs from U+0020-024F, U+2000-206F, U+20A0-20CF, U+2122 and U+2212. Verified all printable ASCII, pound, euro, copyright, multiplication sign, em dash and curly quotation marks. Latin-1 and Latin Extended glyphs available in the source are retained.",
+  "verified_glyphs": 419,
+  "verification": "Reopened generated WOFF2 with fontTools, checked required cmap coverage, absence of variable axes, and encoded byte budget."
+}

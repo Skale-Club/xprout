@@ -19,8 +19,9 @@ export const clientAnalyticsEventNames = [
   'add_to_cart',
   'remove_from_cart',
   'checkout_started',
-  // "Complete your order": shown/skipped carry the dish that started it,
-  // accepted carries the suggestion taken.
+  // "Complete your order": shown carries a cart context dish when the guest
+  // expands suggestions; accepted carries the suggestion taken. Historical
+  // skipped events belong to the retired post-add sequence.
   'upsell_shown',
   'upsell_accepted',
   'upsell_skipped',

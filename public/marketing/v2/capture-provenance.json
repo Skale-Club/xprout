@@ -1,0 +1,73 @@
+{
+  "captures": [
+    {
+      "asset": "public/marketing/v2/menu-aurora.webp",
+      "source_uri": "https://xprout.app/aurora",
+      "final_uri": "https://xprout.app/aurora",
+      "http_status": 200,
+      "captured_at": "2026-11-14T06:03:19.195Z",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_scale_factor": 1
+      },
+      "width": 390,
+      "height": 844,
+      "bytes": 44856,
+      "sha256": "bd49f7df45cc7a5a1ccdd264f1e144bdb7327f756a3be72b5595bd647b9e5c6e",
+      "private_capture": "output/premium-marketing/2026-11-14/menu-aurora.png",
+      "purpose": "Static marketing mock preview capture of the owned product, not a current interactive widget.",
+      "processing": "Visible viewport only, WebP encoding without compositing or semantic edits. Read-only navigation; no forms, clicks or orders.",
+      "budget": {
+        "max_bytes": 102400,
+        "max_long_edge": 1200
+      }
+    },
+    {
+      "asset": "public/marketing/v2/menu-bella-vista.webp",
+      "source_uri": "https://xprout.app/bella-vista",
+      "final_uri": "https://xprout.app/bella-vista",
+      "http_status": 200,
+      "captured_at": "2026-11-14T06:03:21.142Z",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_scale_factor": 1
+      },
+      "width": 390,
+      "height": 844,
+      "bytes": 49446,
+      "sha256": "c777240876c4af51bdca1155042f882c4d8cec60a5765eb574e6f127481d1b30",
+      "private_capture": "output/premium-marketing/2026-11-14/menu-bella-vista.png",
+      "purpose": "Static marketing mock preview capture of the owned product, not a current interactive widget.",
+      "processing": "Visible viewport only, WebP encoding without compositing or semantic edits. Read-only navigation; no forms, clicks or orders.",
+      "budget": {
+        "max_bytes": 102400,
+        "max_long_edge": 1200
+      }
+    },
+    {
+      "asset": "public/marketing/v2/menu-celes.webp",
+      "source_uri": "https://xprout.app/celes",
+      "final_uri": "https://xprout.app/celes",
+      "http_status": 200,
+      "captured_at": "2026-11-14T06:03:23.134Z",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_scale_factor": 1
+      },
+      "width": 390,
+      "height": 844,
+      "bytes": 27978,
+      "sha256": "78370fe3390f27cca357631479bea7ddade686bb30955eef4edd6facf42d22ac",
+      "private_capture": "output/premium-marketing/2026-11-14/menu-celes.png",
+      "purpose": "Static marketing mock preview capture of the owned product, not a current interactive widget.",
+      "processing": "Visible viewport only, WebP encoding without compositing or semantic edits. Read-only navigation; no forms, clicks or orders.",
+      "budget": {
+        "max_bytes": 102400,
+        "max_long_edge": 1200
+      }
+    }
+  ]
+}

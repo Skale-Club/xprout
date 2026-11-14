@@ -74,6 +74,9 @@ details sheets, notices, pickers) behaves like an iOS sheet:
 - drag up to expand to a large detent; resistance (rubber band) past the top;
 - the scrim fades with the drag, and tapping it closes the sheet;
 - content scrolls inside the sheet without dragging the sheet itself.
+- Photo sheets suppress native vertical overscroll bounce. A downward pull
+  from the top belongs to the whole sheet from its first movement, so it
+  cannot expose a blank strip above the photo (local fix, 2026-11-14).
 
 Implementations (checked 2026-11-12):
 
@@ -87,14 +90,57 @@ Implementations (checked 2026-11-12):
 New sheets use `BottomSheet` (or `DragSheet` inside the AR overlay); no other
 sliding panel shapes.
 
+## Cart suggestions (owner, 2026-11-14)
+
+Adding a dish keeps the guest in the menu: no automatic upsell sheet or
+desktop cart opening. Suggestions belong inside the cart in a collapsed,
+optional "Complete your order" section, after its items. At most four
+available products appear, with restaurant pairings first and existing cart
+items excluded. Required choices open the dish sheet; closing it or using
+its cart icon returns to the cart, while adding keeps the detail open;
+quick additions stay in the cart. Preserve the upsell plan/setting gate and
+keep checkout directly accessible without expanding suggestions. The old
+step-by-step popup is no longer mounted by MenuPage.
+
 ## Quantity control
 
 Adding a dish: `+` turns straight into the white `− qty +` stepper; each tap
 updates the number in place and the cart badge counts up. No floating "+1"
 bubble and no intermediate check mark (owner, 2026-11-12: too much motion
 for one action). Reaching zero returns to `+`. In AR it keeps the 44px dock
-height. The menu card still shows a 700 ms check before its stepper; align it
-with this rule when the card is next revised.
+height. Menu cards now also switch directly to the stepper (local update,
+2026-11-14), without the previous 700 ms check.
+
+In customer dish detail, Add keeps the panel open and becomes a 48px-high
+`− quantity +` control with a cart icon beside it. Quantity is read from the
+cart line matching the current options; changing options reflects that
+configuration's count. Minus reaches zero and restores Add. The footer
+shows the configuration's line total (including multiplied promo reference)
+when quantity is above one. The cart opens only through its icon; editing
+an existing cart item still uses Update and returns to the cart. Read-only
+menus have no purchase controls (owner refinement, 2026-11-14).
+
+Menu cards bottom-align the price block and its purchase control. They
+keep a quiet 44px circular + beside the unit price in the text
+column, clear of the food photo, 3D badge and feature pill. Its reserved
+104px slot also fits the quantity stepper; narrow columns wrap the slot
+below the price before adding, preserving the control's position. Desktop
+cards keep the same compact price/action row below their text. Browse-only
+cards retain only the price. The owner rejected a full-width Add pill in
+cards as too heavy (local revision, 2026-11-14); that shape stays in the dish
+sheet, where it is the primary action.
+
+Card text content uses a consistent 20px outer inset: left/right on both
+content rows, top above the dish title and bottom below the price/control
+row, with a 12px gap between description and footer (local owner request,
+2026-11-14). The same inset applies on mobile and desktop; photos retain
+their full-bleed crop.
+
+List-card photos now use a responsive 128–160px column with the same minimum
+height, giving a square minimum while allowing taller content to stretch
+the photo. Below 640px the column is `clamp(8rem, 28vw, 10rem)`; larger grid
+cards keep the existing 4:3 photo layout. Image `sizes` matches the new column
+(local owner request, 2026-11-14).
 
 ## Badges and buttons on dark surfaces
 
@@ -111,6 +157,12 @@ button shapes come from one file, `src/components/menu/menu-ui.ts`:
 
 - `ui.dishTitle` — dish names (heavy, tight); `ui.sheetTitle` / `ui.barTitle`
   for sheet and header titles;
+- `ui.dishTitleCompact` — names in menu cards, featured tiles, cart/upsell
+  rows and the feed size picker: Inter 700, gentler tracking and 1.25
+  line-height. The owner found the display weight too heavy in small cards
+  (2026-11-14); feed/detail retain their large display role.
+- `ui.sectionTitle` — menu sections such as Main Courses, Featured and
+  Contact: 24px Inter 700, visibly above the 14–16px compact dish names.
 - `ui.label` — the small uppercase, widely tracked label ("Ingredients",
   "Size", "Subtotal", "02 / 05");
 - `ui.price` — prices and totals;
@@ -131,4 +183,25 @@ on the same row, in `ui.dishTitle` / `ui.price` at the sizes in
 camera's details sheet). The price never goes inside a button: the add button
 reads just "Add to order". `ui.sheetTitle` is only for titles that are not a
 dish ("Your order", "Cart").
+
+When the dish price lives in the footer, `DishHeading` gives the name the
+full available width with natural line wrapping. The 60% sheet / 72% feed
+name caps apply only when a price actually shares the heading row; never
+reserve an empty price column (owner correction, 2026-11-14).
+
+The dish-detail Add/Update action is the medium primary pill: 48px high,
+at least 180px wide and sized to its localized label, aligned at the right
+of the price rather than stretched across the remaining row. The footer
+can wrap for unusually large prices or labels; action text is not truncated
+(owner refinement, 2026-11-14; the smaller 128×44px version was rejected).
+
+Contact cards use one primary phone channel: show the callable phone when
+available, otherwise fall back to WhatsApp. Apply this rule to both the menu
+footer and dish detail. A separate, explicitly enabled WhatsApp ordering
+action is independent of these informational contact cards.
+
+The Aurora localhost fixture represents a fictional US restaurant in Boston:
+US country/region, USD prices and a reserved demonstration phone number.
+`node scripts/seed-aurora-us-contact.mjs` previews its current public fields;
+`--apply` updates only Aurora in the explicitly configured development database.
 

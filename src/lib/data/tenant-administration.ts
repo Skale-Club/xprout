@@ -1,3 +1,4 @@
+import { PREDEFINED_DISH_TAGS, validateDishTags } from '../menu/dish-tags'
 import { randomUUID } from 'node:crypto'
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import { UUID } from '../auth/owned-principal'
@@ -228,7 +229,12 @@ export async function tenantSettings(query: AdminMenuQuery,context: TenantAdminC
     const value = body[key]
     if (key.startsWith('tip_percentage_')) { if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 100) refuse(400,'Invalid tip percentage') }
     else if (key === 'business_hours') { if (value !== null && (typeof value !== 'object' || Array.isArray(value) || JSON.stringify(value).length > 16384)) refuse(400,'Invalid business hours') }
-    else if (key === 'custom_tags') { if (!Array.isArray(value) || value.length > 100 || value.some(item => typeof item !== 'string' || item.length > 100)) refuse(400,'Invalid custom tags') }
+    else if (key === 'custom_tags') {
+      if (!Array.isArray(value) || value.length > PREDEFINED_DISH_TAGS.length) refuse(400,'Invalid custom tags')
+      try { values[key] = [...new Set((value as unknown[]).map(item => validateDishTags([item])[0]))] }
+      catch { refuse(400,'Invalid custom tags') }
+      continue
+    }
     else if (value !== null && (typeof value !== 'string' || value.length > (key === 'about' ? 10000 : 2048))) refuse(400,'Invalid settings value')
     if (key.endsWith('_color') && (typeof value !== 'string' || !/^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value.trim()))) refuse(400,'Invalid color')
     if (['logo_url','banner_url'].includes(key) && value && (typeof value !== 'string' || !/^https:\/\//i.test(value))) refuse(400,'Use an HTTPS image URL')

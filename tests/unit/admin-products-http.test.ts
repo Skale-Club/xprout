@@ -62,3 +62,11 @@ describe('product editable fields', () => {
     expect(() => productPatch({ feed_image_url: value })).toThrow()
   }
  })
+
+it('rejects invalid feature writes instead of silently normalizing', () => {
+  for (const tags of [null, 'Vegan', ['Unknown'], ['Vegan', 'Spicy'], ['x'.repeat(25)]]) {
+    expect(() => productPatch({ tags })).toThrow(expect.objectContaining({ status: 400 }))
+  }
+  expect(productPatch({ tags: [' vegan '] })).toEqual({ tags: ['Vegan'] })
+  expect(productPatch({ tags: [] })).toEqual({ tags: [] })
+})

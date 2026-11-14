@@ -11,11 +11,15 @@ import type { CSSProperties } from 'react'
 export const ui = {
   /** Dish name: heavy, tight (size set per surface). */
   dishTitle: 'font-black leading-[1.02] tracking-[-0.035em]',
+  /** Compact dish names need a lighter weight than the large feed/detail headline. */
+  dishTitleCompact: 'font-bold leading-tight tracking-[-0.015em]',
+  /** Menu sections lead the hierarchy above individual dish cards. */
+  sectionTitle: 'text-[24px] font-bold leading-tight tracking-[-0.025em]',
   /** Dish name + price sizes for DishHeading: the feed over a photo, and sheets/screens. */
   dishHeading: {
-    feed: { title: 'max-w-[72%] text-[clamp(1.75rem,8vw,2.65rem)]', price: 'text-xl' },
+    feed: { title: 'text-[clamp(1.75rem,8vw,2.65rem)]', titleMaxWidth: 'max-w-[72%]', price: 'text-xl' },
     // The name never runs into the price: past ~60% it wraps, and the price stays on its last line.
-    sheet: { title: 'max-w-[60%] text-[26px]', price: 'text-[20px]' },
+    sheet: { title: 'text-[26px]', titleMaxWidth: 'max-w-[60%]', price: 'text-[20px]' },
   },
   /** Title of a sheet or panel that is not a dish ("Your order", "Cart"). */
   sheetTitle: 'text-[22px] font-black leading-tight tracking-[-0.025em]',
@@ -25,7 +29,7 @@ export const ui = {
   label: 'text-[10px] font-black uppercase tracking-[0.18em]',
   /** Prices and totals. */
   price: 'font-black tabular-nums tracking-tight',
-  /** Primary action: a full pill, uppercase, wide tracking (height set per surface: h-12 menu, h-11 AR). */
+  /** Primary action: a full pill, uppercase, wide tracking (h-12 menu/detail, h-11 AR). */
   cta: 'inline-flex items-center justify-center gap-2 rounded-full px-6 text-xs font-black uppercase tracking-widest transition-[scale] hover:scale-[1.01] active:scale-[0.98]',
   /** Quiet secondary action with the same shape and type. */
   ctaQuiet: 'inline-flex items-center justify-center gap-2 rounded-full px-6 text-xs font-black uppercase tracking-widest transition active:scale-[0.98]',

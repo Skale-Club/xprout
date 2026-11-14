@@ -1,5 +1,6 @@
 import { platformMetadataIcons } from '@/lib/platform-metadata'
 import { BRAND_NAME, BRAND_URL } from '@/lib/brand'
+import landingCopy from '@/lib/marketing/landing-copy.json'
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import '../globals.css'
@@ -7,6 +8,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { platformColors } from '@/lib/platform-colors'
 import { PlatformTagManager } from '@/components/tracking/PlatformTagManager'
 import { platformSettingsOwned } from '@/lib/data/platform-settings'
+import MarketingFrame from '@/components/marketing/MarketingFrame'
 
 interface MarketingSettings {
   app_name: string | null; seo_title: string | null; seo_description: string | null
@@ -39,10 +41,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const ps = await getPlatformSettings()
 
   const appName = ps?.app_name ?? BRAND_NAME
-  const title = ps?.seo_title ?? `${appName} | Digital menus built for service`
+  const title = ps?.seo_title ?? `${appName} | ${landingCopy.seo.titleSuffix}`
   const description =
     ps?.seo_description ??
-    'Create a beautiful digital menu, generate a QR code, and start taking orders. No tech skills needed.'
+    landingCopy.seo.description
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || BRAND_URL
 
   return {
@@ -87,12 +89,11 @@ export default async function MarketingLayout({
   const { primary, onPrimary } = platformColors(ps?.cta_color)
 
   return (
-    <div
-      className="platform-light min-h-screen no-text-cursor"
+    <MarketingFrame
       style={{ '--primary': primary, '--primary-foreground': onPrimary } as CSSProperties}
     >
       <PlatformTagManager />
       {children}
-    </div>
+    </MarketingFrame>
   )
 }

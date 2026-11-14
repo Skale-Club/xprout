@@ -9,7 +9,7 @@ const RESUME_AFTER_MS = 2500
 
 /**
  * An endless row: the dishes repeat forever in both directions, drift slowly
- * on their own and fade into nothing at both edges.
+ * on their own with a subtle fade at both edges.
  *
  * The items are rendered as several identical copies and the row starts on
  * the second one, so there is always another copy to the left and to the
@@ -202,7 +202,7 @@ export default function FeaturedCarousel({ items, className = '' }: {
   return (
     <div
       ref={scrollerRef}
-      className="scrollbar-hide cursor-grab overflow-x-auto overscroll-x-contain select-none data-[dragging=true]:cursor-grabbing [mask-image:linear-gradient(to_right,transparent,#000_40px,#000_calc(100%-40px),transparent)] sm:[mask-image:linear-gradient(to_right,transparent,#000_72px,#000_calc(100%-72px),transparent)]"
+      className="scrollbar-hide cursor-grab overflow-x-auto overscroll-x-contain select-none data-[dragging=true]:cursor-grabbing [mask-image:linear-gradient(to_right,#0006,#000_16px,#000_calc(100%-16px),#0006)] sm:[mask-image:linear-gradient(to_right,#0006,#000_28px,#000_calc(100%-28px),#0006)]"
     >
       <div ref={rowRef} className={`flex w-max gap-3 sm:gap-4 ${className}`}>
         {Array.from({ length: copies }, (_, copy) => (

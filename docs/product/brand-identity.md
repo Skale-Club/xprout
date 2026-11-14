@@ -18,16 +18,24 @@ Owner-designated delivery location (2026-11-13): `N:\My Drive\Xprout\Brand`. The
 
 ## Colours
 
-The red `#F52323` is retired. The brand has two colours:
+The former bright red `#F52323` is retired. On 2026-11-14 the owner expanded the forest/ivory foundation with wine and a more restrained rosewood accent:
 
 | Role | Name | Hex | Use |
 |---|---|---|---|
 | Primary | Burnt forest green (verde floresta queimado) | `#283F32` | Buttons, calls to action, links, active states, the logo mark, the PWA `theme_color` |
 | Base | Warm ivory (marfim quente) | `#F3EFE5` | Page and card backgrounds on light screens, text and icons on top of the green, the PWA `background_color` |
+| Main accent | Wine (vinho) | `#602021` | Sparse editorial labels, selected marketing options, focus rings on light surfaces and decorative platform details |
+| Secondary accent | Rosewood | `#57373B` | Less frequent borders and decorative effects; do not compete with wine |
 
 - Contrast: ivory on green (and green on ivory) is about **9.9:1**, which passes WCAG AAA for normal text.
 - Text on the primary green is ivory `#F3EFE5`, not pure white.
-- Hover/pressed states and borders are derived from these two colours (e.g. a darker or lighter green); no third brand colour is introduced without the owner.
+- Wine and rosewood contrast with ivory at **10.60:1** and **9.08:1** respectively. Wine against forest is only **1.07:1**: use ivory text on dark surfaces; wine/forest combinations are limited to nonessential decoration.
+- The shared `--platform-brand-accent` and `--platform-brand-secondary` tokens are separate from configurable `--primary` and tenant `--accent`. Explicit CTA colors remain authoritative.
+- Palette source: [palette.json](../brand/xprout/v1/palette.json), manual edition 1.2. Approved logo paths, composition and forest/ivory variants are unchanged.
+
+### Accent rollout (local review, 2026-11-14)
+
+Wine appears in light marketing labels/focus/selected options, pricing highlights, platform auth decoration, onboarding and access-request frames, and shared admin/superadmin headers. The hero's AR-style title and bottom-row position marks use white with shadow over the photograph. Rosewood is limited to the marketing progress line, 3D setup border and auth gradient. Dark essential text stays ivory. Status/error colors, configurable primary actions and restaurant palettes are unchanged. This is not a complete audit of every legacy module, e-mail or notification. See [review evidence](../reviews/2026-11-14-wine-accent-review.md). No production settings were changed or release performed.
 
 ## Scope: what the brand colours cover
 

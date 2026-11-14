@@ -2,6 +2,7 @@
 
 import { DeliveryImage } from '@/components/delivery-image'
 import PlatformSignature from '@/components/branding/PlatformSignature'
+import GradientTopLine from '@/components/ui/GradientTopLine'
 import { platformLogoUrl } from '@/lib/platform-brand'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { googleProof, phoneProof, type IdentityWebConfig } from '@/lib/auth/identity-browser'
@@ -294,7 +295,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
           behind it that shows as a light edge around the popup. */}
       <style>{'html,body{background:#18181b;color-scheme:dark;--scrollbar-thumb:rgb(255 255 255 / 0.24)}'}</style>
       {/* Soft brand glow under the popup's gradient top line. */}
-      <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-24 w-48 -translate-x-1/2 rounded-full bg-[#283F32]/10 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-24 w-48 -translate-x-1/2 rounded-full bg-platform-brand-accent/10 blur-3xl" />
       <section aria-labelledby="identity-title" className="relative">
         <div className="mb-8 text-center">
 
@@ -352,7 +353,8 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
         accent={tenantLinkBrand.primaryColor} onAccent={computePrimaryForeground(tenantLinkBrand.primaryColor)}
         title="Link your existing account" subtitle="Prove your previous account, then verify a phone number or Google account. Your company access stays unchanged." />
     </> : null}
-    <section aria-labelledby="identity-title" className={embedded ? 'w-full px-6 pb-6 pt-7' : 'w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-900/60 p-6 sm:p-8'}>
+    <section aria-labelledby="identity-title" className={embedded ? 'w-full px-6 pb-6 pt-7' : 'relative isolate w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-900/60 p-6 sm:p-8'}>
+      {!tenantLinkBrand && !brand && !embedded ? <GradientTopLine glow={false} /> : null}
       {!tenantLinkBrand ? <>
       <PlatformSignature tone="ivory" className="mb-6" />
       <h1 id="identity-title" className="text-2xl font-bold tracking-tight">{existingAccountLink ? 'Link your existing account' : 'Sign in with your phone'}</h1>

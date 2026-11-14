@@ -1061,7 +1061,7 @@ export function itemsLabel(copy: MenuCopy, count: number, lang: string): string 
   return fill(template, { count })
 }
 
-// Dish tags the admin offers. A free-text tag shows as typed.
+// Translations for the platform's predefined dish feature choices.
 const TAG_COPY: Record<string, Record<string, string>> = {
   'Vegetarian': { en: 'Vegetarian', pt: 'Vegetariano', es: 'Vegetariano', fr: 'Végétarien', de: 'Vegetarisch', it: 'Vegetariano', nl: 'Vegetarisch', pl: 'Wegetariańskie', tr: 'Vejetaryen', ru: 'Вегетарианское', hi: 'शाकाहारी', ja: 'ベジタリアン', ko: '채식', zh: '素食', 'zh-TW': '素食' },
   'Vegan': { en: 'Vegan', pt: 'Vegano', es: 'Vegano', fr: 'Végan', de: 'Vegan', it: 'Vegano', nl: 'Veganistisch', pl: 'Wegańskie', tr: 'Vegan', ru: 'Веганское', hi: 'वीगन', ja: 'ヴィーガン', ko: '비건', zh: '纯素', 'zh-TW': '全素' },
@@ -1069,6 +1069,7 @@ const TAG_COPY: Record<string, Record<string, string>> = {
   'Spicy': { en: 'Spicy', pt: 'Picante', es: 'Picante', fr: 'Épicé', de: 'Scharf', it: 'Piccante', nl: 'Pittig', pl: 'Ostre', tr: 'Acılı', ru: 'Острое', hi: 'तीखा', ja: '辛口', ko: '매운맛', zh: '辣', 'zh-TW': '辣' },
   "Chef's special": { en: "Chef's special", pt: 'Especial do chef', es: 'Especial del chef', fr: 'Spécialité du chef', de: 'Spezialität des Hauses', it: 'Specialità dello chef', nl: 'Specialiteit van de chef', pl: 'Specjalność szefa', tr: 'Şefin özel tabağı', ru: 'Фирменное блюдо', hi: 'शेफ़ स्पेशल', ja: 'シェフのスペシャル', ko: '셰프 스페셜', zh: '主厨特选', 'zh-TW': '主廚特選' },
   'Recommended': { en: 'Recommended', pt: 'Recomendado', es: 'Recomendado', fr: 'Recommandé', de: 'Empfohlen', it: 'Consigliato', nl: 'Aanbevolen', pl: 'Polecane', tr: 'Önerilen', ru: 'Рекомендуем', hi: 'सुझाया गया', ja: 'おすすめ', ko: '추천', zh: '推荐', 'zh-TW': '推薦' },
+  'New': { en: 'New', pt: 'Novo', es: 'Nuevo', fr: 'Nouveau', de: 'Neu', it: 'Novità', nl: 'Nieuw', pl: 'Nowość', tr: 'Yeni', ru: 'Новинка', hi: 'नया', ja: '新着', ko: '신규', zh: '新品', 'zh-TW': '新品' },
 }
 
 export function translateTag(tag: string, lang: string): string {

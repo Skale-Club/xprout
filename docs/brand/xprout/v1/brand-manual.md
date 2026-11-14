@@ -1,6 +1,6 @@
 # Xprout brand manual
 
-Version 1.0 - 13 November 2026
+Version 1.2 - 14 November 2026
 
 ## Page 01
 
@@ -8,9 +8,9 @@ XPROUT / IDENTITY SYSTEM
 Brand manual
 The approved mark, its visual language and the rules that keep it
 consistent.
-LOGO PACK V1.0
+LOGO PACK V1.2
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 01
 
 ## Page 02
@@ -32,7 +32,7 @@ Product name
 xprout.app
 Web address
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 02
 
 ## Page 03
@@ -49,7 +49,7 @@ outlined artwork. Never retype
 the logo or substitute a similar
 serif.
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 03
 
 ## Page 04
@@ -71,33 +71,34 @@ Symbol
 6 mm in print
 Minimum sizes refer to visible artwork width. Favicon exception: 16 px, using the same silhouette.
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 04
 
 ## Page 05
 
 05 / COLOR
+A grounded palette, with restraint
+Forest and ivory lead. Wine is a sparse accent; rosewood appears less often.
 Burnt forest green
-Warm ivory
 #283F32
+Primary brand foundation
+Warm ivory
 #F3EFE5
-RGB  40 / 63 / 50
-RGB  243 / 239 / 229
-CMYK approx. 37 / 0 / 21 / 75
-CMYK approx. 0 / 2 / 6 / 5
-Aa
-Aa
-9.90:1 contrast
-Green and ivory exceed 7:1 for normal text, the WCAG AAA
-contrast threshold. This is a color-pair result, not an accessibility
-audit of a complete interface.
-Use these RGB values for digital work. CMYK values are
-unprofiled approximations: ask the printer to convert the RGB
-vector master with its output profile and approve a physical
-proof.
-Reference: W3C WCAG 2.2 SC 1.4.6
+Primary light surface
+Wine  #602021
+Main accent: selection and editorial details
+Rosewood  #57373B
+Secondary surfaces and hover details
+Use wine sparingly on light surfaces; reserve rosewood for less frequent
+secondary details. Forest and wine have poor mutual contrast: use ivory
+between or on these colors. Never use wine text on forest.
+Keep decorative wine distinct from error states through semantic roles,
+labels and icons. Keep approved logos forest, ivory or monochrome. This
+palette does not authorize red logo variants or override tenant colors.
+Forest / ivory contrast: 9.90:1. Validate each interface state separately.
+Digital RGB masters. For print, request a profiled conversion and physical proof.
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 05
 
 ## Page 06
@@ -120,7 +121,7 @@ Both families are included under the SIL Open Font License, with their original 
 instances are included only for reproducibility.
 Sources: github.com/google/fonts/tree/main/ofl/fraunces and /ofl/inter
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 06
 
 ## Page 07
@@ -143,7 +144,7 @@ x
 Do not retype the name
 Use supplied black or white artwork only when a one-color production process requires it.
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 07
 
 ## Page 08
@@ -164,7 +165,7 @@ Transparent SVGs scale without a raster limit. PNGs are supplied
 at 256 and 512 px. Icons include 192 and 512 px; the ICO bundles
 16, 32 and 48 px.
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 08
 
 ## Page 09
@@ -179,7 +180,7 @@ The sample QR points to the Xprout homepage. Before a restaurant sign is
 produced, insert and test that restaurant's verified menu URL.
 Illustrative layouts; not print-ready signs or deployed customer screens.
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 09
 
 ## Page 10
@@ -204,5 +205,5 @@ Approved symbol, outlined geometry and reproducible build scripts.
 The approved v7 symbol path is preserved exactly in every exported composition. New spacing and typography guidance in this manual is consolidated for brand pack v1.
 Application rollout is a separate step.
 Xprout Brand Manual
-Version 1.0 / 13 November 2026
+Version 1.2 / 14 November 2026
 10

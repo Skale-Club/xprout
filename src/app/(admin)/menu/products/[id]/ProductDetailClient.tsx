@@ -13,6 +13,7 @@ import ProductArTab from './ProductArTab'
 import ProductTranslationsTab from './ProductTranslationsTab'
 import ProductUpsellCard, { type UpsellCandidate } from './ProductUpsellCard'
 import { notifyPublicMenuChanged } from '@/lib/menu/revalidate-client'
+import { normalizeTags } from '@/lib/menu/dish-tags'
 
 const TYPE_BADGE: Record<OptionGroupType, string> = {
   single:        'bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full',
@@ -315,7 +316,7 @@ export default function ProductDetailClient({
     category_id: product.category_id ?? '',
     is_featured: product.is_featured,
     show_in_feed: product.show_in_feed ?? true,
-    tags: product.tags ?? [],
+    tags: normalizeTags(product.tags),
   })
   const [productSaving, setProductSaving] = useState(false)
   const [productError, setProductError] = useState<string | null>(null)

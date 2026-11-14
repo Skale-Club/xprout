@@ -228,7 +228,7 @@ function clearOptional(step: AccessRequestStep, a: AccessRequestAnswers): Access
 function Frame({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
   return (
     <main data-testid="access-request-flow" className="platform-dark fixed inset-0 flex justify-center bg-zinc-950 px-5 text-platform-ivory">
-      <div className={`flex min-h-0 w-full flex-col py-5 ${wide ? 'max-w-xl' : 'max-w-md justify-center'}`}>
+      <div className={`flex min-h-0 w-full flex-col border-t-2 border-t-platform-brand-accent py-5 ${wide ? 'max-w-xl' : 'max-w-md justify-center'}`}>
         <p className="mb-4 shrink-0 font-black">Xprout</p>
         {wide ? children : <section className="rounded-3xl border border-white/10 bg-zinc-900/60 p-6 sm:p-8">{children}</section>}
       </div>

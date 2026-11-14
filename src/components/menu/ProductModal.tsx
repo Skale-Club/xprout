@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import DishPhoto from './DishPhoto'
-import { Box, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, MessageCircle, Minus, Phone, Plus, X } from 'lucide-react'
+import { Box, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, MessageCircle, Minus, Phone, Plus, ShoppingBag, X } from 'lucide-react'
 import ArButton, { useIsComputer, type ArCart, type ArSequenceItem } from '@/components/ar/ArButton'
 import ModelViewer from '@/components/ar/ModelViewer'
 import { getArCopy } from '@/components/ar/ar-copy'
@@ -78,11 +78,14 @@ function VideoSlide({ url }: { url: string }) {
   )
 }
 
-export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, contact = null, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence }: {
+export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, contact = null, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart }: {
   /** Adds one of this dish from the AR camera without closing the sheet (no upsell). */
   onAddToCartFromAr?: (selectedOptions: Record<string, unknown>, unitPrice: number, note?: string, ingredientModifications?: IngredientModifications | null, editorState?: CartEditorState | null) => void
   /** Items in the order, for the confirmation inside the camera. */
   cartCount?: number
+  cartQuantityFor?: (selectedOptions: Record<string, unknown>) => number
+  onDecreaseCartQuantity?: (selectedOptions: Record<string, unknown>) => void
+  onOpenCart?: () => void
   /** The store's secondary colour (the AR camera's badges). */
   accentColor?: string
   /** The AR camera's view of the cart: this dish's count, "−", line total, order sheet, open cart. */
@@ -354,6 +357,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
   const guestCopy = getGuestCopy(lang)
   const money = (value: number) => formatMoney(value, currency, lang)
   const headerPrice = displayPrice(product.price, optionGroups)
+  const feature = dishFeature(product)
   const onPrimary = computePrimaryForeground(primaryColor)
   const isEditing = !!initialEditorState
   // Ordering: the price lives once, in the footer next to "Add" (live with the choices). View-only: in the header.
@@ -423,6 +427,10 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
     }
     return opts
   }
+
+  const selectedCartQuantity = !showcase && !isEditing ? Math.max(0, cartQuantityFor?.(buildSelectedOptions()) ?? 0) : 0
+  const showCartStepper = selectedCartQuantity > 0 && !!onDecreaseCartQuantity
+  const footerQuantity = Math.max(1, selectedCartQuantity)
 
   /** The dish as named in a WhatsApp order: with the choices made, else with its sizes. */
   function whatsappItem(): string {
@@ -554,7 +562,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
         {/* Grabber: tells phones the sheet can be dragged down to close */}
         <span aria-hidden="true" className={`pointer-events-none absolute top-2 left-1/2 z-10 h-[5px] w-9 -translate-x-1/2 rounded-full sm:hidden ${mediaSlides.length > 0 ? 'bg-white/85 shadow-[0_1px_3px_rgb(0_0_0/0.25)]' : 'bg-zinc-300'}`} />
         {/* No scrollbar gutter: a desktop scrollbar would cut a strip beside the photo and square its corner. */}
-        <div ref={scrollRef} className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div ref={scrollRef} className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overscroll-y-none">
           {mediaSlides.length > 0 || showing3d ? (
             <div
               className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100"
@@ -591,8 +599,13 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                   sizes="(max-width: 640px) 100vw, 512px"
                 />
               )}
-              {view3dButton && <div className="absolute top-3 left-3 z-10">{view3dButton}</div>}
+              {view3dButton && <div className={`absolute left-3 z-10 ${hasManySlides && !showing3d ? 'bottom-9' : 'bottom-3'}`}>{view3dButton}</div>}
               <div className="absolute top-3 right-3 z-10">{closeButton}</div>
+              {feature && !showing3d && (
+                <div className="pointer-events-none absolute top-3 left-3 right-16 flex">
+                  <DishFeaturePill tag={feature} lang={lang} tone="glass" />
+                </div>
+              )}
               {hasManySlides && !showing3d && (
                 <>
                   <button
@@ -640,8 +653,9 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                 </>} />
               {product.description && <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">{product.description}</p>}
               <DishDetails details={details} />
-              {/* One feature pill per dish, the system-wide pill. */}
-              {dishFeature(product) && <div className="mt-3 flex"><DishFeaturePill tag={dishFeature(product)!} lang={lang} /></div>}
+              {feature && mediaSlides.length === 0 && !showing3d && (
+                <div className="mt-3 flex"><DishFeaturePill tag={feature} lang={lang} /></div>
+              )}
             </div>
 
             {showcase && optionGroups.map(group => group.options.length > 0 && (
@@ -916,27 +930,62 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
             {!showcase && onAddToCart && (
               <>
               {/* One price, beside the button and never inside it: the button stays one short word in every
-                  language. No quantity picker before adding: "+1, +2" appears on the dish card once it is in the bag. */}
-              <div className="flex items-center gap-4">
+                  language. Existing cart quantities use the current configuration. */}
+              <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="shrink-0 pl-1" aria-live="polite">
                   <p className={`flex items-baseline gap-1.5 ${ui.label} text-zinc-500`}>
                     {footerPriceLabel}
-                    {footerPromo && <span className="tabular-nums text-zinc-500 line-through">{money(footerPromo)}</span>}
+                    {footerPromo && <span className="tabular-nums text-zinc-500 line-through">{money(footerPromo * footerQuantity)}</span>}
                   </p>
-                  <p className={`text-[20px] leading-tight ${ui.price}`} style={{ color: priceColor }}>{money(finalUnitPrice)}</p>
+                  <p className={`text-[20px] leading-tight ${ui.price}`} style={{ color: priceColor }}>{money(finalUnitPrice * footerQuantity)}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={submit}
-                  aria-disabled={!canAddToCart}
-                  style={ctaStyle(primaryColor, onPrimary)}
-                  className={`${ui.cta} h-12 min-w-0 flex-1 ${canAddToCart ? '' : 'opacity-50'}`}
-                >
-                  {isEditing
-                    ? <Check className="size-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
-                    : <Plus className="size-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />}
-                  <span className="truncate">{isEditing ? copy.updateItem : copy.addToOrder}</span>
-                </button>
+                {showCartStepper ? (
+                  <div data-product-cart-controls className="flex shrink-0 items-center gap-2">
+                    <div className="flex h-12 w-32 items-center justify-between rounded-full border border-zinc-200 bg-white px-1">
+                      <button
+                        type="button"
+                        onClick={() => onDecreaseCartQuantity?.(buildSelectedOptions())}
+                        aria-label={copy.decrease}
+                        className="flex size-11 items-center justify-center rounded-full text-zinc-800 transition-colors hover:bg-zinc-100 active:bg-zinc-200"
+                      >
+                        <Minus className="size-4" aria-hidden="true" />
+                      </button>
+                      <span className="min-w-5 text-center text-[15px] font-semibold tabular-nums text-zinc-900" aria-live="polite">{selectedCartQuantity}</span>
+                      <button
+                        type="button"
+                        onClick={submit}
+                        aria-label={copy.increase}
+                        aria-disabled={!canAddToCart}
+                        className={`flex size-11 items-center justify-center rounded-full text-zinc-800 transition-colors hover:bg-zinc-100 active:bg-zinc-200 ${canAddToCart ? '' : 'opacity-50'}`}
+                      >
+                        <Plus className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                    {onOpenCart && (
+                      <button
+                        type="button"
+                        onClick={onOpenCart}
+                        aria-label={copy.viewOrder}
+                        className="relative flex size-12 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-800 transition-colors hover:bg-zinc-100 active:bg-zinc-200"
+                      >
+                        <ShoppingBag className="size-5" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={submit}
+                    aria-disabled={!canAddToCart}
+                    style={ctaStyle(primaryColor, onPrimary)}
+                    className={`${ui.cta} h-12 min-w-[180px] shrink-0 ${canAddToCart ? '' : 'opacity-50'}`}
+                  >
+                    {isEditing
+                      ? <Check className="size-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+                      : <Plus className="size-5 shrink-0" strokeWidth={2.5} aria-hidden="true" />}
+                    <span>{isEditing ? copy.updateItem : copy.addToOrder}</span>
+                  </button>
+                )}
               </div>
               </>
             )}

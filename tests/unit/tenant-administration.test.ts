@@ -1,6 +1,6 @@
 import { describe,it,expect,vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
-import { validatePlan,createTenant,readPlans,readTenants,tenantAdministrationSelected } from '@/lib/data/tenant-administration'
+import { validatePlan,createTenant,readPlans,readTenants,tenantAdministrationSelected,tenantSettings } from '@/lib/data/tenant-administration'
 const context = { actorId:randomUUID(),sessionHash:'a'.repeat(64) }
 const valid = { name:'Menu',monthly_price:10,annual_price:100,transaction_fee_pct:0.015,features:['orders'],is_active:true,sort_order:0 }
 describe('native tenant and plan administration boundaries',() => {
@@ -26,4 +26,12 @@ describe('native tenant and plan administration boundaries',() => {
     }
     expect(query.mock.calls.some(([sql]) => sql.startsWith('INSERT'))).toBe(false)
   })
+})
+
+it('rejects non-catalog tenant feature choices before writing settings', async () => {
+  const query = vi.fn(async (sql: string) => ({ rows: sql.includes('JOIN public.app_sessions') ? [{ id: context.actorId }] : sql.startsWith('SELECT * FROM public.tenants') ? [{ id: context.actorId }] : [] }))
+  for (const custom_tags of [['Unknown'], ['x'.repeat(25)], 'Vegan', Array(8).fill('Vegan')]) {
+    await expect(tenantSettings(query,context,context.actorId,{ custom_tags })).rejects.toMatchObject({ status:400 })
+  }
+  expect(query.mock.calls.some(([sql]) => sql.startsWith('INSERT'))).toBe(false)
 })

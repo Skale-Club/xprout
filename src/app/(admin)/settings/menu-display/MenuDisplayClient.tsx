@@ -173,7 +173,7 @@ export default function MenuDisplayClient({
         <div>
           <p className="text-sm font-black text-zinc-950">“Complete your order” suggestions</p>
           <p className="mt-1 text-xs font-medium leading-relaxed text-zinc-500">
-            After a guest adds a dish, suggest what usually comes next — a side, a drink, a dessert — one step at a time.
+            Offer optional pairings, sides, drinks and desserts inside the cart. Guests expand the suggestions when they want them; adding a dish never opens a suggestion popup.
             Set each category’s role in Categories and hand-pick pairings on each dish. Needs online ordering.
           </p>
         </div>

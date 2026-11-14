@@ -9,6 +9,7 @@ import { log } from '@/lib/observability/log'
 import { getTenantPlan } from '@/lib/tenant-plan'
 import { PAYMENTS_ONLY_SETTINGS, ORDERS_ONLY_SETTINGS } from '@/lib/plan-settings'
 import { planCeiling, PLAN_FOR_MODE } from '@/lib/service-modes'
+import { PREDEFINED_DISH_TAGS, validateDishTags } from '@/lib/menu/dish-tags'
 
 async function handleGET(
   _req: Request,
@@ -50,6 +51,13 @@ async function handlePATCH(
   const update: Record<string, unknown> = {}
   for (const key of ALLOWED_FIELDS) {
     if (key in body) update[key] = body[key]
+  }
+  if ('custom_tags' in update) {
+    if (!Array.isArray(update.custom_tags) || update.custom_tags.length > PREDEFINED_DISH_TAGS.length) {
+      return NextResponse.json({ error: 'Invalid custom tags' }, { status: 400 })
+    }
+    try { update.custom_tags = [...new Set(update.custom_tags.map(tag => validateDishTags([tag])[0]))] }
+    catch { return NextResponse.json({ error: 'Invalid custom tags' }, { status: 400 }) }
   }
 
   // Validate color fields — they are interpolated into <style> downstream.

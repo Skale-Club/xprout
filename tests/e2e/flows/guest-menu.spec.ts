@@ -19,25 +19,20 @@ test.describe('menu-only plan', () => {
 })
 
 test.describe('self-service plan', () => {
-  test('a main course opens "Complete your order": drink, then dessert', async ({ page }) => {
+  test('a main course keeps browsing uninterrupted and suggestions are optional in the cart', async ({ page }) => {
     await page.goto(`/${TENANTS.self.slug}?view=list`)
     await page.getByRole('button', { name: 'Add Classic Burger' }).click()
 
-    const sheet = upsell(page)
-    await expect(sheet).toBeVisible()
-    await expect(sheet).toContainText('Classic Burger added')
-    await expect(sheet.getByRole('heading', { name: 'Something to drink?' })).toBeVisible()
-    // Featured drinks first.
-    await expect(sheet.getByRole('listitem').first()).toContainText('Orange Juice')
-
-    await sheet.getByRole('button', { name: 'Add Cola' }).click()
-    await expect(sheet.getByText('In your order')).toBeVisible()
-    await sheet.getByRole('button', { name: 'Continue' }).click()
-
-    await expect(sheet.getByRole('heading', { name: 'Room for dessert?' })).toBeVisible()
-    await sheet.getByRole('button', { name: 'No, thanks' }).click()
-    await expect(sheet).toBeHidden()
-
+    await expect(upsell(page)).toHaveCount(0)
+    await page.getByRole('button', { name: /View order/ }).click()
+    const suggestions = page.locator('[data-cart-suggestions]').filter({ visible: true })
+    await expect(suggestions).not.toHaveAttribute('open')
+    await suggestions.locator('summary').click()
+    await expect(suggestions.getByRole('listitem').first()).toContainText('Orange Juice')
+    await suggestions.getByRole('button', { name: 'Add Cola' }).click()
+    await expect(suggestions.getByRole('button', { name: 'Add Cola' })).toHaveCount(0)
+    await expect(suggestions).toContainText('Brownie')
+    await page.getByRole('button', { name: 'Close order' }).click()
     await expect(page.getByRole('button', { name: /View order/ })).toContainText('2')
   })
 
@@ -59,7 +54,18 @@ test.describe('self-service plan', () => {
     await expect(dish.getByText(/^R\$\s?55[.,]00$/).last()).toBeVisible()
     await dish.getByRole('button', { name: 'Add', exact: true }).click()
 
-    await expect(upsell(page)).toContainText('Ribeye Steak added')
+    await expect(dish).toBeVisible()
+    const controls = dish.locator('[data-product-cart-controls]')
+    await expect(controls.getByText('1', { exact: true })).toBeVisible()
+    await controls.getByRole('button', { name: 'Increase', exact: true }).click()
+    await expect(controls.getByText('2', { exact: true })).toBeVisible()
+    await expect(dish.getByText(/^R\$\s?110[.,]00$/).last()).toBeVisible()
+    await controls.getByRole('button', { name: 'Decrease', exact: true }).click()
+    await expect(controls.getByText('1', { exact: true })).toBeVisible()
+    await expect(upsell(page)).toHaveCount(0)
+    await controls.getByRole('button', { name: 'View order', exact: true }).click()
+    await expect(dish).toBeHidden()
+    await expect(page.getByRole('dialog', { name: 'Your order', exact: true })).toBeVisible()
   })
 
   test('ordering from a table link sends the order to that table', async ({ page }) => {

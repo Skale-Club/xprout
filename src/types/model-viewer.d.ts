@@ -15,6 +15,9 @@ type ModelViewerAttributes = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTML
   'ar-scale'?: 'auto' | 'fixed'
   'ar-placement'?: 'floor' | 'wall'
   'camera-controls'?: boolean
+  'disable-zoom'?: boolean
+  'disable-pan'?: boolean
+  'disable-tap'?: boolean
   'touch-action'?: 'pan-y' | 'pan-x' | 'none'
   'auto-rotate'?: boolean
   'rotation-per-second'?: string
@@ -26,6 +29,10 @@ type ModelViewerAttributes = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTML
   loading?: 'auto' | 'lazy' | 'eager'
   reveal?: 'auto' | 'manual'
   'camera-orbit'?: string
+  'camera-target'?: string
+  'field-of-view'?: string
+  'min-camera-orbit'?: string
+  'max-camera-orbit'?: string
 }
 
 declare module 'react' {

@@ -148,7 +148,7 @@ export default function AdminSidebar({
 
   return (
     <aside className="flex h-full w-full flex-col border-r border-zinc-800 bg-zinc-950 text-zinc-400">
-      <div className="border-b border-zinc-800/50 p-6 pr-16 lg:pr-6">
+      <div className="border-b border-zinc-800/50 border-t-2 border-t-platform-brand-accent p-6 pr-16 lg:pr-6">
         <div className="flex items-center gap-2.5 mb-4">
           {/* Reserve a consistent slot for the configured platform symbol. */}
           <DeliveryImage src={platformLogoUrl(logoUrl)} width={32} height={32} sizes="32px" alt="" className="size-8 rounded-lg object-contain object-center" />
