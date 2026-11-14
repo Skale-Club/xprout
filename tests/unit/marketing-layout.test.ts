@@ -7,13 +7,14 @@ const mocks = vi.hoisted(() => ({ settings: vi.fn() }))
 vi.mock('@/lib/data/platform-settings', () => ({ platformSettingsOwned: () => true }))
 vi.mock('@/lib/data/platform-settings-runtime', () => ({ readOwnedPlatformSettings: mocks.settings }))
 vi.mock('@/components/tracking/PlatformTagManager', () => ({ PlatformTagManager: () => null }))
+vi.mock('next/font/local', () => ({ default: () => ({ variable: 'marketing-display-font' }) }))
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: () => { throw new Error('Legacy store must not be queried') } }))
 import MarketingLayout from '@/app/(marketing)/layout'
 
 beforeEach(() => vi.clearAllMocks())
 
 describe('nested marketing theme ownership', () => {
-  it('renders a scoped theme without replacing the root document or fonts', async () => {
+  it('renders a scoped theme and display font without replacing the root document', async () => {
     mocks.settings.mockResolvedValue({ cta_color: '#283F32' })
     const html = renderToStaticMarkup(await MarketingLayout({ children: React.createElement('main', null, 'Page') }) as ReactElement)
     expect(html).toMatch(/^<div/)
@@ -21,6 +22,8 @@ describe('nested marketing theme ownership', () => {
     expect(html).toContain('--primary:#283F32')
     expect(html).toContain(`--primary-foreground:${BRAND_BASE}`)
     expect(html).toContain('<main>Page</main>')
+    expect(html).toContain('marketing-site')
+    expect(html).toContain('marketing-display-font')
   })
 
   it('preserves a configured platform primary inside the marketing boundary', async () => {

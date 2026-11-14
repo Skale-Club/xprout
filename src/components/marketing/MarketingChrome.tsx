@@ -1,125 +1,75 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { Menu, X, ArrowUpRight } from 'lucide-react'
 import { BRAND_NAME } from '@/lib/brand'
-import Image from 'next/image'
-import { m } from 'framer-motion'
-import { ArrowRight, Camera, MessageCircle } from 'lucide-react'
-import { PRICING_PATH } from '@/lib/marketing/pricing'
+import { DeliveryImage } from '@/components/delivery-image'
 import PlatformSignature from '@/components/branding/PlatformSignature'
 import { isDefaultPlatformLogo, platformLogoUrl } from '@/lib/platform-brand'
+import { PRICING_PATH } from '@/lib/marketing/pricing'
 
-// Shared by the marketing home and /pricing. Render inside a <LazyMotion strict>.
+export interface FooterData { copyright?: string }
 
-export interface FooterData {
-  copyright?: string
+function Brand({ appName, logoUrl, tone }: { appName?: string | null; logoUrl?: string | null; tone: 'forest' | 'ivory' }) {
+  const name = appName ?? BRAND_NAME
+  return name === BRAND_NAME && isDefaultPlatformLogo(logoUrl)
+    ? <PlatformSignature tone={tone} />
+    : <span className="inline-flex items-center gap-3"><DeliveryImage src={platformLogoUrl(logoUrl)} width={32} height={32} sizes="32px" alt="" className="size-8 object-contain" /><span className="text-lg font-semibold">{name}</span></span>
 }
 
-export function Nav({ appName, logoUrl, onLoginOpen, startHref }: { appName?: string | null; logoUrl?: string | null; onLoginOpen?: () => void; startHref?: string }) {
-  return (
-    <m.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="platform-dark fixed top-0 inset-x-0 z-50 h-16 border-b border-white/10 bg-zinc-950/50 backdrop-blur-xl flex items-center px-4 sm:px-6"
-    >
-      <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between px-0 sm:px-8">
-        <div className="flex items-center gap-3">
-          <a href="/" className="flex items-center gap-3">
-            {(appName ?? BRAND_NAME) === BRAND_NAME && isDefaultPlatformLogo(logoUrl) ? <PlatformSignature tone="ivory" /> : <>
-              <Image src={platformLogoUrl(logoUrl)} alt="" width={32} height={32} className="w-8 h-8 object-contain object-center" />
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-platform-ivory to-zinc-200">{appName ?? BRAND_NAME}</span>
-            </>}
-          </a>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <a
-            href={PRICING_PATH}
-            className="text-sm font-semibold text-zinc-300 hover:text-platform-ivory transition-colors px-0 sm:px-2 py-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-dark"
-          >
-            Pricing
-          </a>
-          {startHref ? (
-            <a href={startHref} className="relative group overflow-hidden bg-primary text-primary-foreground px-2 sm:px-5 py-2 rounded-full text-sm font-bold transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2">
-              <span className="relative z-10">Start</span>
-              <ArrowRight className="hidden sm:block w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
-            </a>
-          ) : (
-            <button onClick={onLoginOpen} className="relative group overflow-hidden bg-primary text-primary-foreground px-2 sm:px-5 py-2 rounded-full text-sm font-bold transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2">
-              <span className="relative z-10">Start</span>
-              <ArrowRight className="hidden sm:block w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
-            </button>
-          )}
-        </div>
+export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'home' }: {
+  appName?: string | null; logoUrl?: string | null; onLoginOpen?: () => void; startHref?: string; activePage?: 'home' | 'pricing'
+}) {
+  const [open, setOpen] = useState(false)
+  const toggle = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setOpen(false); toggle.current?.focus() } }
+    window.addEventListener('keydown', escape)
+    return () => window.removeEventListener('keydown', escape)
+  }, [open])
+  const links = <>
+    <Link className="mk-nav-link" href="/#experience" onClick={() => setOpen(false)}>The experience</Link>
+    <Link className="mk-nav-link" href="/#how-it-works" onClick={() => setOpen(false)}>How it works</Link>
+    <Link className="mk-nav-link" href={PRICING_PATH} aria-current={activePage === 'pricing' ? 'page' : undefined} onClick={() => setOpen(false)}>Pricing</Link>
+  </>
+  return <nav className="mk-nav" aria-label="Main navigation">
+    <div className="mk-container mk-nav-inner">
+      <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="forest" /></Link>
+      <div className="mk-nav-links">{links}</div>
+      <div className="mk-nav-actions">
+        {startHref ? <Link href={startHref} className="mk-button mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></Link>
+          : <button type="button" onClick={onLoginOpen} className="mk-button mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></button>}
+        <button ref={toggle} type="button" className="mk-nav-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="marketing-mobile-navigation" onClick={() => setOpen(value => !value)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
       </div>
-    </m.nav>
-  )
+    </div>
+    {open ? <div id="marketing-mobile-navigation" className="mk-mobile-nav">{links}</div> : null}
+  </nav>
 }
 
 export function Footer({ data, appName, logoUrl }: { data?: FooterData | null; appName?: string | null; logoUrl?: string | null }) {
-  const brandName = appName ?? BRAND_NAME
-  const copyright = data?.copyright ? `© ${data.copyright}` : '© 2026 Xprout. All rights reserved.'
-
-  return (
-    <footer className="platform-dark border-t border-white/10 bg-zinc-950 px-4 pt-16 md:pt-32 lg:pt-16 pb-8">
-      <div className="mx-auto max-w-[1320px] px-4 sm:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
-          {/* Logo + tagline */}
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              {brandName === BRAND_NAME && isDefaultPlatformLogo(logoUrl) ? <PlatformSignature tone="ivory" /> : <>
-                <Image src={platformLogoUrl(logoUrl)} alt="" width={24} height={24} className="w-6 h-6 object-contain object-center" />
-                <span className="text-lg font-bold text-platform-ivory">{brandName}</span>
-              </>}
-            </div>
-            <p className="text-zinc-400 text-sm">
-              Digital menu for restaurants. Modernize the way your customers order.
-            </p>
-            {/* Social icons */}
-            <div className="flex gap-4 mt-6">
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-primary-on-dark hover:border-primary/50 transition-colors"
-              >
-                <Camera className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                aria-label="WhatsApp"
-                className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-primary-on-dark hover:border-primary/50 transition-colors"
-              >
-                <MessageCircle className="w-5 h-5" />
-              </a>
-            </div>
-          </div>
-          {/* Legal links */}
-          <div className="md:text-right">
-            <p className="text-sm font-bold text-platform-ivory uppercase tracking-wider mb-4">Links</p>
-            <ul className="flex flex-col md:items-end gap-3">
-              <li>
-                <a href={PRICING_PATH} className="text-sm text-zinc-400 hover:text-platform-ivory transition-colors">
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a href="/privacy" className="text-sm text-zinc-400 hover:text-platform-ivory transition-colors">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="/terms" className="text-sm text-zinc-400 hover:text-platform-ivory transition-colors">
-                  Terms of Service
-                </a>
-              </li>
-            </ul>
-          </div>
+  const copyright = data?.copyright ? `© ${data.copyright}` : `© 2026 ${appName ?? BRAND_NAME}. All rights reserved.`
+  return <footer className="mk-footer mk-dark">
+    <div className="mk-container">
+      <div className="mk-footer-grid">
+        <div>
+          <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="inline-block"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
+          <p className="mk-lead mt-5 max-w-xs">Good food deserves a great first impression.</p>
+          <p className="mt-4 text-xs text-[var(--mk-muted)]">Digital menus. Real hospitality.</p>
         </div>
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-zinc-400">
-            {copyright}
-          </p>
-        </div>
+        <div><span className="mk-footer-label">Explore {appName ?? BRAND_NAME}</span><ul className="mk-footer-links">
+          <li><Link href="/#experience">The menu experience</Link></li>
+          <li><Link href="/#how-it-works">How it works</Link></li>
+          <li><Link href={PRICING_PATH}>Plans &amp; pricing</Link></li>
+          <li><Link href="/aurora" className="inline-flex items-center gap-2">Explore a live menu <ArrowUpRight size={14} /></Link></li>
+        </ul></div>
+        <div><span className="mk-footer-label">The essentials</span><ul className="mk-footer-links">
+          <li><Link href="/privacy">Privacy policy</Link></li>
+          <li><Link href="/terms">Terms of service</Link></li>
+        </ul></div>
       </div>
-    </footer>
-  )
+      <div className="mk-footer-bottom"><p>{copyright}</p><p>Made for the way restaurants serve.</p></div>
+    </div>
+  </footer>
 }

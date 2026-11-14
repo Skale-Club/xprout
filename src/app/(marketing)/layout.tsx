@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { platformColors } from '@/lib/platform-colors'
 import { PlatformTagManager } from '@/components/tracking/PlatformTagManager'
 import { platformSettingsOwned } from '@/lib/data/platform-settings'
+import MarketingFrame from '@/components/marketing/MarketingFrame'
 
 interface MarketingSettings {
   app_name: string | null; seo_title: string | null; seo_description: string | null
@@ -87,12 +88,11 @@ export default async function MarketingLayout({
   const { primary, onPrimary } = platformColors(ps?.cta_color)
 
   return (
-    <div
-      className="platform-light min-h-screen no-text-cursor"
+    <MarketingFrame
       style={{ '--primary': primary, '--primary-foreground': onPrimary } as CSSProperties}
     >
       <PlatformTagManager />
       {children}
-    </div>
+    </MarketingFrame>
   )
 }

@@ -1,16 +1,17 @@
-﻿"use client"
+'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { LazyMotion, domAnimation, m } from 'framer-motion'
-import Image from 'next/image'
-import { Globe, QrCode, Sparkles, ShoppingCart, ChevronDown, MessageCircle, UserPlus, UtensilsCrossed, ArrowRight, Sandwich, CupSoda, Zap, Star, ChefHat, CreditCard, BookOpen, Coffee, BarChart2, Search, Palette, ClipboardList, Link2 } from 'lucide-react'
+import { Globe, QrCode, Sparkles, ShoppingCart, ChevronDown, MessageCircle, UserPlus, UtensilsCrossed, ArrowRight, Sandwich, CupSoda, Zap, Star, ChefHat, CreditCard, BookOpen, Coffee, BarChart2, Search, Palette, ClipboardList, Link2, ArrowUpRight } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { DeliveryImage } from '@/components/delivery-image'
 import { Nav, Footer, type FooterData } from '@/components/marketing/MarketingChrome'
+import MenuShowcase from '@/components/marketing/MenuShowcase'
 import { PROJECTS, PLANS, PRICING_PATH, formatUsd } from '@/lib/marketing/pricing'
+import { contrastRatio, readableTextColor, safeCssColor } from '@/lib/color-utils'
 
 const AdminLoginModal = dynamic(() => import('@/components/auth/AdminLoginModal'), { ssr: false })
 
-// ─── Platform settings shape (hero only) ────────────────────────────────────
 interface HeroSettings {
   badge?: string
   heading?: string
@@ -23,164 +24,73 @@ interface HeroSettings {
   bg_image_url?: string
   bg_video_url?: string
 }
-
 interface HowItWorksData {
   title?: string
   subtitle?: string
   steps?: Array<{ step?: string; icon?: string; title: string; desc: string }>
 }
-
 interface FeaturesData {
   title?: string
   subtitle?: string
   items?: Array<{ icon?: string; title: string; desc: string }>
 }
-
 interface CtaData {
   heading?: string
   text?: string
   button?: string
   bg_image_url?: string
 }
-
-// ─── Section data ───────
+interface LandingData {
+  hero?: HeroSettings | null
+  how_it_works?: HowItWorksData | null
+  features?: FeaturesData | null
+  cta?: CtaData | null
+  footer?: FooterData | null
+}
 
 const steps = [
-  {
-    num: 1,
-    icon: UserPlus,
-    title: 'Create your account',
-    body: 'Sign up in seconds, no credit card required.',
-  },
-  {
-    num: 2,
-    icon: UtensilsCrossed,
-    title: 'Build your menu',
-    body: "Add categories, products, images and prices. We'll help with AI.",
-  },
-  {
-    num: 3,
-    icon: QrCode,
-    title: 'Share your QR code',
-    body: 'Print it, display it at the table, and let customers browse.',
-  },
+  { step: '01', icon: ClipboardList, title: 'Bring your menu', body: 'Start with the dishes, prices and photos you already have. We help you choose the right setup.' },
+  { step: '02', icon: UtensilsCrossed, title: 'Make it your own', body: 'Your food, your logo, your languages. Add your own dishes or have our team put it together.' },
+  { step: '03', icon: QrCode, title: 'Set the table', body: 'Share your menu link or place a QR code at the table. Guests open it right in their browser.' },
 ]
-
 const features = [
-  {
-    icon: Globe,
-    title: 'Multi-language menus',
-    body: 'Serve customers in English, Spanish and more. Your menu adapts to every language automatically.',
-  },
-  {
-    icon: QrCode,
-    title: 'QR code, ready in seconds',
-    body: 'Every menu gets a unique QR code. Print it, share it, or embed it anywhere.',
-  },
-  {
-    icon: Sparkles,
-    title: 'AI-powered setup',
-    body: 'Our team can structure your menu with AI, including categories, descriptions, and photos.',
-  },
-  {
-    icon: FoodDrinkCombo,
-    title: 'Online ordering',
-    body: 'Let customers order directly from the table. Available as an add-on.',
-  },
+  { icon: BookOpen, title: 'A menu with your character', body: 'Bring together your dishes, photography, descriptions and prices in a menu that feels like your restaurant.' },
+  { icon: Globe, title: 'A warmer welcome', body: 'Offer your menu in your chosen languages, so more guests can feel at home at your table.' },
+  { icon: QrCode, title: 'One small code. Your whole menu.', body: 'Share a link, print a QR code or add NFC stands. Guests open the menu without downloading an app.' },
+  { icon: ShoppingCart, title: 'More ways to serve', body: 'Start with a menu. Add table ordering or payments when they suit your service and selected plan.' },
 ]
-
 const faqs = [
-  {
-    q: 'How much does it cost?',
-    a: `Every menu is built by our team. Projects start at ${formatUsd(PROJECTS.diy.launch)} and plans at ${formatUsd(PLANS.menu.monthly)}/month. See the pricing page for the full list.`,
-  },
-  {
-    q: 'Do I need a developer?',
-    a: 'No. You set up your menu from a simple admin panel. No code required.',
-  },
-  {
-    q: 'Can my menu be in multiple languages?',
-    a: 'Yes. You can enable multiple languages and your menu content will be available in each.',
-  },
-  {
-    q: 'What happens to my data if I cancel?',
-    a: "Your data is yours. Contact us and we'll export everything before you leave.",
-  },
-  {
-    q: 'How do QR codes work?',
-    a: 'Every menu gets a unique QR code. Customers scan it and see your live menu instantly.',
-  },
-  {
-    q: 'Is online ordering available?',
-    a: 'Online ordering is available as an add-on. Contact us to enable it for your restaurant.',
-  },
+  { q: 'What does it cost?', a: `Menu projects start at ${formatUsd(PROJECTS.diy.launch)}, with ongoing plans from ${formatUsd(PLANS.menu.monthly)}/month. Choose to add the items yourself or have our team build the menu. The pricing page explains both.` },
+  { q: 'Can you build the menu for me?', a: 'Yes. Send us your menu and dish photos, and our team can put it together. Prefer to add your own items? There is a project option for that, too.' },
+  { q: 'Can my menu be in multiple languages?', a: 'Yes. Choose the languages you need. Additional languages are available, with the options and prices explained on our pricing page.' },
+  { q: 'Do guests need to download an app?', a: 'No. Guests scan a QR code, tap an NFC stand or open your link. The menu opens in their phone browser. NFC stands and plates are sold separately.' },
+  { q: 'Can guests order and pay from the menu?', a: 'Table ordering and menu payments are available on the relevant plans. You can start with a read-only menu and choose the service that fits your restaurant.' },
+  { q: 'What happens to my data if I leave?', a: 'Your menu content is yours. Contact us and we can help you export it before you leave.' },
 ]
 
 function FoodDrinkCombo({ className }: { className?: string }) {
-  const base = className?.replace(/w-\S+|h-\S+/g, '').trim()
-  const iconClassName = `w-4 h-4 ${(base || 'text-primary-on-dark')}`.trim()
-
-  return (
-    <span className="inline-flex items-center gap-0.5">
-      <Sandwich className={iconClassName} />
-      <CupSoda className={iconClassName} />
-    </span>
-  )
+  return <span className={`inline-flex items-center gap-0.5 ${className ?? ''}`}><Sandwich className="size-4" /><CupSoda className="size-4" /></span>
 }
-
 function getIcon(name: string): React.ComponentType<{ className?: string }> {
-  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-    Globe,
-    QrCode,
-    Sparkles,
-    ShoppingCart,
-    Globe2: Globe,
-    UserPlus,
-    UtensilsCrossed,
-    MessageCircle,
-    Zap,
-    Star,
-    ChefHat,
-    CreditCard,
-    BookOpen,
-    Coffee,
-    BarChart2,
-    Search,
-    Sandwich,
-    CupSoda,
-    FoodDrink: FoodDrinkCombo,
-    Palette,
-    ClipboardList,
-    Link2,
+  const icons: Record<string, React.ComponentType<{ className?: string }>> = {
+    Globe, Globe2: Globe, QrCode, Sparkles, ShoppingCart, UserPlus, UtensilsCrossed, MessageCircle, Zap, Star, ChefHat,
+    CreditCard, BookOpen, Coffee, BarChart2, Search, Sandwich, CupSoda, FoodDrink: FoodDrinkCombo, Palette, ClipboardList, Link2,
   }
-
-  return iconMap[name] ?? Globe
+  return icons[name] ?? Globe
 }
 
-// ─── Components ──────────────────────────────────────────────────────────────
-
-/**
- * The hero background video is decoration, and the production file weighs
- * ~17 MB: loaded up front it saturates a phone's connection and pushes the
- * headline (the LCP element) out to 7 s. So it starts with no `src` and no
- * preload, and only after the page has loaded and the browser is idle does it
- * fetch and play — on screens wide enough to be worth it, when the visitor
- * did not ask for reduced motion or data saving. Until then the poster (or the
- * section's background) is what shows.
- */
+/** Keep configured video deferred; mobile, reduced-motion and data-saving visitors keep the poster. */
 function DeferredHeroVideo({ src, poster, onError }: { src: string; poster?: string; onError: () => void }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [ready, setReady] = useState(false)
-
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
     if (reducedMotion || saveData || window.innerWidth < 768) return
-
     let cancelled = false
     const idle = (cb: () => void) => {
-      const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }
-      if (w.requestIdleCallback) w.requestIdleCallback(cb, { timeout: 4000 })
+      const browser = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }
+      if (browser.requestIdleCallback) browser.requestIdleCallback(cb, { timeout: 4000 })
       else setTimeout(cb, 2000)
     }
     const start = () => idle(() => { if (!cancelled) setReady(true) })
@@ -188,389 +98,171 @@ function DeferredHeroVideo({ src, poster, onError }: { src: string; poster?: str
     else window.addEventListener('load', start, { once: true })
     return () => { cancelled = true; window.removeEventListener('load', start) }
   }, [])
-
   useEffect(() => {
-    if (!ready) return
-    ref.current?.play().catch(() => { /* autoplay refused: the poster stays */ })
+    if (ready) ref.current?.play().catch(() => { /* Keep the configured poster when autoplay is refused. */ })
   }, [ready])
-
-  return (
-    <video
-      ref={ref}
-      muted loop playsInline
-      preload="none"
-      className="absolute inset-0 w-full h-full object-cover"
-      src={ready ? src : undefined}
-      poster={poster}
-      onError={onError}
-    />
-  )
+  return <video ref={ref} muted loop playsInline preload="none" className="absolute inset-0 size-full object-cover"
+    src={ready ? src : undefined} poster={poster} onError={onError} />
 }
 
 function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) {
   const [videoError, setVideoError] = useState(false)
   const bgType = s.bg_type ?? 'color'
-  const bgColor = s.bg_color ?? '#09090b'
   const bgImage = s.bg_image_url ?? ''
   const bgVideo = s.bg_video_url ?? ''
+  const color = bgType === 'color' ? safeCssColor(s.bg_color, '#F3EFE5') : '#F3EFE5'
+  const hasMedia = (bgType === 'image' && !!bgImage) || (bgType === 'video' && !!(bgVideo || bgImage))
+  const dark = hasMedia || contrastRatio('#F3EFE5', color) >= 4.5
+  const style = !hasMedia ? {
+    backgroundColor: color,
+    color: dark ? '#F3EFE5' : readableTextColor('#20372b', color),
+    '--mk-ink': dark ? '#F3EFE5' : readableTextColor('#20372b', color),
+    '--mk-muted': readableTextColor(dark ? '#d5ddcf' : '#59675e', color),
+    '--mk-line': dark ? '#718174' : '#d4d9cd',
+  } as React.CSSProperties : undefined
 
-  const badge    = s.badge            ?? 'The future of dining is here'
-  const heading  = s.heading          ?? 'Your restaurant menu,'
-  const highlight = s.heading_highlight ?? 'built for service.'
-  const sub      = s.subheading       ?? 'Create a beautiful digital menu, generate a QR code, and start taking orders. No tech skills needed.'
-  const ctaPrimary   = s.cta_primary   ?? 'Sign in to dashboard'
-  const ctaSecondary = s.cta_secondary ?? 'See how it works'
-
-  return (
-    <section
-      className="relative pt-24 pb-12 px-4 overflow-hidden min-h-[70svh] flex flex-col justify-center"
-      style={bgType === 'color' ? { backgroundColor: bgColor } : undefined}
-    >
-      {/* Video background */}
-      {bgType === 'video' && bgVideo && !videoError && (
-        <>
-          <DeferredHeroVideo src={bgVideo} poster={bgImage || undefined} onError={() => setVideoError(true)} />
-          <div className="absolute inset-0 bg-black/50" />
-        </>
-      )}
-
-      {/* Video fallback — shown if video fails to load */}
-      {bgType === 'video' && videoError && bgImage && (
-        <>
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${bgImage})` }}
-          />
-          <div className="absolute inset-0 bg-black/50" />
-        </>
-      )}
-
-      {/* Image background */}
-      {bgType === 'image' && bgImage && (
-        <>
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${bgImage})` }}
-          />
-          <div className="absolute inset-0 bg-black/50" />
-        </>
-      )}
-
-      {/* Default glows (only when not using image/video) */}
-      {bgType === 'color' && (
-        <>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] opacity-40 pointer-events-none" />
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px] opacity-30 pointer-events-none" />
-        </>
-      )}
-
-      <div className="relative z-10 mx-auto max-w-[1320px] px-4 pb-12 pt-20 text-center sm:px-8">
-        <div>
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-platform-ivory text-sm font-medium mb-8">
-            <Sparkles className="w-4 h-4" />
-            {badge}
-          </span>
-        </div>
-
-        <h1 className="text-5xl md:text-[3.6rem] lg:text-7xl font-extrabold text-platform-ivory leading-tight tracking-tight mb-6"
-        >
-          {heading} <br className="hidden sm:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-on-dark via-platform-ivory/80 to-platform-ivory">
-            {highlight}
-          </span>
+  return <section className={`relative isolate pb-16 pt-12 md:pb-24 md:pt-20 ${dark ? 'mk-dark' : ''}`} style={style} aria-labelledby="hero-title">
+    {bgType === 'video' && bgVideo && !videoError ? <DeferredHeroVideo src={bgVideo} poster={bgImage || undefined} onError={() => setVideoError(true)} /> : null}
+    {bgImage && (bgType === 'image' || (bgType === 'video' && (!bgVideo || videoError))) ?
+      <DeliveryImage src={bgImage} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /> : null}
+    {hasMedia ? <div className="absolute inset-0 bg-[#14271d]/85" aria-hidden="true" /> : null}
+    <div className="mk-container relative grid min-w-0 items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+      <div className="min-w-0">
+        <p className="mk-eyebrow mb-6">{s.badge ?? 'Digital menus, thoughtfully served'}</p>
+        <h1 id="hero-title" className="mk-display max-w-2xl">
+          {s.heading ?? 'Your food has a story.'}{' '}
+          <span className="block">{s.heading_highlight ?? 'Give it a menu to match.'}</span>
         </h1>
-
-        <p className="text-[0.85rem] sm:text-[1.15rem] text-platform-ivory/80 mb-10 max-w-2xl mx-auto leading-relaxed"
-        >
-          {sub}
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4"
-        >
-          <button
-            onClick={onLoginOpen}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-bold hover:scale-105 transition-all"
-          >
-            Start <ArrowRight className="w-5 h-5" />
+        <p className="mk-lead mt-7 max-w-lg">{s.subheading ?? 'A digital menu that feels like your restaurant. Beautiful dishes, clear choices and a little more time to enjoy the table.'}</p>
+        <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <button type="button" onClick={onLoginOpen} className={`mk-button ${dark ? 'mk-button--light' : ''}`}>
+            {s.cta_primary ?? 'Start'} <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
           </button>
-          <a
-            href="#how-it-works"
-            className="w-full sm:w-auto inline-flex items-center justify-center bg-white/15 border border-white/30 backdrop-blur-sm text-platform-ivory px-8 py-4 rounded-full text-lg font-bold hover:bg-primary/20 hover:border-primary/40 hover:scale-105 transition-all"
-          >
-            {ctaSecondary}
-          </a>
+          <a href="#how-it-works" className="mk-button mk-button--outline">{s.cta_secondary ?? 'See how it works'}</a>
         </div>
+        <p className="mk-muted mt-6 text-sm leading-relaxed">Your own identity. A link to share.<br className="sm:hidden" /> No app for guests to download.</p>
       </div>
-    </section>
-  )
+      <figure className="relative m-0 min-w-0 pb-12 sm:pb-8">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-t-[5rem] rounded-b-3xl border border-[var(--mk-line)] sm:aspect-square lg:aspect-[4/5]">
+          <DeliveryImage src="/brands/bella-vista/tagliatelle-al-ragu.webp" alt="Tagliatelle al ragù with parmesan and basil, from the Bella Vista menu" fill preload
+            sizes="(max-width: 1023px) calc(100vw - 40px), (max-width: 1239px) 45vw, 532px" className="object-cover" />
+        </div>
+        <figcaption className="absolute bottom-0 left-3 right-3 rounded-2xl border border-[#d4d9cd] bg-[#fbf8f0] p-5 text-[#20372b] sm:left-6 sm:right-6 sm:p-6 lg:-left-6 lg:right-8">
+          <div className="mb-3 flex items-center justify-between gap-3 border-b border-[#d4d9cd] pb-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.12em]">A taste of Bella Vista</span>
+            <UtensilsCrossed className="size-4 shrink-0" aria-hidden="true" />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0"><p className="text-lg font-semibold">Tagliatelle al ragù</p><p className="mt-1 text-sm text-[#59675e]">A dish worth a closer look.</p></div>
+            <Link href="/bella-vista" prefetch={false} aria-label="Explore the Bella Vista menu example" className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d4d9cd] transition-colors hover:bg-[#F3EFE5] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#283F32]">
+              <ArrowUpRight className="size-5" aria-hidden="true" />
+            </Link>
+          </div>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
 }
 
 function HowItWorks({ data }: { data?: HowItWorksData | null }) {
-  const resolvedSteps = data?.steps?.length
-    ? data.steps.map((s, i) => ({
-        num: i + 1,
-        icon: getIcon(s.icon ?? ''),
-        title: s.title,
-        body: s.desc,
-      }))
-    : steps
-  const sectionTitle = data?.title ?? 'How It Works'
-  const sectionSubtitle = data?.subtitle ?? "Three simple steps to transform your restaurant's digital presence."
-
-  return (
-    <section id="how-it-works" className="pt-[57px] md:pt-[86px] pb-[86px] px-4 relative select-none">
-      <div className="mx-auto max-w-[1320px] px-4 sm:px-8">
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-platform-ivory to-primary-on-dark mb-6 pb-2">{sectionTitle}</h2>
-          <p className="text-sm md:text-base text-zinc-400">{sectionSubtitle}</p>
-        </m.div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 relative">
-          {/* Connecting Line (Desktop) */}
-          <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-          {resolvedSteps.map(({ num, icon: Icon, title, body }, i) => (
-            <m.div
-              key={num}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.2 }}
-              className="relative bg-white/10 backdrop-blur-sm border border-white/25 p-5 md:p-8 rounded-[1.25rem] transition-all group overflow-hidden flex items-center gap-4 md:block"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative z-10 w-12 h-12 flex-shrink-0 rounded-xl md:rounded-2xl md:w-16 md:h-16 md:mx-auto bg-primary/10 border border-primary/20 text-primary-on-dark flex items-center justify-center mb-0 md:mb-6 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-                <Icon className="w-6 h-6 md:w-8 md:h-8" />
-              </div>
-              <div className="relative z-10 md:mt-4">
-                <p className="text-base lg:text-2xl font-bold text-platform-ivory mb-1 lg:mb-3">{title}</p>
-                <p className="text-sm lg:text-base text-zinc-400 leading-relaxed">{body}</p>
-              </div>
-            </m.div>
-          ))}
-        </div>
+  const resolved = data?.steps?.length ? data.steps.map((step, index) => ({
+    step: step.step ?? String(index + 1).padStart(2, '0'), icon: getIcon(step.icon ?? ''), title: step.title, body: step.desc,
+  })) : steps
+  return <section id="how-it-works" className="mk-section scroll-mt-24 border-t border-[var(--mk-line)]" aria-labelledby="process-title">
+    <div className="mk-container">
+      <div className="mb-10 grid gap-5 md:mb-14 md:grid-cols-2 md:items-end">
+        <div><p className="mk-eyebrow mb-4">From your kitchen to their screen</p><h2 id="process-title" className="mk-h2 max-w-xl">{data?.title ?? 'Good service starts with a simple setup.'}</h2></div>
+        <p className="mk-lead max-w-md md:justify-self-end">{data?.subtitle ?? 'We make room for the way you work, whether you want to add the dishes yourself or leave the setup to us.'}</p>
       </div>
-    </section>
-  )
+      <ol className="grid gap-8 md:grid-cols-3 md:gap-10">
+        {resolved.map(({ step, icon: Icon, title, body }, index) => <li key={`${step}-${index}`} className="min-w-0 border-t border-[var(--mk-line)] pt-6">
+          <div className="mb-7 flex items-center justify-between"><span className="mk-eyebrow">{step}</span><Icon className="size-6" aria-hidden="true" /></div>
+          <h3 className="mb-3 text-xl font-semibold">{title}</h3><p className="mk-muted text-base leading-relaxed">{body}</p>
+        </li>)}
+      </ol>
+    </div>
+  </section>
 }
 
 function FeatureBlocks({ data }: { data?: FeaturesData | null }) {
-  const resolvedFeatures = data?.items?.length
-    ? data.items.map((f) => ({
-        icon: getIcon(f.icon ?? ''),
-        title: f.title,
-        body: f.desc,
-      }))
-    : features
-  const sectionTitle = data?.title ?? 'Everything your restaurant needs'
-  const sectionSubtitle = data?.subtitle ?? 'Powerful features wrapped in a beautifully simple interface.'
-
-  return (
-    <section className="pt-[57px] md:pt-[86px] pb-[86px] px-4 relative select-none">
-      <div className="absolute inset-0 bg-zinc-950" />
-      <div className="relative z-10 mx-auto max-w-[1320px] px-4 sm:px-8">
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-platform-ivory to-primary-on-dark mb-6 pb-2">
-            {sectionTitle}
-          </h2>
-          <p className="text-base text-zinc-400">{sectionSubtitle}</p>
-        </m.div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-          {resolvedFeatures.map(({ icon: Icon, title, body }, i) => (
-            <m.div
-              key={title}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-
-              className="bg-white/10 backdrop-blur-sm border border-white/25 rounded-[1.25rem] p-8 lg:p-6 relative overflow-hidden group"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-6">
-                  <Icon className="w-6 h-6 text-primary-on-dark" />
-                </div>
-                <h3 className="text-base lg:text-xl font-bold text-platform-ivory mb-3">{title}</h3>
-                <p className="text-sm lg:text-base text-zinc-400 leading-relaxed">{body}</p>
-              </div>
-            </m.div>
-          ))}
-        </div>
+  const resolved = data?.items?.length ? data.items.map(item => ({ icon: getIcon(item.icon ?? ''), title: item.title, body: item.desc })) : features
+  return <section className="mk-dark mk-section" aria-labelledby="features-title">
+    <div className="mk-container">
+      <div className="mb-12 grid gap-6 md:grid-cols-[1.15fr_1fr] md:items-end">
+        <div><p className="mk-eyebrow mb-4">Made around your service</p><h2 id="features-title" className="mk-h2 max-w-xl">{data?.title ?? 'More than a menu. A better welcome.'}</h2></div>
+        <p className="mk-lead max-w-md md:justify-self-end">{data?.subtitle ?? 'Make the first look inviting, the choices clear and the next step easy. Choose the tools your restaurant needs.'}</p>
       </div>
-    </section>
-  )
-}
-
-// FAQ section is intentionally hardcoded — no DB equivalent in platform_settings.landing.
-// To add CMS support, add a `faq` array to the landing JSONB schema (separate scope).
-function FAQ() {
-  return (
-    <section className="pt-[57px] md:pt-[86px] pb-[86px] md:pb-[172px] lg:pb-[86px] px-4">
-      <div className="mx-auto max-w-[1320px] px-4 sm:px-8">
-        <m.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-platform-ivory to-primary-on-dark mb-6 pb-2">
-            Frequently asked questions
-          </h2>
-        </m.div>
-        
-        <div className="space-y-4">
-          {faqs.map(({ q, a }, i) => (
-            <m.details 
-              key={q} 
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="group bg-white/10 backdrop-blur-sm border border-white/25 rounded-xl overflow-hidden [&_summary::-webkit-details-marker]:hidden select-none relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-              <summary className="relative z-10 p-6 text-base font-bold text-platform-ivory cursor-pointer flex justify-between items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-dark">
-                {q}
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-open:rotate-180 transition-transform duration-300 shrink-0 ml-4">
-                  <ChevronDown className="w-4 h-4 text-platform-ivory" />
-                </div>
-              </summary>
-              <div className="relative z-10 p-6 text-zinc-400 text-sm leading-relaxed border-t border-white/5 group-open:animate-in group-open:fade-in group-open:slide-in-from-top-4 duration-300">
-                {a}
-              </div>
-            </m.details>
-          ))}
-        </div>
+      <div className="grid grid-cols-1 gap-x-12 gap-y-9 sm:grid-cols-2">
+        {resolved.map(({ icon: Icon, title, body }, index) => <article key={`${title}-${index}`} className="grid min-w-0 grid-cols-[40px_1fr] gap-4 border-t border-[var(--mk-line)] pt-7 sm:gap-5">
+          <Icon className="mt-1 size-7" aria-hidden="true" />
+          <div className="min-w-0"><h3 className="mb-3 text-xl font-semibold">{title}</h3><p className="mk-muted text-base leading-relaxed">{body}</p></div>
+        </article>)}
       </div>
-    </section>
-  )
+      <p className="mk-muted mt-12 max-w-2xl border-t border-[var(--mk-line)] pt-6 text-sm leading-relaxed">Ordering, payments, selected 3D dishes and optional AI services depend on your plan and setup. Start with what your restaurant needs today.</p>
+    </div>
+  </section>
 }
 
 function PricingTeaser() {
-  return (
-    <section className="px-4 pb-[86px]">
-      <div className="mx-auto max-w-[1320px] px-4 sm:px-8">
-        <m.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative overflow-hidden rounded-[1.25rem] border border-white/25 bg-white/10 backdrop-blur-sm p-8 sm:p-12 text-center"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 to-transparent pointer-events-none" />
-          <div className="relative z-10 flex flex-col items-center gap-5">
-            <h2 className="text-2xl sm:text-4xl font-bold text-platform-ivory">
-              Menu websites from {formatUsd(PROJECTS.diy.launch)}
-            </h2>
-            <p className="max-w-xl text-zinc-400">
-              We build it, you approve it, we keep it updated. Plans from {formatUsd(PLANS.menu.monthly)}/month.
-            </p>
-            <a
-              href={PRICING_PATH}
-              className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full text-lg font-bold hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              See pricing <ArrowRight className="w-5 h-5" />
-            </a>
-          </div>
-        </m.div>
+  return <section className="mk-section" aria-labelledby="pricing-title">
+    <div className="mk-container grid gap-10 md:grid-cols-[1.15fr_1fr] md:items-center">
+      <div><p className="mk-eyebrow mb-4">A place to start</p><h2 id="pricing-title" className="mk-h2 max-w-xl">A clear price.<br />Room to grow.</h2>
+        <p className="mk-lead mt-6 max-w-lg">A one-time project to get your menu ready, then a plan to keep it running. Choose how much you want our team to take care of.</p>
+        <a href={PRICING_PATH} className="mk-button mk-button--outline mt-8">Explore pricing <ArrowRight className="size-4" aria-hidden="true" /></a>
       </div>
-    </section>
-  )
+      <div className="mk-panel min-w-0 p-7 sm:p-10">
+        <p className="mk-eyebrow mb-5">Menu project · from</p>
+        <p className="mk-price text-5xl sm:text-6xl">{formatUsd(PROJECTS.diy.launch)}</p>
+        <p className="mk-muted mt-3 text-base">One-time setup · you add the items</p>
+        <div className="mt-8 border-t border-[var(--mk-line)] pt-6"><p className="text-lg font-semibold">Then from {formatUsd(PLANS.menu.monthly)} / month</p><p className="mk-muted mt-2 text-sm leading-relaxed">The first month is included in the project. Full options, add-ons and terms are on our pricing page.</p></div>
+      </div>
+    </div>
+  </section>
+}
+
+function FAQ() {
+  return <section className="mk-section border-t border-[var(--mk-line)]" aria-labelledby="faq-title">
+    <div className="mk-container grid items-start gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+      <div><p className="mk-eyebrow mb-4">A few things to know</p><h2 id="faq-title" className="mk-h2">Before we<br className="hidden lg:block" /> set the table.</h2><p className="mk-lead mt-5 max-w-sm">Straight answers, so you can get back to what you do best.</p></div>
+      <div className="min-w-0 border-t border-[var(--mk-line)]">
+        {faqs.map(({ q, a }) => <details key={q} className="group border-b border-[var(--mk-line)] [&_summary::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-5 py-5 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--mk-forest)] sm:text-lg">
+            {q}<ChevronDown className="size-5 shrink-0 transition-transform motion-reduce:transition-none group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <p className="mk-muted max-w-xl pb-6 pr-8 text-base leading-relaxed">{a}</p>
+        </details>)}
+      </div>
+    </div>
+  </section>
 }
 
 function FooterCTABand({ data, onLoginOpen }: { data?: CtaData | null; onLoginOpen: () => void }) {
-  const heading = data?.heading ?? 'Ready to get started?'
-  const text = data?.text ?? 'Join the first restaurants using Xprout and transform your customer experience today.'
-  const button = data?.button ?? 'Sign in now'
-
-  return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-zinc-950" />
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-      <div className="relative overflow-hidden">
-        {data?.bg_image_url && (
-          <Image
-            src={data.bg_image_url}
-            alt=""
-            aria-hidden="true"
-            fill
-            sizes="100vw"
-            quality={70}
-            className="object-cover"
-          />
-        )}
-        <div className="absolute inset-0 bg-zinc-950/60 md:bg-zinc-950/50 lg:bg-zinc-950/40" />
-        <div className="relative z-20 mx-auto max-w-[1320px] px-4 py-16 text-center sm:px-20 sm:py-24">
-          <m.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-on-dark via-platform-ivory/80 to-platform-ivory mb-6 pb-2 leading-tight tracking-tight"
-          >
-            {heading}
-          </m.h2>
-          <m.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-lg sm:text-2xl text-zinc-300 mb-10 max-w-2xl mx-auto"
-          >
-            {text}
-          </m.p>
-          <m.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            <button
-              onClick={onLoginOpen}
-              className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-10 py-5 rounded-full text-lg font-bold hover:scale-105 transition-all active:scale-95"
-            >
-              Start <ArrowRight className="w-5 h-5" />
-            </button>
-          </m.div>
-        </div>
+  return <section className="mk-dark mk-section relative isolate" aria-labelledby="invitation-title">
+    {data?.bg_image_url ? <><DeliveryImage src={data.bg_image_url} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /><div className="absolute inset-0 bg-[#14271d]/90" aria-hidden="true" /></> : null}
+    <div className="mk-container relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
+      <div><p className="mk-eyebrow mb-5">Your next chapter</p><h2 id="invitation-title" className="mk-h2 max-w-2xl whitespace-pre-line">{data?.heading ?? 'Something good is taking shape.'}</h2>
+        <p className="mk-lead mt-6 max-w-xl">{data?.text ?? 'Bring your menu, your ideas and your appetite for what comes next. We will help you put them on the table.'}</p>
       </div>
-    </section>
-  )
+      <div className="md:justify-self-end"><button type="button" onClick={onLoginOpen} className="mk-button mk-button--light w-full sm:w-auto">{data?.button ?? 'Start'} <ArrowRight className="size-4" aria-hidden="true" /></button></div>
+    </div>
+  </section>
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default function ClientLandingPage({ platformLanding, appName, logoUrl }: { platformLanding?: any; appName?: string | null; logoUrl?: string | null }) {
-  const heroSettings: HeroSettings = platformLanding?.hero ?? {}
+export default function ClientLandingPage({ platformLanding, appName, logoUrl }: { platformLanding?: unknown; appName?: string | null; logoUrl?: string | null }) {
+  const landing = platformLanding && typeof platformLanding === 'object' ? platformLanding as LandingData : null
   const [loginOpen, setLoginOpen] = useState(false)
-
-  return (
-    <LazyMotion features={domAnimation} strict>
-    <div className="platform-dark min-h-screen bg-zinc-950 text-zinc-50 selection:bg-primary/30 select-none">
+  return <div className="min-h-screen bg-[var(--mk-paper)] text-[var(--mk-ink)]">
       <Nav appName={appName} logoUrl={logoUrl} onLoginOpen={() => setLoginOpen(true)} />
       <main>
-        <Hero s={heroSettings} onLoginOpen={() => setLoginOpen(true)} />
-        <HowItWorks data={platformLanding?.how_it_works} />
-        <FeatureBlocks data={platformLanding?.features} />
-        <FAQ />
+        <Hero s={landing?.hero ?? {}} onLoginOpen={() => setLoginOpen(true)} />
+        <MenuShowcase />
+        <HowItWorks data={landing?.how_it_works} />
+        <FeatureBlocks data={landing?.features} />
         <PricingTeaser />
-        <FooterCTABand data={platformLanding?.cta} onLoginOpen={() => setLoginOpen(true)} />
+        <FAQ />
+        <FooterCTABand data={landing?.cta} onLoginOpen={() => setLoginOpen(true)} />
       </main>
-      <Footer data={platformLanding?.footer} appName={appName} logoUrl={logoUrl} />
+      <Footer data={landing?.footer} appName={appName} logoUrl={logoUrl} />
       <AdminLoginModal open={loginOpen} onClose={() => setLoginOpen(false)} logoUrl={logoUrl} />
     </div>
-    </LazyMotion>
-  )
 }
