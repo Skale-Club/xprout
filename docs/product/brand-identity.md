@@ -35,7 +35,7 @@ The former bright red `#F52323` is retired. On 2026-11-14 the owner expanded the
 
 ### Accent rollout (local review, 2026-11-14)
 
-Wine appears in light marketing labels/focus/selected options, pricing highlights, platform auth decoration, onboarding and access-request frames, and shared admin/superadmin headers. The hero's AR-style title and indicators use white with shadow over the photograph. Rosewood is limited to the marketing progress line, 3D setup border and auth gradient. Dark essential text stays ivory. Status/error colors, configurable primary actions and restaurant palettes are unchanged. This is not a complete audit of every legacy module, e-mail or notification. See [review evidence](../reviews/2026-11-14-wine-accent-review.md). No production settings were changed or release performed.
+Wine appears in light marketing labels/focus/selected options, pricing highlights, platform auth decoration, onboarding and access-request frames, and shared admin/superadmin headers. The hero's AR-style title and bottom-row position marks use white with shadow over the photograph. Rosewood is limited to the marketing progress line, 3D setup border and auth gradient. Dark essential text stays ivory. Status/error colors, configurable primary actions and restaurant palettes are unchanged. This is not a complete audit of every legacy module, e-mail or notification. See [review evidence](../reviews/2026-11-14-wine-accent-review.md). No production settings were changed or release performed.
 
 ## Scope: what the brand colours cover
 

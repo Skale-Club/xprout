@@ -32,7 +32,7 @@ The hero replaces numbered selectors with the AR panel's centered Morse-style
 display. `MorsePositionIndicator` is shared by the hero and WebXrDishViewer:
 80px viewport, 16px slots, 6px height, a 14px active dash and 6px neighbor dots,
 distance-based opacity/scale and reduced-motion-aware transitions. AR retains
-white marks and its existing shadow; the hero now also uses white over its photo. Previous
+white marks and its existing shadow; the hero also uses white over the photo. Previous
 and next buttons remain 44px navigation targets; the indicator exposes the
 current position accessibly. Direct numbered jumps are replaced by the same
 display-only indicator used in AR. Hero wrapping and AR endpoint behavior stay
@@ -46,11 +46,11 @@ native launch changes. This follow-up remains local, not deployed.
 ## Title over the photographed table
 
 Owner feedback places the dish name over the photo, like the AR name strip.
-The hero now groups its centered Inter dish name, previous/next arrows and Morse
-indicator in a nonblocking overlay below the camera/3D entry. White marks and
-text shadows match the AR treatment. The overlay ignores pointer input except
+The hero groups its centered Inter dish name and previous/next arrows in a
+nonblocking overlay at the top of the photo. White text and shadows match the
+AR treatment. The overlay ignores pointer input except
 on the 44px arrow controls, preserving model dragging. The footer retains the
-category and demo-store link; it no longer repeats the dish name or indicators.
+category and demo-store link; it no longer repeats the dish name.
 The photo/model sizing, native launch, wheel/idle behavior and links are unchanged.
 
 Follow-up validation closes the earlier memory-related browser gap: TypeScript
@@ -61,3 +61,20 @@ horizontal overflow. All three anonymous showcase images load and their
 surrounding visible/alternative copy has no internal restaurant names. Captures
 were reviewed at 320/390/1440px. Physical native camera placement was not retested.
 Evidence: `output/hero-title-overlay/2026-11-14`.
+
+## Controls at the base
+
+Owner refinement places Morse marks and the single camera/3D entry on the same
+bottom row inside the photo: marks on the left, action on the right, with 12px
+edge insets and a shared vertical center. The top title strip remains on the
+photo. Marks use the AR-style white/shadow treatment. The compact row prevents
+indicator/button overlap, including camera wording at 320px. Removed the duplicate inline Explore button: the always-visible entry
+already enables inline 3D on desktop and native camera viewing on supported
+phones. Autoplay refusal/reduced-motion visitors retain this explicit entry.
+Notices appear above the button; Retry is separated above it on failure.
+
+Browser checks at 320/390/768/1440px confirm the 12px bottom/right placement,
+indicators aligned with the button inside the image, one entry, navigation/position updates, real inline
+activation, no page errors and no overflow. Emulated Android retains camera
+wording, bottom-right placement and no overlap at 320/390px. Nine focused tests and scoped ESLint pass.
+Reviewed 320/390/1440px captures. Evidence: `output/hero-controls-base/2026-11-14`.

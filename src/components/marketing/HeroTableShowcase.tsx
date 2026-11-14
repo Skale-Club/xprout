@@ -154,7 +154,6 @@ export default function HeroTableShowcase() {
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
     <div className="mk-table-scene" style={{ position: 'relative' }}>
-      <HeroDishARButton dishId={dish.id} onExplore3D={() => { setExplicit(true); setManual(true) }} />
       <DeliveryImage src="/marketing/v3/table-photo.webp" alt="" aria-hidden="true" draggable={false} className="mk-table-photo"
         width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px" preload
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -173,13 +172,16 @@ export default function HeroTableShowcase() {
           <p className="mk-table-name">{dish.name}</p>
           <button type="button" className={controlClass} aria-label="Next dish" onClick={() => choose((selected + 1) % dishes.length)}><ArrowRight size={18} aria-hidden="true" /></button>
         </div>
-        <MorsePositionIndicator index={selected} total={dishes.length} label={`Dish ${selected + 1} of ${dishes.length}`} className="mt-1.5 text-white" shadow />
       </div>
-      {!enabled ? <button type="button" className={`mk-table-explore ${controlClass}`} onClick={() => setExplicit(true)}>Explore in 3D</button> : null}
+      <div className="mk-table-bottom-controls">
+        <MorsePositionIndicator index={selected} total={dishes.length} label={`Dish ${selected + 1} of ${dishes.length}`} className="mk-table-position text-white" shadow />
+        <HeroDishARButton dishId={dish.id} onExplore3D={() => { setExplicit(true); setManual(true) }} />
+      </div>
       {failed ? <button type="button" className={`mk-table-retry ${controlClass}`} onClick={() => { setFailed(false); setLoaded(''); setRetry(current => current + 1) }}>
         <RotateCcw size={16} aria-hidden="true" /> Retry 3D
       </button> : null}
     </div>
+
     <div className="mk-table-caption">
       <span className="mk-eyebrow">3D preview · {dish.category}</span>
       <Link href="/aurora" prefetch={false} className={controlClass}>Visit the demo store</Link>
