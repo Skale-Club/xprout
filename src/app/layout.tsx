@@ -6,6 +6,7 @@ import { getPlatformAppearance } from '@/lib/data/platform-appearance-runtime'
 import { platformColors } from '@/lib/platform-colors'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 import { platformMetadataIcons } from '@/lib/platform-metadata'
+import { PLATFORM_SOCIAL_IMAGE } from '@/lib/platform-brand'
 import './globals.css'
 
 const inter = Inter({
@@ -44,7 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       locale: 'en_US',
       siteName: BRAND_NAME,
-      images: [{ url: '/opengraph-image?v=xprout-v1', width: 1200, height: 630, alt: BRAND_NAME }],
+      images: [{ url: PLATFORM_SOCIAL_IMAGE, width: 1200, height: 630, alt: BRAND_NAME }],
     },
     twitter: { card: 'summary_large_image' },
   }

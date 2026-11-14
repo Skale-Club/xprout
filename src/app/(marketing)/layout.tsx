@@ -1,4 +1,5 @@
 import { platformMetadataIcons } from '@/lib/platform-metadata'
+import { PLATFORM_SOCIAL_IMAGE } from '@/lib/platform-brand'
 import { BRAND_NAME, BRAND_URL } from '@/lib/brand'
 import landingCopy from '@/lib/marketing/landing-copy.json'
 import type { Metadata } from 'next'
@@ -62,7 +63,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       images: [
         {
-          url: '/opengraph-image?v=xprout-v1',
+          url: PLATFORM_SOCIAL_IMAGE,
           width: 1200,
           height: 630,
           alt: title,
@@ -73,7 +74,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: 'summary_large_image',
       title,
       description,
-      images: ['/opengraph-image?v=xprout-v1'],
+      images: [PLATFORM_SOCIAL_IMAGE],
       ...(ps?.twitter_handle ? { site: ps.twitter_handle, creator: ps.twitter_handle } : {}),
     },
     icons: platformMetadataIcons(ps?.favicon_url),

@@ -17,6 +17,9 @@ export const PLATFORM_BRAND_ASSETS = {
   socialPng: '/brand/xprout/v1/social-card-1200x630.png?v=411ed0a0',
 } as const
 
+/** Version the generated social route with the approved PNG's content revision. */
+export const PLATFORM_SOCIAL_IMAGE = '/opengraph-image?v=411ed0a0'
+
 /** Explicit configuration wins; only an absent logo selects the platform default. */
 export function platformLogoUrl(configured?: string | null): string {
   return configured?.trim() || PLATFORM_BRAND_ASSETS.icon

@@ -1,6 +1,7 @@
 export const revalidate = 60
 
 import { BRAND_NAME } from '@/lib/brand'
+import { PLATFORM_SOCIAL_IMAGE } from '@/lib/platform-brand'
 import type { Metadata } from 'next'
 import landingCopy from '@/lib/marketing/landing-copy.json'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -54,7 +55,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { absolute: title }, description,
     openGraph: {
       title, description, url: PLATFORM_BASE, siteName: name, type: 'website', locale: 'en_US',
-      images: [{ url: '/opengraph-image?v=xprout-v1', width: 1200, height: 630, alt: name }],
+      images: [{ url: PLATFORM_SOCIAL_IMAGE, width: 1200, height: 630, alt: name }],
     },
     twitter: { card: 'summary_large_image', title, description },
   }

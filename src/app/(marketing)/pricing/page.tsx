@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { PLATFORM_SOCIAL_IMAGE } from '@/lib/platform-brand'
 import PricingClient from './PricingClient'
 import { LAUNCH_SLOTS, PROJECTS, PLANS, formatUsd } from '@/lib/marketing/pricing'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -15,8 +16,8 @@ export const metadata: Metadata = {
   title: { absolute: title },
   description,
   alternates: { canonical: '/pricing' },
-  openGraph: { title, description, url: '/pricing', type: 'website', images: [{ url: '/opengraph-image?v=xprout-v1', width: 1200, height: 630, alt: title }] },
-  twitter: { card: 'summary_large_image', title, description, images: ['/opengraph-image?v=xprout-v1'] },
+  openGraph: { title, description, url: '/pricing', type: 'website', images: [{ url: PLATFORM_SOCIAL_IMAGE, width: 1200, height: 630, alt: title }] },
+  twitter: { card: 'summary_large_image', title, description, images: [PLATFORM_SOCIAL_IMAGE] },
 }
 
 async function getPricingBrand() {
