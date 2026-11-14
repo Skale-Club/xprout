@@ -167,20 +167,24 @@ export default function HeroTableShowcase() {
         min-camera-orbit="auto 62deg 0.55m" max-camera-orbit="auto 62deg 0.55m" camera-controls disable-zoom disable-pan disable-tap touch-action="pan-y" interaction-prompt="none" loading="eager"
         shadow-intensity="0.7" shadow-softness="0.8" environment-image="neutral" exposure="1" tabIndex={ready && !failed ? 0 : -1} aria-hidden={!ready || failed}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: ready && !failed ? 1 : 0, pointerEvents: ready && !failed ? 'auto' : 'none' }}><span slot="progress-bar" hidden /></model-viewer> : null}
+      <div className="mk-table-name-overlay" role="group" aria-label="Choose a dish">
+        <div className="mk-table-controls">
+          <button type="button" className={controlClass} aria-label="Previous dish" onClick={() => choose((selected + dishes.length - 1) % dishes.length)}><ArrowLeft size={18} aria-hidden="true" /></button>
+          <p className="mk-table-name">{dish.name}</p>
+          <button type="button" className={controlClass} aria-label="Next dish" onClick={() => choose((selected + 1) % dishes.length)}><ArrowRight size={18} aria-hidden="true" /></button>
+        </div>
+        <MorsePositionIndicator index={selected} total={dishes.length} label={`Dish ${selected + 1} of ${dishes.length}`} className="mt-1.5 text-white" shadow />
+      </div>
       {!enabled ? <button type="button" className={`mk-table-explore ${controlClass}`} onClick={() => setExplicit(true)}>Explore in 3D</button> : null}
       {failed ? <button type="button" className={`mk-table-retry ${controlClass}`} onClick={() => { setFailed(false); setLoaded(''); setRetry(current => current + 1) }}>
         <RotateCcw size={16} aria-hidden="true" /> Retry 3D
       </button> : null}
     </div>
     <div className="mk-table-caption">
-      <div><span className="mk-eyebrow">3D preview · {dish.category}</span><p>{dish.name}</p></div>
+      <span className="mk-eyebrow">3D preview · {dish.category}</span>
       <Link href="/aurora" prefetch={false} className={controlClass}>Visit the demo store</Link>
     </div>
-    <div className="mk-table-controls" role="group" aria-label="Choose a dish">
-      <button type="button" className={controlClass} aria-label="Previous dish" onClick={() => choose((selected + dishes.length - 1) % dishes.length)}><ArrowLeft size={18} aria-hidden="true" /></button>
-      <MorsePositionIndicator index={selected} total={dishes.length} label={`Dish ${selected + 1} of ${dishes.length}`} className="text-platform-brand-accent" />
-      <button type="button" className={controlClass} aria-label="Next dish" onClick={() => choose((selected + 1) % dishes.length)}><ArrowRight size={18} aria-hidden="true" /></button>
-    </div>
+
     <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</span>
   </div>
 }

@@ -32,7 +32,7 @@ The hero replaces numbered selectors with the AR panel's centered Morse-style
 display. `MorsePositionIndicator` is shared by the hero and WebXrDishViewer:
 80px viewport, 16px slots, 6px height, a 14px active dash and 6px neighbor dots,
 distance-based opacity/scale and reduced-motion-aware transitions. AR retains
-white marks and its existing shadow; marketing uses the wine accent. Previous
+white marks and its existing shadow; the hero now also uses white over its photo. Previous
 and next buttons remain 44px navigation targets; the indicator exposes the
 current position accessibly. Direct numbered jumps are replaced by the same
 display-only indicator used in AR. Hero wrapping and AR endpoint behavior stay
@@ -42,3 +42,22 @@ Lightweight syntax checks and six server-rendered indicator states pass. A full
 typecheck/browser check was not run while the machine remained at critical RAM.
 Evidence: `output/hero-morse/2026-11-14`. No media, tenant capability, camera or
 native launch changes. This follow-up remains local, not deployed.
+
+## Title over the photographed table
+
+Owner feedback places the dish name over the photo, like the AR name strip.
+The hero now groups its centered Inter dish name, previous/next arrows and Morse
+indicator in a nonblocking overlay below the camera/3D entry. White marks and
+text shadows match the AR treatment. The overlay ignores pointer input except
+on the 44px arrow controls, preserving model dragging. The footer retains the
+category and demo-store link; it no longer repeats the dish name or indicators.
+The photo/model sizing, native launch, wheel/idle behavior and links are unchanged.
+
+Follow-up validation closes the earlier memory-related browser gap: TypeScript
+and scoped ESLint pass; thirteen focused tests pass. Browser checks at
+320/390/768/1440px verify all three titles inside the photo, centered Morse marks,
+44px arrow targets, forward/backward wrapping, demo link, no page errors or
+horizontal overflow. All three anonymous showcase images load and their
+surrounding visible/alternative copy has no internal restaurant names. Captures
+were reviewed at 320/390/1440px. Physical native camera placement was not retested.
+Evidence: `output/hero-title-overlay/2026-11-14`.
