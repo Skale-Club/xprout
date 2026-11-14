@@ -73,6 +73,7 @@
 .marketing-site .mk-hero-caption { box-shadow:0 14px 38px #14271d18; border-color:#9db18188; }
 .marketing-site .mk-table-showcase { position:relative; isolation:isolate; color:#20372b; border:1px solid #9db18188; border-radius:40px 40px 24px 24px; padding:12px 16px; background:radial-gradient(ellipse at 50% 40%,#f8f5e9,#dce6c8 76%); box-shadow:0 24px 60px #14271d18; }
 .marketing-site .mk-table-scene { aspect-ratio:4/3; overflow:hidden; border-radius:28px; background:#79543b; isolation:isolate; }
+.marketing-site .mk-table-scene::after { content:""; position:absolute; inset:0 0 auto; z-index:1; height:140px; max-height:65%; background:linear-gradient(180deg,#000c 0%,#000a 48%,#0000 100%); pointer-events:none; }
 .marketing-site :is(.mk-table-photo,.mk-table-poster) { pointer-events:none; user-select:none; -webkit-user-drag:none; }
 .marketing-site .mk-table-viewer { touch-action:pan-y; cursor:grab; }
 .marketing-site .mk-table-viewer:active { cursor:grabbing; }

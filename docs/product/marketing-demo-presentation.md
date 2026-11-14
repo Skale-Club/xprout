@@ -100,3 +100,19 @@ behavior, no page errors and no overflow. Scoped ESLint and four existing
 marketing content/layout tests pass. Reviewed mobile hero and desktop section
 captures; no new public media assets or settings writes. Evidence:
 `output/demo-store-section/2026-11-14`. Local review only; no deployment.
+
+## Top readability gradient
+
+Owner feedback adds a dark-to-transparent lens behind the hero's title/arrows.
+A pointer-transparent scene pseudo-element sits above the photo/model at z1,
+below the title at z2 and bottom controls at z3. Black alpha fades from 0.8 to
+approximately 0.667 at 48%, then to zero. Its height is capped at 140px and 65%
+of the scene, leaving the lower image clear. Scene clipping preserves its corners.
+No public media, geometry or camera behavior changes.
+
+Browser checks at 320/390/1440px verify the rendered gradient stops, bounds,
+pointer-events:none, title stacking, working arrow selection, no page errors
+and no overflow; the burger capture was visually reviewed. Diff check passes.
+No new unit test for this reversible CSS detail. This is not a blanket contrast
+certification across photographic content. Evidence:
+`output/hero-title-gradient/2026-11-14`. Local only.
