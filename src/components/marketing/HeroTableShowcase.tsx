@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useMarketingMotionPreference } from './MarketingMotion'
+import HeroDishARButton from './HeroDishARButton'
 
 const dishes = [
   { id: 'picanha', name: 'Premium Picanha', category: 'Main' },
@@ -29,6 +30,7 @@ export default function HeroTableShowcase() {
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const [manual, setManual] = useState(false)
+  const [manipulatedModel, setManipulatedModel] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const dish = dishes[selected]
   const source = `/marketing/v3/dish-${dish.id}`
@@ -109,6 +111,20 @@ export default function HeroTableShowcase() {
   }, [enabled, libraryReady, modelKey])
 
   useEffect(() => {
+    const element = viewer.current as (HTMLElement & { pause?: () => void }) | null
+    if (!element) return
+    const onCameraChange = (event: Event) => {
+      // model-viewer 4.4 reports scripted camera changes as a different source.
+      if ((event as CustomEvent<{ source?: string }>).detail?.source !== 'user-interaction') return
+      element.pause?.()
+      setManipulatedModel(modelKey)
+      setManual(true)
+    }
+    element.addEventListener('camera-change', onCameraChange)
+    return () => element.removeEventListener('camera-change', onCameraChange)
+  }, [enabled, libraryReady, modelKey])
+
+  useEffect(() => {
     if (motion !== 'playing' || !visible || !activeDocument || !ready || failed || hovered || focused || manual) return
     const timer = setTimeout(() => setSelected(current => (current + 1) % dishes.length), 7000)
     return () => clearTimeout(timer)
@@ -117,13 +133,14 @@ export default function HeroTableShowcase() {
   useEffect(() => {
     const element = viewer.current as (HTMLElement & { play?: () => void; pause?: () => void }) | null
     if (!element) return
-    if (ready && !failed && motion === 'playing' && visible && activeDocument && !hovered && !focused) element.play?.()
+    if (ready && !failed && manipulatedModel !== modelKey && motion === 'playing' && visible && activeDocument && !hovered && !focused) element.play?.()
     else element.pause?.()
     return () => element.pause?.()
-  }, [ready, failed, motion, visible, activeDocument, hovered, focused, modelKey, libraryReady])
+  }, [ready, failed, motion, visible, activeDocument, hovered, focused, modelKey, libraryReady, manipulatedModel])
 
   const choose = (index: number) => {
     setManual(true)
+    if (index !== selected) setManipulatedModel('')
     setFailed(false)
     setSelected(index)
     setAnnouncement(`${dishes[index].name}, ${index + 1} of ${dishes.length}`)
@@ -135,18 +152,19 @@ export default function HeroTableShowcase() {
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
     <div className="mk-table-scene" style={{ position: 'relative' }}>
-      <DeliveryImage src="/marketing/v3/table-photo.webp" alt="" aria-hidden="true" className="mk-table-photo"
+      <HeroDishARButton dishId={dish.id} />
+      <DeliveryImage src="/marketing/v3/table-photo.webp" alt="" aria-hidden="true" draggable={false} className="mk-table-photo"
         width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px" preload
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-      <DeliveryImage key={dish.id} src={`${source}.webp`} alt={`${dish.name} served on a photographed restaurant table`}
+      <DeliveryImage key={dish.id} src={`${source}.webp`} alt={`${dish.name} served on a photographed restaurant table`} draggable={false}
         width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px"
         className="mk-table-poster" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: ready && !failed ? 0 : 1 }} />
       {enabled && libraryReady ? <model-viewer key={modelKey} ref={viewer} src={modelSource}
         alt={`3D ${dish.name} on a photographed restaurant table`} poster={`${source}.webp`}
-        className="mk-table-viewer" camera-orbit="0deg 62deg 0.62m" camera-target="0m 0.04m 0m" field-of-view="30deg"
-        min-camera-orbit="auto auto 0.62m" max-camera-orbit="auto auto 0.62m" interaction-prompt="none" loading="eager"
-        shadow-intensity="0.7" shadow-softness="0.8" environment-image="neutral" exposure="1" tabIndex={-1} aria-hidden="true"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: ready && !failed ? 1 : 0, pointerEvents: 'none' }}><span slot="progress-bar" hidden /></model-viewer> : null}
+        className="mk-table-viewer" camera-orbit="0deg 62deg 0.55m" camera-target="0m 0.04m 0m" field-of-view="30deg"
+        min-camera-orbit="auto 62deg 0.55m" max-camera-orbit="auto 62deg 0.55m" camera-controls disable-zoom disable-pan disable-tap touch-action="pan-y" interaction-prompt="none" loading="eager"
+        shadow-intensity="0.7" shadow-softness="0.8" environment-image="neutral" exposure="1" tabIndex={ready && !failed ? 0 : -1} aria-hidden={!ready || failed}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: ready && !failed ? 1 : 0, pointerEvents: ready && !failed ? 'auto' : 'none' }}><span slot="progress-bar" hidden /></model-viewer> : null}
       {!enabled ? <button type="button" className={`mk-table-explore ${controlClass}`} onClick={() => setExplicit(true)}>Explore in 3D</button> : null}
       {failed ? <button type="button" className={`mk-table-retry ${controlClass}`} onClick={() => { setFailed(false); setLoaded(''); setRetry(current => current + 1) }}>
         <RotateCcw size={16} aria-hidden="true" /> Retry 3D

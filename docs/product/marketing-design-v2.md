@@ -43,7 +43,7 @@ Landing: editorial hero with 3D dishes over a fixed photographed table; a usable
 selection linking to Aurora, Bella Vista and Celes; a clear setup process; a
 contrasting product-capabilities section; a concise pricing entry; FAQ; closing
 invitation. Existing login-modal behavior and configured text/media remain.
-The previous food film appears in a separate click-to-play section after the
+The previous food film appears in a separate muted autoplay/loop section after the
 menu examples. See marketing-hero-3d.md for implementation, media budgets and evidence.
 
 Pricing: brief explanation of one-time setup plus ongoing service; three project
@@ -152,3 +152,15 @@ hero at 1440px changes from 558.11 to 432.14px. Eight responsive states, nine
 focused unit tests, ten existing browser behaviors, TypeScript and scoped lint
 pass. Four axe states detect no violations, retaining incomplete findings.
 Evidence: output/compact-hero/2026-11-14. This remains a local review.
+
+## Interaction refinements
+
+Owner feedback adds140px branding below768px in the shared marketing header;
+desktop remains195px, with an unchanged outlined master and44px minimum link
+target. The film autoplays muted and loops when visible, with native Pause,
+offscreen suspension and preference-aware fallback. Hero dishes are about13%
+larger, rotate horizontally through drag without wheel zoom, and stop their
+current idle animation after user manipulation. The photo cannot be dragged.
+Supported phones/tablets receive a View in3D pill that opens the selected dish
+through the app's native AR helpers and existing calibrated assets. See
+marketing-hero-3d.md and output/autoplay-drag/2026-11-14 for verification limits.

@@ -36,7 +36,7 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
   </>
   return <nav className="mk-nav mk-dark" aria-label="Main navigation">
     <div className="mk-container mk-nav-inner">
-      <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
+      <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="mk-nav-brand shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
       <div className="mk-nav-links">{links}</div>
       <div className="mk-nav-actions">
         {startHref ? <Link href={startHref} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></Link>

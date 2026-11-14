@@ -14,14 +14,18 @@ private review history; no table geometry ships in the current GLBs.
 HeroTableShowcase layers the same optimized walnut-table photo, a transparent
 matching dish poster, and one active model-viewer element. Each GLB contains
 only the food and plate, with an animation on the dish root. Camera radius
-0.62m, orbit 0°/62°, target y0.04m and vertical field of view30° stay fixed across
-all dishes. Camera bounds prevent model-dependent framing changes. Contact
+0.55m, initial orbit0°/62°, target y0.04m and vertical field of view30° are shared
+across dishes. The closer camera enlarges food by about13% without changing its
+real portion scale. Radius/pitch stay fixed; horizontal dragging turns the dish.
+Wheel zoom, panning and tap recentering are disabled; wheel input scrolls the
+page. Photo/poster native dragging and selection are disabled. Contact
 shadows ground the plate on the image. A matching live model hides its poster
 to avoid ghosting behind the rotating food.
 
 The carousel advances after seven seconds only when the selected model has
 loaded, the page and scene are visible, motion is enabled, and the visitor is
-not hovering or focusing it. Manual controls stop automatic selection. Hover,
+not hovering or focusing it. Manual controls stop automatic selection. User
+camera manipulation also latches the current dish's idle animation off. Hover,
 focus, offscreen state, hidden documents and shared Pause motion stop dish
 animation. Automatic changes do not flood the live announcement region;
 manual selection announces the dish. Menu links open the real Aurora menu.
@@ -30,17 +34,27 @@ The library/model load after page load and an idle opportunity, when visible.
 Reduced motion and data saving keep a static poster until explicit Explore in
 3D. JavaScript-free content remains visible. Model failures/timeouts retain the
 poster; Retry uses a new attempt URL to bypass the library's failed-URL cache.
-No AR camera launch or ordering action is added to this marketing surface.
+Supported phones/tablets have a View in3D pill that opens native AR only on tap.
+Shared launch helpers use published original GLBs for Android Scene Viewer and
+USDZs for iOS Quick Look, with real-scale resizing off. No AR model or Three/WebXR
+library is preloaded for this button. Six original asset URLs return200 with
+correct MIME: GLBs4.72–5.27MB and USDZs9.51–9.86MB, within the existing15MiB
+native-delivery budget. Published asset versions are pinned and must be updated
+if those originals are removed. Phone capability detection and Android fallback
+reuse the app contract. Physical camera placement requires real-device testing.
+No cart action is added.
 
 ## Reused film
 
 The former hero video now appears in a separate dark editorial section after
 the menu examples. Its burger, pizza and sushi footage is presented as a food
 film, not a recording of app functionality. The existing source watermark is
-retained. A lazy poster loads first; the video URL is attached only on Play.
-Native controls remain available. Playback pauses when its element is
-offscreen, the document becomes hidden or motion preferences switch to paused
-or reduced. Explicit playback is available under reduced motion.
+retained. A lazy poster loads first; entering view attaches the video source and
+starts muted playback in a loop. Native controls remain available. Playback
+pauses offscreen, in hidden documents or when shared motion is paused. Native
+pause is respected until visibility changes or explicit resume. Reduced motion,
+data saving and autoplay refusal retain a manual fallback. The source is not
+attached offscreen or replaced for every loop.
 
 The old source is retained privately. The 13.67-second clip was reduced from
 17,540,180 B to1,567,618 B, silent H.264/yuv420p,1280×720,24fps, fast-start.
@@ -54,7 +68,7 @@ resolve the application-wide policy's existing ingestion gaps.
 | Artifact | Explicit maximum | Measured output |
 | --- | --- | --- |
 | Dish GLB | 1.5MiB,45,000 triangles,512px texture edge; embedded resources, no decoder downloads | 970,128–1,101,144 B;19,682 triangles; five textures per model |
-| Dish poster | WebP,1200px long edge,180KiB | 22,782–50,294 B;914×686 |
+| Dish poster | WebP,1200px long edge,180KiB | 27,554–60,462 B;914×686 |
 | Table photo | WebP,1200px long edge,180KiB | 1200×900,73,360 B |
 | Home film | H.264,1280px long edge,24fps,45s,5MiB, no audio | 13.67s,1,567,618 B |
 | Film poster | WebP,1200px long edge,180KiB | 1200×675,37,116 B |
@@ -82,8 +96,12 @@ Normal-motion browser tests cover real animation time, a fixed camera/photo,
 automatic and manual switching, one active model, no initial eager loading of
 all models, Pause, hover/focus/offscreen behavior, reduced motion, data saving,
 static no-JavaScript content, failed model loading and successful Retry.
-Film checks cover no video request before Play, explicit playback under reduced
-motion, offscreen pause, poster retention on error and successful retry.
+Follow-up checks cover real horizontal dragging without native image drag,
+scroll without zoom, latched idle stop, muted autoplay, an actual loop, native
+pause, visibility resume and reduced-motion fallback. Native URL tests cover all
+three dishes and both routes; emulated-phone tests verify Quick Look image-first
+anchors, selected-dish changes, no original-model preload, Android fallback and
+desktop omission. Native phone camera placement was not tested.
 Eight responsive page states have no horizontal overflow or page errors.
 Four axe states report zero detected violations; incomplete gradient, icon,
 table and silent-video-caption findings remain review limits. Nineteen focused

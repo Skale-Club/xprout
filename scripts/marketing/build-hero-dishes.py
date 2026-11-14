@@ -91,7 +91,7 @@ for slug, original, plate in [('picanha', 'premium-picanha', .30), ('burger', 'a
         obj.location = location
         aim(obj, (0, 0, .025))
     target = Vector((0, 0, .04))
-    radius, phi = .62, math.radians(62)
+    radius, phi = .55, math.radians(62)
     bpy.ops.object.camera_add(location=target + Vector((0, -radius * math.sin(phi), radius * math.cos(phi))))
     camera = bpy.context.object
     camera.name = 'Fixed marketing camera'
@@ -120,7 +120,7 @@ for slug, original, plate in [('picanha', 'premium-picanha', .30), ('burger', 'a
     receipt.append(dict(slug=slug, source=str(source), source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
         output=glb.name, bytes=glb.stat().st_size, triangles=triangles,
         sha256=hashlib.sha256(glb.read_bytes()).hexdigest(), blend=blend.name,
-        camera_orbit='0deg 62deg 0.62m', camera_target='0m 0.04m 0m', field_of_view='30deg',
+        camera_orbit='0deg 62deg 0.55m', camera_target='0m 0.04m 0m', field_of_view='30deg',
         animation='Dish turn: food only; stationary table is a separate photograph'))
     (output / 'build-receipt.json').write_text(json.dumps(receipt, indent=2))
     print('HERO_BUILT ' + json.dumps(receipt[-1]), flush=True)

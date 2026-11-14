@@ -48,6 +48,9 @@ The horizontal signature's current viewBox is
 artwork is 963.1543518142191 by 219.04148580222773, with 50.5 units of clearspace
 around it. The manual's 160px visible horizontal minimum needs about 177px total
 SVG width. SVG image sizing must not stretch it into a square tile.
+The owner approved a compact marketing-header exception on2026-11-14:140px total
+below768px, with a44px link target, while desktop remains195px. This display role
+does not resize the vector masters or change the typography alignment reference.
 
 ## Verification
 

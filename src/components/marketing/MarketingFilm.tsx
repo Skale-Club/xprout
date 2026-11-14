@@ -5,52 +5,98 @@ import { Play } from 'lucide-react'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useMarketingMotionPreference } from './MarketingMotion'
 
-/** The film is downloaded only after a guest explicitly asks to watch it. */
+/** Download on visibility, autoplay quietly, and preserve explicit playback choices. */
 export default function MarketingFilm() {
   const root = useRef<HTMLElement>(null)
   const video = useRef<HTMLVideoElement>(null)
   const motion = useMarketingMotionPreference()
   const previousMotion = useRef(motion)
-  const [requested, setRequested] = useState(false)
+  const requested = useRef(false)
+  const visible = useRef(false)
+  const manualOverride = useRef(false)
+  const userPaused = useRef(false)
+  const suspending = useRef(false)
+  const failure = useRef(false)
+  const attempt = useRef(0)
   const [started, setStarted] = useState(false)
   const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
+  const [blocked, setBlocked] = useState(false)
   const [status, setStatus] = useState('')
-  const source = `/marketing/v3/restaurant-film.mp4${attempt > 0 ? `?retry=${attempt}` : ''}`
-
-  useEffect(() => {
-    if (motion !== previousMotion.current && motion !== 'playing') video.current?.pause()
-    previousMotion.current = motion
-  }, [motion])
 
   useEffect(() => {
     const media = video.current
-    const onVisibility = () => { if (document.visibilityState !== 'visible') media?.pause() }
+    if (!media) return
+    if (motion !== previousMotion.current && motion !== 'playing') manualOverride.current = false
+    previousMotion.current = motion
+    const syncPlayback = () => {
+      const allowed = motion === 'playing' || (motion === 'reduced' && manualOverride.current)
+      if (!visible.current || document.visibilityState !== 'visible' || !allowed) {
+        suspending.current = true
+        media.pause()
+        return
+      }
+      if (userPaused.current || failure.current) return
+      if (!requested.current) {
+        media.src = '/marketing/v3/restaurant-film.mp4'
+        requested.current = true
+      }
+      void media.play().catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setBlocked(true)
+        setStatus('Press play to watch the film.')
+      })
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') userPaused.current = false
+      syncPlayback()
+    }
     document.addEventListener('visibilitychange', onVisibility)
-    const element = video.current
-    const observer = element && typeof globalThis.IntersectionObserver !== 'undefined'
-      ? new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) media?.pause() }, { threshold: .05 })
+    const observer = typeof globalThis.IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(([entry]) => {
+        const nextVisible = entry.isIntersecting && entry.intersectionRatio >= .05
+        if (nextVisible && !visible.current) userPaused.current = false
+        visible.current = nextVisible
+        syncPlayback()
+      }, { threshold: .05 })
       : null
-    if (element) observer?.observe(element)
+    observer?.observe(media)
+    const checkBounds = () => {
+      const bounds = media.getBoundingClientRect()
+      const nextVisible = bounds.bottom > 0 && bounds.top < window.innerHeight
+      if (nextVisible && !visible.current) userPaused.current = false
+      visible.current = nextVisible
+      syncPlayback()
+    }
+    if (!observer) {
+      checkBounds()
+      window.addEventListener('scroll', checkBounds, { passive: true })
+      window.addEventListener('resize', checkBounds)
+    } else syncPlayback()
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('scroll', checkBounds)
+      window.removeEventListener('resize', checkBounds)
       observer?.disconnect()
-      media?.pause()
+      suspending.current = true
+      media.pause()
     }
-  }, [])
+  }, [motion])
 
   const play = () => {
     const element = video.current
     if (!element) return
     if (failed) {
-      const nextAttempt = attempt + 1
-      setAttempt(nextAttempt)
-      element.src = `/marketing/v3/restaurant-film.mp4?retry=${nextAttempt}`
-    } else if (!requested) {
+      attempt.current += 1
+      element.src = `/marketing/v3/restaurant-film.mp4?retry=${attempt.current}`
+    } else if (!requested.current) {
       // Attach and play during the click so mobile browsers retain user activation.
-      element.src = source
+      element.src = '/marketing/v3/restaurant-film.mp4'
     }
-    setRequested(true)
+    requested.current = true
+    manualOverride.current = true
+    userPaused.current = false
+    failure.current = false
+    setBlocked(false)
     setFailed(false)
     setStatus('Loading the film.')
     void element.play().catch((error: unknown) => {
@@ -75,12 +121,14 @@ export default function MarketingFilm() {
         <DeliveryImage src="/marketing/v3/restaurant-film-poster.webp" alt="A cinematic close-up of freshly prepared food"
           width={1280} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) calc(100vw - 80px), 1160px"
           className="mk-film-poster" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: started && !failed ? 0 : 1 }} />
-        <video ref={video} controls={started && !failed} playsInline preload="none" className="mk-film-video"
+        <video ref={video} controls={started && !failed} muted loop playsInline preload="none" className="mk-film-video"
           aria-label="A short silent food film featuring burger, pizza and sushi"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: started && !failed ? 1 : 0, pointerEvents: started && !failed ? 'auto' : 'none' }}
-          onPlaying={() => { setStarted(true); setFailed(false); setStatus('') }}
-          onError={() => { setFailed(true); setStarted(false); setStatus('The film could not load. Please try again.') }} />
-        {!started || failed ? <button type="button" onClick={play} className="mk-film-play min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+          onPlay={() => { suspending.current = false; userPaused.current = false }}
+          onPause={() => { if (!suspending.current) userPaused.current = true; suspending.current = false }}
+          onPlaying={() => { setStarted(true); setFailed(false); setBlocked(false); setStatus('') }}
+          onError={() => { failure.current = true; setFailed(true); setStarted(false); setStatus('The film could not load. Please try again.') }} />
+        {failed || blocked || (motion === 'reduced' && !started) ? <button type="button" onClick={play} className="mk-film-play min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
           style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
           <Play size={18} aria-hidden="true" /><span>{failed ? 'Retry the film' : 'Play the film'}</span>
         </button> : null}
