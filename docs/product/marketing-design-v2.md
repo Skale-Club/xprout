@@ -39,10 +39,12 @@ reduced motion and keep primary content visible without an entrance animation.
 
 ## Pages
 
-Landing: editorial hero with an owned food/menu composition; a usable live-demo
+Landing: editorial hero with 3D dishes over a fixed photographed table; a usable live-demo
 selection linking to Aurora, Bella Vista and Celes; a clear setup process; a
 contrasting product-capabilities section; a concise pricing entry; FAQ; closing
 invitation. Existing login-modal behavior and configured text/media remain.
+The previous food film appears in a separate click-to-play section after the
+menu examples. See marketing-hero-3d.md for implementation, media budgets and evidence.
 
 Pricing: brief explanation of one-time setup plus ongoing service; three project
 options; monthly/annual plan comparison; grouped extras; a useful estimator;

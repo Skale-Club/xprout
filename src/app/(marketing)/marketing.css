@@ -63,6 +63,30 @@
 .marketing-site .mk-hero-photo img { transition:transform 900ms cubic-bezier(.2,.7,.2,1); }
 .marketing-site .mk-hero-label { background:var(--mk-lime); border-color:#283f3226; box-shadow:0 8px 24px #14271d14; }
 .marketing-site .mk-hero-caption { box-shadow:0 14px 38px #14271d18; border-color:#9db18188; }
+.marketing-site .mk-table-showcase { position:relative; isolation:isolate; color:#20372b; border:1px solid #9db18188; border-radius:40px 40px 24px 24px; padding:12px 16px 8px; background:radial-gradient(ellipse at 50% 40%,#f8f5e9,#dce6c8 76%); box-shadow:0 24px 60px #14271d18; }
+.marketing-site .mk-table-scene { aspect-ratio:4/3; overflow:hidden; border-radius:28px; background:#79543b; isolation:isolate; }
+.marketing-site .mk-table-poster { pointer-events:none; }
+.marketing-site .mk-table-viewer { background:transparent; --poster-color:transparent; transition:opacity 300ms ease; }
+.marketing-site .mk-table-caption { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 4px 10px; border-top:1px solid #8ea77966; }
+.marketing-site .mk-table-caption .mk-eyebrow { color:#435541; font-size:10px; letter-spacing:.12em; }
+.marketing-site .mk-table-caption p { margin-top:4px; font-family:var(--font-marketing-display),Georgia,serif; font-size:clamp(22px,2vw,28px); line-height:1.15; }
+.marketing-site .mk-table-caption a { display:inline-flex; align-items:center; flex-shrink:0; padding:10px 14px; border:1px solid #7c966c; font-size:11px; font-weight:600; background:#f3efe5; }
+.marketing-site .mk-table-controls { display:flex; align-items:center; justify-content:center; gap:4px; }
+.marketing-site .mk-table-controls button { display:grid; place-items:center; cursor:pointer; transition:background-color 200ms; }
+.marketing-site .mk-table-controls button:hover { background:#283f3210; }
+.marketing-site .mk-table-dot[aria-current="true"] { background:#283f32; color:#f3efe5; }
+.marketing-site .mk-table-dot { font-size:11px; font-variant-numeric:tabular-nums; }
+.marketing-site :is(.mk-table-explore,.mk-table-retry) { position:absolute; left:50%; bottom:8px; transform:translateX(-50%); display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:nowrap; background:#283f32; color:#f3efe5; padding:10px 18px; font-size:12px; font-weight:600; border:1px solid #f3efe54d; box-shadow:0 5px 18px #14271d20; cursor:pointer; }
+@media(min-width:768px) { .marketing-site .mk-table-scene { aspect-ratio:3/2; } }
+@media(max-width:374px) { .marketing-site .mk-table-showcase { padding-inline:12px; } .marketing-site .mk-table-caption { align-items:start; flex-direction:column; gap:8px; } .marketing-site .mk-table-caption a { align-self:flex-end; } }
+.marketing-site .mk-film { --mk-muted:#c3cebf; color:#f3efe5; background:radial-gradient(ellipse at 100% 100%,#385c3c,#14271d 70%); }
+.marketing-site .mk-film > .mk-container { display:grid; gap:28px; align-items:center; }
+.marketing-site .mk-film-copy { display:grid; gap:20px; max-width:440px; }
+.marketing-site .mk-film-player { border:1px solid #8a9e7866; border-radius:24px; background:#102017; box-shadow:0 22px 50px #0003; }
+.marketing-site .mk-film :is(a,button,video):focus-visible { outline-color:#f3efe5; }
+.marketing-site .mk-film-play { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:14px 22px; background:#f3efe5; color:#20372b; border:1px solid #8a9e78; box-shadow:0 8px 24px #0003; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.marketing-site .mk-film-status:not(:empty) { color:#f3efe5; font-size:13px; line-height:1.5; }
+@media(min-width:768px) { .marketing-site .mk-film > .mk-container { grid-template-columns:.8fr 1.2fr; gap:24px 48px; } .marketing-site .mk-film-status { grid-column:2; } }
 .marketing-site .mk-feature-ribbon { padding-block:24px; color:#20372b; background:var(--mk-lime); border-block:1px solid #283f3226; }
 .marketing-site .mk-feature-ribbon ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 12px; }
 .marketing-site .mk-feature-ribbon li { display:flex; align-items:center; justify-content:center; gap:10px; font-size:12px; font-weight:600; }

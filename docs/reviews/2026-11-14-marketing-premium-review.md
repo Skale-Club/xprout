@@ -133,3 +133,23 @@ Nine focused unit tests, TypeScript, scoped ESLint, ten browser behaviors and
 four axe states pass (zero detected violations; incomplete findings retained).
 Evidence and optimized before/after captures: output/compact-hero/2026-11-14.
 Local preview only; no push, deployment or configuration write.
+
+## Follow-up: photographed table, changing 3D dishes and the reused film
+
+The final requested hero layers one stationary photographic table and actual
+dish-only GLBs. A proposed 3D table was rejected and is not shipped. Picanha,
+burger and tiramisu change automatically or through accessible controls; their
+gentle animation does not move the table. Matching WebGL posters provide the
+static, loading and failure states. Pause/reduced/data-saving preferences and
+offscreen/hover/focus states are respected. Failed-URL caching was found in the
+browser and corrected with a fresh retry URL, then verified successfully.
+
+The former hero food film is now a separate click-to-play section, optimized
+from17.54MB to1.57MB. It never requests the video before Play. Film playback,
+offscreen pause and failure/retry pass in browser checks. Existing branding is
+also refined at its outlined source: wordmark scale0.86 and alignment by the
+capital-X cap-to-baseline body, explicitly excluding the p descender.
+
+See marketing-hero-3d.md and marketing-hero-media.json for the measured assets,
+profile limits, source provenance and verification. Local review evidence is in
+output/hero-table/2026-11-14. This remains an unpublished local design iteration.

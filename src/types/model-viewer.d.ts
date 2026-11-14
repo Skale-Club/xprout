@@ -26,6 +26,10 @@ type ModelViewerAttributes = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTML
   loading?: 'auto' | 'lazy' | 'eager'
   reveal?: 'auto' | 'manual'
   'camera-orbit'?: string
+  'camera-target'?: string
+  'field-of-view'?: string
+  'min-camera-orbit'?: string
+  'max-camera-orbit'?: string
 }
 
 declare module 'react' {

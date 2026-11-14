@@ -1,0 +1,82 @@
+{
+  "scope": "Owned dish-only marketing derivatives; table is a separate photograph",
+  "budget": {
+    "glbBytes": 1572864,
+    "triangles": 45000,
+    "maxTextureEdge": 512,
+    "posterBytes": 184320,
+    "maxPosterEdge": 1200
+  },
+  "tablePhoto": {
+    "bytes": 73360,
+    "width": 1200,
+    "height": 900,
+    "sha256": "18c27ce99be69bbb8f8464e87a2b2934307111548f99191ddd8c40f7dbb08065"
+  },
+  "publishedToLocalPublic": true,
+  "rows": [
+    {
+      "slug": "picanha",
+      "model": "dish-picanha.glb",
+      "bytes": 1041676,
+      "triangles": 19682,
+      "textures": 5,
+      "maxTextureEdge": 512,
+      "sha256": "b404ebfd3cc1e43fb277fa3dcfcd19d22e8d506edeb2c6d2020b5eb4d2b1146f",
+      "poster": "dish-picanha.webp",
+      "posterBytes": 50294,
+      "posterWidth": 914,
+      "posterHeight": 686,
+      "posterSha256": "65671e1d07fb8a49521b16b4847622f5a2356831535b936d83a87f960a30a461"
+    },
+    {
+      "slug": "burger",
+      "model": "dish-burger.glb",
+      "bytes": 970128,
+      "triangles": 19682,
+      "textures": 5,
+      "maxTextureEdge": 512,
+      "sha256": "a417500c16cb6a861d3d625888a91815dbd5640a8caabb5c0bfcd7d8c141d351",
+      "poster": "dish-burger.webp",
+      "posterBytes": 35236,
+      "posterWidth": 914,
+      "posterHeight": 686,
+      "posterSha256": "c84d42b94d407f18bd3418a498745db4eb1c634705a9ff12abd53a0999f5afeb"
+    },
+    {
+      "slug": "tiramisu",
+      "model": "dish-tiramisu.glb",
+      "bytes": 1101144,
+      "triangles": 19682,
+      "textures": 5,
+      "maxTextureEdge": 512,
+      "sha256": "ead9e10b70c346a48bd79fb0abf84bca7d3c783c041b41aaed2eb892dc22459c",
+      "poster": "dish-tiramisu.webp",
+      "posterBytes": 22782,
+      "posterWidth": 914,
+      "posterHeight": 686,
+      "posterSha256": "af738cbe05332be4a67be6db230d9e378880399712f793096a781c7cde26c9ef"
+    }
+  ],
+  "provenance": {
+    "dishes": "Existing owned Aurora dish models; derived with Blender, original source hashes unchanged",
+    "table": "AI-generated photographic empty walnut table, image_gen built-in tool, November14 2026",
+    "posters": "Actual local model-viewer WebGL canvases at animationframe0; transparentdish only",
+    "film": "Existing owned13.67-second food background video, optimizedsilentH264 withfaststart; original17,540,180 B retained privately"
+  },
+  "film": {
+    "file": "restaurant-film.mp4",
+    "bytes": 1567618,
+    "duration": 13.666667,
+    "width": 1280,
+    "height": 720,
+    "fps": 24,
+    "codec": "h264",
+    "audio": false,
+    "maxBytes": 5242880,
+    "maxDuration": 45,
+    "posterBytes": 37116,
+    "sha256": "434f55ec5024fc3f06477eb7d7a1f753339bd469c034dbd897fc63df29cdb6dd",
+    "posterSha256": "ab18acda86483168c3cace8c4f7e7917ec4d5d8fe2d4e95b03f6945c20130764"
+  }
+}

@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { Globe, QrCode, Sparkles, ShoppingCart, ChevronDown, MessageCircle, UserPlus, UtensilsCrossed, ArrowRight, Sandwich, CupSoda, Zap, Star, ChefHat, CreditCard, BookOpen, Coffee, BarChart2, Search, Palette, ClipboardList, Link2, ArrowUpRight, Box } from 'lucide-react'
+import { Globe, QrCode, Sparkles, ShoppingCart, ChevronDown, MessageCircle, UserPlus, UtensilsCrossed, ArrowRight, Sandwich, CupSoda, Zap, Star, ChefHat, CreditCard, BookOpen, Coffee, BarChart2, Search, Palette, ClipboardList, Link2, Box } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import Link from 'next/link'
 import { DeliveryImage } from '@/components/delivery-image'
 import { Nav, Footer, type FooterData } from '@/components/marketing/MarketingChrome'
 import MenuShowcase from '@/components/marketing/MenuShowcase'
+import HeroTableShowcase from '@/components/marketing/HeroTableShowcase'
+import MarketingFilm from '@/components/marketing/MarketingFilm'
 import { useMarketingMotionPreference } from '@/components/marketing/MarketingMotion'
 import { PROJECTS, PLANS, PRICING_PATH, formatUsd } from '@/lib/marketing/pricing'
 import { contrastRatio, readableTextColor, safeCssColor } from '@/lib/color-utils'
@@ -156,29 +157,7 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
         </div>
         <p className="mk-muted mt-4 text-sm leading-relaxed">Your own identity. A link to share.<br className="sm:hidden" /> No app for guests to download.</p>
       </div>
-      <figure className="mk-hero-art relative m-0 min-w-0 pb-12 sm:pb-8">
-        <div className="mk-hero-halo" aria-hidden="true" />
-        <div className="mk-hero-photo relative aspect-square overflow-hidden rounded-t-[5rem] rounded-b-3xl border border-[var(--mk-line)] md:aspect-[6/5]">
-          <DeliveryImage src="/brands/bella-vista/tagliatelle-al-ragu.webp" alt="Tagliatelle al ragù with parmesan and basil, from the Bella Vista menu" fill preload
-            sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px" className="object-cover" />
-        </div>
-        <div className="mk-hero-label absolute -top-4 right-3 z-10 inline-flex max-w-[calc(100%_-_1.5rem)] items-center gap-2 rounded-full border border-[#d4d9cd] bg-[#F3EFE5] px-4 py-3 text-xs font-semibold text-[#20372b]">
-          <QrCode className="size-4 shrink-0" aria-hidden="true" />
-          <span>One scan. A whole experience.</span>
-        </div>
-        <figcaption className="mk-hero-caption absolute bottom-0 left-3 right-3 rounded-2xl border border-[#d4d9cd] bg-[#fbf8f0] p-4 text-[#20372b] lg:-left-6 lg:right-8 lg:p-6">
-          <div className="mb-3 flex items-center justify-between gap-3 border-b border-[#d4d9cd] pb-3">
-            <span className="text-xs font-semibold uppercase tracking-[0.12em]">A taste of Bella Vista</span>
-            <UtensilsCrossed className="size-4 shrink-0" aria-hidden="true" />
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0"><p className="text-lg font-semibold">Tagliatelle al ragù</p><p className="mt-1 text-sm text-[#59675e]">A dish worth a closer look.</p></div>
-            <Link href="/bella-vista" prefetch={false} aria-label="Explore the Bella Vista menu example" className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d4d9cd] transition-colors hover:bg-[#F3EFE5] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#283F32]">
-              <ArrowUpRight className="size-5" aria-hidden="true" />
-            </Link>
-          </div>
-        </figcaption>
-      </figure>
+      <div className="mk-hero-art relative min-w-0"><HeroTableShowcase /></div>
     </div>
   </section>
 }
@@ -292,6 +271,7 @@ export default function ClientLandingPage({ platformLanding, appName, logoUrl }:
         <Hero s={landing?.hero ?? {}} onLoginOpen={() => setLoginOpen(true)} />
         <FeatureRibbon />
         <MenuShowcase />
+        <MarketingFilm />
         <HowItWorks data={landing?.how_it_works} />
         <FeatureBlocks data={landing?.features} />
         <PricingTeaser />
