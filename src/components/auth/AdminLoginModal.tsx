@@ -40,7 +40,10 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
       // Already signed in: "Start" goes straight to the panel instead of showing a sign-in card
       // (the dialog keeps its loading state until the page changes).
       if (value === 'owned') {
-        const session = await fetch('/api/identity/session', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(5000) }).catch(() => null)
+        const controller = new AbortController()
+        const timer = window.setTimeout(() => controller.abort(), 5000)
+        const session = await fetch('/api/identity/session', { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
+          .catch(() => null).finally(() => { window.clearTimeout(timer); controller.abort() })
         if (session?.ok) {
           window.location.assign(new URL(await ownedLoginDestination('/'), window.location.origin).href)
           return

@@ -7,6 +7,8 @@ test.use({ serviceWorkers: 'block' })
 const entry = '<html><body style="margin:0;background:#f3efe5"><main style="height:360px;padding:24px;box-sizing:border-box"><h1>Welcome back.</h1><label>Phone<input type="tel"></label></main></body></html>'
 
 test.beforeEach(async ({ page }) => {
+  // Do not require the newer AbortSignal.timeout API on supported older phones.
+  await page.addInitScript(() => { Object.defineProperty(AbortSignal, 'timeout', { value: undefined, configurable: true }) })
   // Exercise the popup without identity provider calls or a real sign-in.
   await page.route('**/api/auth/authority', route => route.fulfill({ json: { authority: 'owned' } }))
   await page.route('**/api/identity/session', route => route.fulfill({ status: 401, json: {} }))
