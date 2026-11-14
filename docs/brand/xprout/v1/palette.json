@@ -1,0 +1,28 @@
+{
+  "version": "1.2",
+  "date": "2026-11-14",
+  "colors": {
+    "forest": "#283F32",
+    "ivory": "#F3EFE5",
+    "wine": "#602021",
+    "rosewood": "#57373B"
+  },
+  "roles": {
+    "forest": "Primary brand foundation; approved logos and dark surfaces.",
+    "ivory": "Primary light surface and text on forest, wine or rosewood.",
+    "wine": "Main accent, used sparsely for selection and editorial details on light surfaces.",
+    "rosewood": "Less frequent secondary accent for secondary surfaces and hover details."
+  },
+  "rules": [
+    "Keep approved forest/ivory and monochrome logo exports unchanged; this palette does not authorize wine or rosewood logos.",
+    "Forest and wine have poor mutual contrast. Separate them with ivory; do not use wine text on forest.",
+    "Use ivory foreground on wine or rosewood surfaces; verify actual interface contrast for each state.",
+    "Decorative wine must remain distinct from semantic error states through role, labeling and iconography; color alone never communicates errors.",
+    "Restaurant tenant colors remain tenant-owned; this is the platform brand palette."
+  ],
+  "swatchBudget": {
+    "format": "svg",
+    "maxBytes": 8192,
+    "maxSide": 1200
+  }
+}

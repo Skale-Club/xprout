@@ -46,7 +46,7 @@ export default function DashboardShell({
 
   return (
     <div className={`min-h-dvh ${backgroundClassName} lg:flex lg:h-dvh lg:overflow-hidden`}>
-      <header className="fixed inset-x-0 top-0 z-40 flex h-[calc(4rem+env(safe-area-inset-top))] items-center gap-3 border-b border-zinc-200/80 bg-white/95 px-3 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-xl lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 flex h-[calc(4rem+env(safe-area-inset-top))] items-center gap-3 border-b border-zinc-200/80 border-t-2 border-t-platform-brand-accent bg-white/95 px-3 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-xl lg:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}

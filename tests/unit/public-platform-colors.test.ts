@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import postcss from 'postcss'
 import { compile } from 'tailwindcss'
-import { BRAND_BASE, BRAND_PRIMARY } from '@/lib/brand'
+import { BRAND_ACCENT, BRAND_BASE, BRAND_PRIMARY, BRAND_SECONDARY } from '@/lib/brand'
 
 const read = (path: string) => readFileSync(path, 'utf8')
 const css = postcss.parse(read('src/app/globals.css'))
@@ -22,6 +22,15 @@ function contrast(a: string, b: string) {
 }
 
 describe('public platform surface colors', () => {
+  it('keeps the manual, runtime accent roles and action authority coherent', () => {
+    const palette = JSON.parse(read('docs/brand/xprout/v1/palette.json')).colors
+    const root = declarations(':root')
+    expect(palette).toMatchObject({ forest: BRAND_PRIMARY, ivory: BRAND_BASE, wine: BRAND_ACCENT, rosewood: BRAND_SECONDARY })
+    expect(root['--platform-brand-accent']).toBe(BRAND_ACCENT)
+    expect(root['--platform-brand-secondary']).toBe(BRAND_SECONDARY)
+    expect(root['--primary']).toBe(BRAND_PRIMARY)
+    for (const accent of [BRAND_ACCENT, BRAND_SECONDARY]) expect(contrast(accent, BRAND_BASE)).toBeGreaterThanOrEqual(4.5)
+  })
   it('never lets a surface adapter replace the configured primary or its paired foreground', () => {
     css.walkRules(rule => {
       if (!rule.selector.includes('.dashboard-content') && !rule.selector.includes('.platform-')) return
@@ -71,7 +80,7 @@ describe('public platform surface colors', () => {
   it('wires marketing dark surfaces to the surface role and leaves tenant login independent', () => {
     for (const path of ['src/app/(marketing)/ClientPage.tsx', 'src/app/(marketing)/pricing/PricingClient.tsx', 'src/components/marketing/MarketingChrome.tsx']) {
       const source = read(path)
-      expect(source).toContain('platform-dark')
+      expect(source).toMatch(/(?:platform-dark|mk-dark)/)
       expect(source).not.toMatch(/(?:text-primary|focus-visible:ring-primary)(?:[\s"/]|$)/)
       expect(source).not.toMatch(/via-red-|bg-yellow-/)
     }

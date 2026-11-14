@@ -165,7 +165,7 @@ export default function OnboardingForm({ owned = false }: { owned?: boolean }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
       <div className="w-full max-w-lg">
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5 sm:p-8">
+        <div className="bg-white rounded-2xl border border-zinc-200 border-t-2 border-t-platform-brand-accent shadow-sm p-5 sm:p-8">
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-bold text-zinc-900">Xprout</span>
@@ -176,7 +176,7 @@ export default function OnboardingForm({ owned = false }: { owned?: boolean }) {
             {step <= TOTAL_STEPS && (
               <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-zinc-900 rounded-full transition-all duration-300"
+                  className="h-full bg-platform-brand-accent rounded-full transition-all duration-300"
                   style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
                 />
               </div>

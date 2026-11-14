@@ -49,7 +49,7 @@ export default function MenuShowcase() {
       <div role="group" aria-label="Choose a menu example" className="mb-6 flex flex-wrap gap-2">
         {examples.map((item, index) => <button key={item.name} type="button" aria-pressed={selected === index}
           onClick={() => setSelected(index)}
-          className={`min-h-12 rounded-full border px-5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--mk-forest)] ${selected === index ? 'border-[var(--mk-forest)] bg-[var(--mk-forest)] text-[var(--mk-paper)]' : 'border-[var(--mk-line)] bg-transparent text-[var(--mk-ink)] hover:bg-[var(--mk-panel)]'}`}>
+          className={`mk-example-choice min-h-12 rounded-full border px-5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--mk-wine)] ${selected === index ? 'border-[var(--mk-wine)] bg-[var(--mk-wine)] text-[var(--mk-paper)]' : 'border-[var(--mk-line)] bg-transparent text-[var(--mk-ink)] hover:bg-[var(--mk-panel)]'}`}>
           {item.name}
         </button>)}
       </div>

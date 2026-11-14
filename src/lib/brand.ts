@@ -14,6 +14,9 @@ export const BRAND_URL = 'https://xprout.app'
 /** Brand colours (owner, 2026-11-12; see docs/product/brand-identity.md). Never override a restaurant's own colours. */
 export const BRAND_PRIMARY = '#283F32' // burnt forest green
 export const BRAND_BASE = '#F3EFE5' // warm ivory
+/** Platform-only accent roles approved 2026-11-14; never replace tenant action colours. */
+export const BRAND_ACCENT = '#602021' // deep wine, principal accent
+export const BRAND_SECONDARY = '#57373B' // muted rosewood, use sparingly
 
 /** Google Tag Manager container for Xprout's own pages (account "Xprout"; loads GA4 G-Z15QKG71XD). Never on restaurant menus. */
 export const BRAND_GTM_ID = 'GTM-TC3X2ZM9'

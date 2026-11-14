@@ -12,6 +12,9 @@ async function main() {
   if (require('node:fs').existsSync(canonical)) await fs.copyFile(canonical, path.join(root, 'source/geometry.json'));
   const g = JSON.parse(await fs.readFile(path.join(root, 'source/geometry.json'), 'utf8'));
   if (crypto.createHash('sha256').update(g.symbol.d).digest('hex') !== g.symbolProvenance.pathSha256) throw Error('Approved symbol path mismatch');
+  const paletteSource=path.resolve(__dirname,'../../docs/brand/xprout/v1/palette.json');
+  if(require('node:fs').existsSync(paletteSource))await fs.copyFile(paletteSource,path.join(root,'source/palette.json'));
+  const palette=JSON.parse(await fs.readFile(path.join(root,'source/palette.json'),'utf8'));
   const dimensions = item => ({w: item.bounds[2]-item.bounds[0], h: item.bounds[3]-item.bounds[1]});
   const s = dimensions(g.symbol), w = dimensions(g.wordmark);
   const markH = 202, markW = s.w * markH / s.h;
@@ -114,7 +117,12 @@ async function main() {
   const lum=hex=>{const rgb=hex.match(/[a-f0-9]{2}/ig).map(x=>parseInt(x,16));return .2126*lin(rgb[0])+.7152*lin(rgb[1])+.0722*lin(rgb[2]);};
   const contrast=(lum(g.colors.ivory)+.05)/(lum(g.colors.forest)+.05);
   await fs.writeFile(path.join(root,'source','layouts.json'),JSON.stringify(layouts,null,2));
-  await fs.writeFile(path.join(root,'brand-manifest.json'),JSON.stringify({brand:'Xprout',domain:'https://xprout.app',edition:'1.1',date:g.date,colors:g.colors,contrastRatio:contrast,clearSpace:g.clearSpace,minimumSizes:g.minimumSizes,budgets:g.budgets,sourceSymbolPathSha256:g.symbolProvenance.pathSha256,assets},null,2)+'\n');
+  await fs.writeFile(path.join(root,'brand-manifest.json'),JSON.stringify({brand:'Xprout',domain:'https://xprout.app',edition:palette.version,date:palette.date,colors:g.colors,supportPalette:palette,contrastRatio:contrast,clearSpace:g.clearSpace,minimumSizes:g.minimumSizes,budgets:g.budgets,sourceSymbolPathSha256:g.symbolProvenance.pathSha256,assets},null,2)+'\n');
+  // Editorial palette asset, separate from the unchanged logo export colors.
+  const swatchEntries=Object.entries(palette.colors);
+  const swatches=`<svg xmlns="http://www.w3.org/2000/svg" width="960" height="300" viewBox="0 0 960 300" role="img" aria-labelledby="palette-title"><title id="palette-title">Xprout palette 1.2</title><rect width="960" height="300" fill="${palette.colors.ivory}"/>${swatchEntries.map(([name,color],i)=>`<g><rect x="${i*240}" y="0" width="240" height="200" fill="${color}"/><text x="${i*240+20}" y="240" fill="${palette.colors.forest}" font-family="Arial,sans-serif" font-size="22">${name}</text><text x="${i*240+20}" y="272" fill="${palette.colors.forest}" font-family="Arial,sans-serif" font-size="18">${color}</text></g>`).join('')}</svg>\n`;
+  if(Buffer.byteLength(swatches)>palette.swatchBudget.maxBytes)throw Error('Palette SVG budget');
+  await fs.writeFile(path.join(root,'source/palette-swatches.svg'),swatches);
   console.log(JSON.stringify({assets:assets.length,contrastRatio:contrast,maxPngBytes:Math.max(...assets.filter(a=>a.file.endsWith('.png')).map(a=>a.bytes)),symbolUnchanged:crypto.createHash('sha256').update(g.symbol.d).digest('hex')===g.symbolProvenance.pathSha256}));
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});

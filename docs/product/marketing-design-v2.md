@@ -8,7 +8,10 @@ editorial direction with contrasting dark sections on 2026-11-14.
 Premium hospitality, generous editorial typography and real food/product imagery.
 Keep the approved v7 Xprout signature unchanged. Warm ivory #F3EFE5 is the main
 ground, burnt forest #283F32 anchors text/actions, and deep forest sections create
-rhythm. No new brand accent, glass-card wallpaper, decorative fake dashboards,
+rhythm. Owner-approved wine #602021 adds sparse editorial and selection details;
+rosewood #57373B appears less frequently in borders and decorative effects.
+Use shared platform brand accent tokens; preserve configurable primary CTA colors.
+Keep ivory text on dark sections. Avoid glass-card wallpaper, decorative fake dashboards,
 invented client counts, testimonials or unsupported revenue claims.
 
 Fraunces Semibold is the approved editorial face; retain Inter for body, controls

@@ -23,11 +23,14 @@ describe('embedded existing-account verification presentation', () => {
     expect(html).toContain(`--primary-foreground:${computePrimaryForeground(primaryColor)}`)
     expect(html).toContain('bg-white text-zinc-950')
     expect(html).not.toContain('platform-dark')
+    expect(html).not.toContain('platform-brand-accent')
+    expect(html).not.toContain('platform-brand-secondary')
   })
 
   it('keeps the platform presentation for an unbranded existing-account entry', () => {
     const html = renderToStaticMarkup(React.createElement(IdentityPilot, { config: {} as IdentityWebConfig, continueToApp: true, existingAccountLink: true }))
     expect(html).toContain('platform-dark')
+    expect(html).toContain('platform-brand-accent')
     expect(html).toContain('Xprout')
     expect(html).toContain('id="existing-password"')
   })

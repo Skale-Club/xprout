@@ -16,6 +16,7 @@ from reportlab.graphics import renderPDF
 
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else (Path(__file__).resolve().parent.parent if (Path(__file__).parent/'geometry.json').exists() else Path(__file__).resolve().parents[2]/'output/branding/xprout/xprout-brand-pack-v1')
 G = json.loads((ROOT/'source/geometry.json').read_text())
+PALETTE = json.loads((ROOT/'source/palette.json').read_text())
 L = json.loads((ROOT/'source/layouts.json').read_text())
 MANIFEST = json.loads((ROOT/'brand-manifest.json').read_text())
 FOREST, IVORY = '#283F32', '#F3EFE5'
@@ -89,14 +90,9 @@ def heading(number,kicker,title,subtitle=None,dark=False):
 
 def footer(page,dark=False):
     fg=IVORY if dark else FOREST
-    if page==5:
-        line(64,596,440,596,mix(IVORY,FOREST,.7));line(520,596,896,596,mix(FOREST,IVORY,.7))
-        text('Xprout Brand Manual',64,608,9,'Body',IVORY)
-        text('Version 1.1 / 14 November 2026',536,608,9,'Body',FOREST)
-        text('05',876,608,9,'Strong',FOREST);C.showPage();return
     line(64,596,896,596,mix(fg,FOREST if dark else IVORY,.7))
     text('Xprout Brand Manual',64,608,9,'Body',fg)
-    text('Version 1.1 / 14 November 2026',364,608,9,'Body',fg)
+    text('Version 1.2 / 14 November 2026',364,608,9,'Body',fg)
     text(f'{page:02d}',876,608,9,'Strong',fg)
     C.showPage()
 
@@ -105,7 +101,7 @@ def bullet_block(title,body,x,y,width):
 
 manual=ROOT/'manual/xprout-brand-manual.pdf'
 C=canvas.Canvas(str(manual),pagesize=(W,H),pageCompression=1)
-C.setTitle('Xprout Brand Manual');C.setAuthor('Xprout');C.setSubject('Logo system and brand use, version 1.1')
+C.setTitle('Xprout Brand Manual');C.setAuthor('Xprout');C.setSubject('Logo system and brand use, version 1.2')
 
 # 01 Cover
 rect(0,0,W,H,FOREST)
@@ -113,7 +109,7 @@ text('XPROUT / IDENTITY SYSTEM',64,44,11,'Strong',IVORY)
 text('Brand manual',64,90,46,'Display',IVORY)
 logo('horizontal',64,244,832,150,IVORY)
 para('The approved mark, its visual language and the rules that keep it consistent.',64,462,510,16,24,'Body',IVORY)
-text('LOGO PACK V1.1',64,552,10,'Strong',IVORY)
+text('LOGO PACK V1.2',64,552,10,'Strong',IVORY)
 footer(1,True)
 
 # 02 Meaning
@@ -158,20 +154,22 @@ text('Minimum sizes refer to visible artwork width. Favicon exception: 16 px, us
 footer(4)
 
 # 05 Palette
-rect(0,0,480,H,FOREST);rect(480,0,480,H,IVORY)
-text('05 / COLOR',64,36,10,'Strong',IVORY)
-text('Burnt forest green',64,78,30,'Display',IVORY)
-text('Warm ivory',536,78,36,'Display',FOREST)
-text('#283F32',64,143,25,'Strong',IVORY);text('#F3EFE5',536,143,25,'Strong')
-text('RGB  40 / 63 / 50',64,195,13,'Body',IVORY);text('RGB  243 / 239 / 229',536,195,13)
-text('CMYK approx. 37 / 0 / 21 / 75',64,225,11,'Body',IVORY);text('CMYK approx. 0 / 2 / 6 / 5',536,225,11)
-text('Aa',64,271,110,'Display',IVORY);text('Aa',536,271,110,'Display')
-text(f'{MANIFEST["contrastRatio"]:.2f}:1 contrast',64,446,25,'Strong',IVORY)
-para('Green and ivory exceed 7:1 for normal text, the WCAG AAA contrast threshold. This is a color-pair result, not an accessibility audit of a complete interface.',64,491,350,11,17,'Body',IVORY)
-para('Use these RGB values for digital work. CMYK values are unprofiled approximations: ask the printer to convert the RGB vector master with its output profile and approve a physical proof.',536,446,350,12,18)
-text('Reference: W3C WCAG 2.2 SC 1.4.6',536,552,9)
-C.linkURL('https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html',(536,H-570,890,H-548),relative=0)
-footer(5,True)
+heading(5,'Color','A grounded palette, with restraint','Forest and ivory lead. Wine is a sparse accent; rosewood appears less often.')
+for x,name,value,usage in [(64,'Burnt forest green',FOREST,'Primary brand foundation'),(496,'Warm ivory',IVORY,'Primary light surface')]:
+    rect(x,186,400,124,value,FOREST if value==IVORY else None)
+    ink=IVORY if value==FOREST else FOREST
+    text(name,x+20,201,23,'Display',ink);text(value,x+20,239,19,'Strong',ink)
+    text(usage,x+20,275,11,'Body',ink)
+for x,name,key,usage in [(64,'Wine','wine','Main accent: selection and editorial details'),(496,'Rosewood','rosewood','Secondary surfaces and hover details')]:
+    value=PALETTE['colors'][key]
+    rect(x,330,400,96,value)
+    text(name+'  '+value,x+20,344,20,'Strong',IVORY)
+    text(usage,x+20,386,11,'Body',IVORY)
+para('Use wine sparingly on light surfaces; reserve rosewood for less frequent secondary details. Forest and wine have poor mutual contrast: use ivory between or on these colors. Never use wine text on forest.',64,449,400,11,16)
+para('Keep decorative wine distinct from error states through semantic roles, labels and icons. Keep approved logos forest, ivory or monochrome. This palette does not authorize red logo variants or override tenant colors.',496,449,400,11,16)
+text(f'Forest / ivory contrast: {MANIFEST["contrastRatio"]:.2f}:1. Validate each interface state separately.',64,548,10)
+text('Digital RGB masters. For print, request a profiled conversion and physical proof.',64,567,10)
+footer(5)
 
 # 06 Typography
 heading(6,'Typography','A warm voice with clear information','Supporting type complements the logo. It never replaces the custom outlined wordmark.')
