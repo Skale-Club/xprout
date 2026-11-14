@@ -1,5 +1,7 @@
 'use client'
 
+import MorsePositionIndicator from '@/components/ui/MorsePositionIndicator'
+
 /**
  * What the guest sees over the camera on Android (the WebXR DOM overlay).
  * Layout approved by the owner in the review preview (docs/product/ar-experience-plan.md §3):
@@ -92,10 +94,6 @@ export interface WebXrDishViewerProps {
   /** A dish's model is downloading: its percentage, null when the size is unknown; undefined when nothing loads. */
   loadingPercent?: number | null
 }
-
-/** Morse-style position indicator: 5 slots, the current dish is the centred dash. */
-const POS_SLOT = 16
-const POS_CENTER = 2 * POS_SLOT
 
 const DEFAULT_THEME: ArTheme = { primary: '#18181b', accent: '#e11d48' }
 const pill = 'pointer-events-auto flex h-11 items-center justify-center gap-1.5 rounded-full text-[15px] font-semibold'
@@ -240,19 +238,7 @@ export default function WebXrDishViewer({ active, stage, name, priceLabel, copy,
           )}
         </div>
         {carousel && carousel.total > 1 && (
-          <div className="relative mt-1.5 h-2 w-20 overflow-hidden" role="img" aria-label={`${carousel.index + 1} / ${carousel.total}`}>
-            <div className="absolute inset-y-0 left-0 transition-transform duration-300 ease-out motion-reduce:transition-none" style={{ transform: `translateX(${POS_CENTER - carousel.index * POS_SLOT}px)` }}>
-              {Array.from({ length: carousel.total }, (_, i) => i).filter(i => Math.abs(i - carousel.index) <= 3).map(i => {
-                const d = Math.min(Math.abs(i - carousel.index), 3)
-                return (
-                  <span key={i} className="absolute top-px flex h-1.5 w-4 justify-center" style={{ left: i * POS_SLOT }}>
-                    <span className="block h-1.5 rounded-full bg-white shadow-[1px_1px_2px_rgb(0_0_0/0.35)] transition-all duration-300 motion-reduce:transition-none"
-                      style={{ width: d === 0 ? 14 : 6, opacity: [1, 0.55, 0.25, 0][d], transform: d === 2 ? 'scale(0.75)' : d === 3 ? 'scale(0.4)' : undefined }} />
-                  </span>
-                )
-              })}
-            </div>
-          </div>
+          <MorsePositionIndicator index={carousel.index} total={carousel.total} label={`${carousel.index + 1} / ${carousel.total}`} className="mt-1.5 text-white" shadow />
         )}
       </div>
 

@@ -74,7 +74,7 @@ export default function MenuShowcase() {
             <p className="mk-lead mb-8">{example.description}</p>
           </div></div>
           <a href={example.href} target="_blank" rel="noopener noreferrer" className="mk-button w-full sm:w-fit">
-            Open demo menu <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
+            Visit the demo store <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
             <span className="sr-only"> menu in a new tab</span>
           </a>
           <a href={`${example.href}?view=feed`} target="_blank" rel="noopener noreferrer"

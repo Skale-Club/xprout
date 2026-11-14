@@ -1,5 +1,7 @@
 'use client'
 
+import MorsePositionIndicator from '@/components/ui/MorsePositionIndicator'
+
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
@@ -172,12 +174,11 @@ export default function HeroTableShowcase() {
     </div>
     <div className="mk-table-caption">
       <div><span className="mk-eyebrow">3D preview · {dish.category}</span><p>{dish.name}</p></div>
-      <Link href="/aurora" prefetch={false} className={controlClass}>Open demo menu</Link>
+      <Link href="/aurora" prefetch={false} className={controlClass}>Visit the demo store</Link>
     </div>
-    <div className="mk-table-controls" aria-label="Choose a dish">
+    <div className="mk-table-controls" role="group" aria-label="Choose a dish">
       <button type="button" className={controlClass} aria-label="Previous dish" onClick={() => choose((selected + dishes.length - 1) % dishes.length)}><ArrowLeft size={18} aria-hidden="true" /></button>
-      {dishes.map((item, index) => <button key={item.id} type="button" className={`mk-table-dot ${controlClass}`}
-        aria-label={`Show ${item.name}`} aria-current={selected === index ? 'true' : undefined} onClick={() => choose(index)}><span aria-hidden="true">{index + 1}</span></button>)}
+      <MorsePositionIndicator index={selected} total={dishes.length} label={`Dish ${selected + 1} of ${dishes.length}`} className="text-platform-brand-accent" />
       <button type="button" className={controlClass} aria-label="Next dish" onClick={() => choose((selected + 1) % dishes.length)}><ArrowRight size={18} aria-hidden="true" /></button>
     </div>
     <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</span>

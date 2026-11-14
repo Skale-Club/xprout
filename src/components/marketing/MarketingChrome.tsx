@@ -62,7 +62,7 @@ export function Footer({ data, appName, logoUrl }: { data?: FooterData | null; a
           <li><Link href="/#experience">The menu experience</Link></li>
           <li><Link href="/#how-it-works">How it works</Link></li>
           <li><Link href={PRICING_PATH}>Plans &amp; pricing</Link></li>
-          <li><Link href="/aurora" className="inline-flex items-center gap-2">Open a demo menu <ArrowUpRight size={14} /></Link></li>
+          <li><Link href="/aurora" className="inline-flex items-center gap-2">Visit the demo store <ArrowUpRight size={14} /></Link></li>
         </ul></div>
         <div><span className="mk-footer-label">The essentials</span><ul className="mk-footer-links">
           <li><Link href="/privacy">Privacy policy</Link></li>
