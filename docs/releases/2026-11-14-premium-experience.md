@@ -36,6 +36,9 @@ explicit 3D and native camera viewing remain available. This capability policy
 uses no user-agent, audit detection or delayed benchmark bypass. The performance
 threshold remains 88. Twelve capability tests and browser fallback/explicit-3D
 checks pass; a supported-capability fixture also loads and cycles real models.
+Changed signature and social asset URLs include content revisions because the
+public CDN currently advertises a four-hour browser cache. Original asset paths
+remain available; tenant/custom logos and unchanged icons retain their URLs.
 
 Publish the validated image, confirm readiness reports its exact SHA, then merge
 the reviewed 17 landing paths from `src/lib/marketing/landing-copy.json` and the

@@ -8,12 +8,13 @@ export const PLATFORM_BRAND_ASSETS = {
   favicon16: '/brand/xprout/v1/favicon-16.png',
   favicon32: '/brand/xprout/v1/favicon-32.png',
   faviconIco: '/brand/xprout/v1/favicon.ico',
-  horizontalForest: '/brand/xprout/v1/xprout-horizontal-forest.svg',
-  horizontalIvory: '/brand/xprout/v1/xprout-horizontal-ivory.svg',
+  // Content revisions prevent an older proportional layout surviving CDN/browser caches.
+  horizontalForest: '/brand/xprout/v1/xprout-horizontal-forest.svg?v=3144b79c',
+  horizontalIvory: '/brand/xprout/v1/xprout-horizontal-ivory.svg?v=2e899574',
   symbolForest: '/brand/xprout/v1/xprout-symbol-forest.svg',
   symbolIvory: '/brand/xprout/v1/xprout-symbol-ivory.svg',
-  social: '/brand/xprout/v1/social-card-1200x630.webp',
-  socialPng: '/brand/xprout/v1/social-card-1200x630.png',
+  social: '/brand/xprout/v1/social-card-1200x630.webp?v=ad105444',
+  socialPng: '/brand/xprout/v1/social-card-1200x630.png?v=411ed0a0',
 } as const
 
 /** Explicit configuration wins; only an absent logo selects the platform default. */
