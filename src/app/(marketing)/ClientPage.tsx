@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { Globe, QrCode, Sparkles, ShoppingCart, ChevronDown, MessageCircle, UserPlus, UtensilsCrossed, ArrowRight, Sandwich, CupSoda, Zap, Star, ChefHat, CreditCard, BookOpen, Coffee, BarChart2, Search, Palette, ClipboardList, Link2, ArrowUpRight } from 'lucide-react'
+import { Globe, QrCode, Sparkles, ShoppingCart, ChevronDown, MessageCircle, UserPlus, UtensilsCrossed, ArrowRight, Sandwich, CupSoda, Zap, Star, ChefHat, CreditCard, BookOpen, Coffee, BarChart2, Search, Palette, ClipboardList, Link2, ArrowUpRight, Box } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { DeliveryImage } from '@/components/delivery-image'
 import { Nav, Footer, type FooterData } from '@/components/marketing/MarketingChrome'
 import MenuShowcase from '@/components/marketing/MenuShowcase'
+import { useMarketingMotionPreference } from '@/components/marketing/MarketingMotion'
 import { PROJECTS, PLANS, PRICING_PATH, formatUsd } from '@/lib/marketing/pricing'
 import { contrastRatio, readableTextColor, safeCssColor } from '@/lib/color-utils'
 
@@ -83,10 +84,9 @@ function getIcon(name: string): React.ComponentType<{ className?: string }> {
 function DeferredHeroVideo({ src, poster, onError }: { src: string; poster?: string; onError: () => void }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [ready, setReady] = useState(false)
+  const playing = useMarketingMotionPreference() === 'playing'
   useEffect(() => {
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
-    if (reducedMotion || saveData || window.innerWidth < 768) return
+    if (!playing || window.innerWidth < 768) return
     let cancelled = false
     const idle = (cb: () => void) => {
       const browser = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }
@@ -97,10 +97,24 @@ function DeferredHeroVideo({ src, poster, onError }: { src: string; poster?: str
     if (document.readyState === 'complete') start()
     else window.addEventListener('load', start, { once: true })
     return () => { cancelled = true; window.removeEventListener('load', start) }
-  }, [])
+  }, [playing])
   useEffect(() => {
-    if (ready) ref.current?.play().catch(() => { /* Keep the configured poster when autoplay is refused. */ })
-  }, [ready])
+    const video = ref.current
+    if (!video) return
+    if (!ready || !playing) { video.pause(); return }
+    let visible = video.getBoundingClientRect().bottom > 0 && video.getBoundingClientRect().top < innerHeight
+    const sync = () => {
+      if (visible && !document.hidden) video.play().catch(() => { /* Keep the configured poster when autoplay is refused. */ })
+      else video.pause()
+    }
+    const observer = 'IntersectionObserver' in window ? new IntersectionObserver(entries => {
+      visible = entries[0]?.isIntersecting === true; sync()
+    }) : null
+    observer?.observe(video)
+    document.addEventListener('visibilitychange', sync)
+    sync()
+    return () => { observer?.disconnect(); document.removeEventListener('visibilitychange', sync); video.pause() }
+  }, [ready, playing])
   return <video ref={ref} muted loop playsInline preload="none" className="absolute inset-0 size-full object-cover"
     src={ready ? src : undefined} poster={poster} onError={onError} />
 }
@@ -121,13 +135,13 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
     '--mk-line': dark ? '#718174' : '#d4d9cd',
   } as React.CSSProperties : undefined
 
-  return <section className={`relative isolate pb-16 pt-12 md:pb-24 md:pt-20 ${dark ? 'mk-dark' : ''}`} style={style} aria-labelledby="hero-title">
+  return <section className={`mk-hero relative isolate pb-16 pt-12 md:pb-24 md:pt-20 ${!hasMedia && color.toLowerCase() === '#f3efe5' ? 'mk-hero-paper' : ''} ${dark ? 'mk-dark' : ''}`} style={style} aria-labelledby="hero-title">
     {bgType === 'video' && bgVideo && !videoError ? <DeferredHeroVideo src={bgVideo} poster={bgImage || undefined} onError={() => setVideoError(true)} /> : null}
     {bgImage && (bgType === 'image' || (bgType === 'video' && (!bgVideo || videoError))) ?
       <DeliveryImage src={bgImage} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /> : null}
     {hasMedia ? <div className="absolute inset-0 bg-[#14271d]/85" aria-hidden="true" /> : null}
     <div className="mk-container relative grid min-w-0 items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-      <div className="min-w-0">
+      <div className="mk-hero-copy min-w-0">
         <p className="mk-eyebrow mb-6">{s.badge ?? 'Digital menus, thoughtfully served'}</p>
         <h1 id="hero-title" className="mk-display max-w-2xl">
           {s.heading ?? 'Your food has a story.'}{' '}
@@ -142,12 +156,17 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
         </div>
         <p className="mk-muted mt-6 text-sm leading-relaxed">Your own identity. A link to share.<br className="sm:hidden" /> No app for guests to download.</p>
       </div>
-      <figure className="relative m-0 min-w-0 pb-12 sm:pb-8">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-t-[5rem] rounded-b-3xl border border-[var(--mk-line)] sm:aspect-square lg:aspect-[4/5]">
+      <figure className="mk-hero-art relative m-0 min-w-0 pb-12 sm:pb-8">
+        <div className="mk-hero-halo" aria-hidden="true" />
+        <div className="mk-hero-photo relative aspect-[4/5] overflow-hidden rounded-t-[5rem] rounded-b-3xl border border-[var(--mk-line)] sm:aspect-square lg:aspect-[4/5]">
           <DeliveryImage src="/brands/bella-vista/tagliatelle-al-ragu.webp" alt="Tagliatelle al ragù with parmesan and basil, from the Bella Vista menu" fill preload
             sizes="(max-width: 1023px) calc(100vw - 40px), (max-width: 1239px) 45vw, 532px" className="object-cover" />
         </div>
-        <figcaption className="absolute bottom-0 left-3 right-3 rounded-2xl border border-[#d4d9cd] bg-[#fbf8f0] p-5 text-[#20372b] sm:left-6 sm:right-6 sm:p-6 lg:-left-6 lg:right-8">
+        <div className="mk-hero-label absolute -top-4 right-3 z-10 inline-flex max-w-[calc(100%_-_1.5rem)] items-center gap-2 rounded-full border border-[#d4d9cd] bg-[#F3EFE5] px-4 py-3 text-xs font-semibold text-[#20372b]">
+          <QrCode className="size-4 shrink-0" aria-hidden="true" />
+          <span>One scan. A whole experience.</span>
+        </div>
+        <figcaption className="mk-hero-caption absolute bottom-0 left-3 right-3 rounded-2xl border border-[#d4d9cd] bg-[#fbf8f0] p-5 text-[#20372b] sm:left-6 sm:right-6 sm:p-6 lg:-left-6 lg:right-8">
           <div className="mb-3 flex items-center justify-between gap-3 border-b border-[#d4d9cd] pb-3">
             <span className="text-xs font-semibold uppercase tracking-[0.12em]">A taste of Bella Vista</span>
             <UtensilsCrossed className="size-4 shrink-0" aria-hidden="true" />
@@ -164,11 +183,27 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
   </section>
 }
 
+function FeatureRibbon() {
+  const items = [
+    { icon: QrCode, label: 'QR menus' },
+    { icon: BookOpen, label: 'Photo feeds' },
+    { icon: Box, label: 'Selected 3D' },
+    { icon: Palette, label: 'Your identity' },
+  ]
+  return <div className="mk-feature-ribbon">
+    <ul aria-label="Ways to experience your menu" className="mk-container grid grid-cols-2 gap-5 py-7 lg:grid-cols-4">
+      {items.map(({ icon: Icon, label }) => <li key={label} className="flex min-w-0 items-center justify-center gap-3 text-sm font-semibold sm:text-base">
+        <Icon className="size-5 shrink-0" aria-hidden="true" /><span>{label}</span>
+      </li>)}
+    </ul>
+  </div>
+}
+
 function HowItWorks({ data }: { data?: HowItWorksData | null }) {
   const resolved = data?.steps?.length ? data.steps.map((step, index) => ({
     step: step.step ?? String(index + 1).padStart(2, '0'), icon: getIcon(step.icon ?? ''), title: step.title, body: step.desc,
   })) : steps
-  return <section id="how-it-works" className="mk-section scroll-mt-24 border-t border-[var(--mk-line)]" aria-labelledby="process-title">
+  return <section id="how-it-works" className="mk-process mk-section scroll-mt-24 border-t border-[var(--mk-line)]" aria-labelledby="process-title">
     <div className="mk-container">
       <div className="mb-10 grid gap-5 md:mb-14 md:grid-cols-2 md:items-end">
         <div><p className="mk-eyebrow mb-4">From your kitchen to their screen</p><h2 id="process-title" className="mk-h2 max-w-xl">{data?.title ?? 'Good service starts with a simple setup.'}</h2></div>
@@ -204,7 +239,7 @@ function FeatureBlocks({ data }: { data?: FeaturesData | null }) {
 }
 
 function PricingTeaser() {
-  return <section className="mk-section" aria-labelledby="pricing-title">
+  return <section className="mk-pricing-teaser mk-section" aria-labelledby="pricing-title">
     <div className="mk-container grid gap-10 md:grid-cols-[1.15fr_1fr] md:items-center">
       <div><p className="mk-eyebrow mb-4">A place to start</p><h2 id="pricing-title" className="mk-h2 max-w-xl">A clear price.<br />Room to grow.</h2>
         <p className="mk-lead mt-6 max-w-lg">A one-time project to get your menu ready, then a plan to keep it running. Choose how much you want our team to take care of.</p>
@@ -237,7 +272,7 @@ function FAQ() {
 }
 
 function FooterCTABand({ data, onLoginOpen }: { data?: CtaData | null; onLoginOpen: () => void }) {
-  return <section className="mk-dark mk-section relative isolate" aria-labelledby="invitation-title">
+  return <section className="mk-invitation mk-dark mk-section relative isolate" aria-labelledby="invitation-title">
     {data?.bg_image_url ? <><DeliveryImage src={data.bg_image_url} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /><div className="absolute inset-0 bg-[#14271d]/90" aria-hidden="true" /></> : null}
     <div className="mk-container relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
       <div><p className="mk-eyebrow mb-5">Your next chapter</p><h2 id="invitation-title" className="mk-h2 max-w-2xl whitespace-pre-line">{data?.heading ?? 'Something good is taking shape.'}</h2>
@@ -255,6 +290,7 @@ export default function ClientLandingPage({ platformLanding, appName, logoUrl }:
       <Nav appName={appName} logoUrl={logoUrl} onLoginOpen={() => setLoginOpen(true)} />
       <main>
         <Hero s={landing?.hero ?? {}} onLoginOpen={() => setLoginOpen(true)} />
+        <FeatureRibbon />
         <MenuShowcase />
         <HowItWorks data={landing?.how_it_works} />
         <FeatureBlocks data={landing?.features} />

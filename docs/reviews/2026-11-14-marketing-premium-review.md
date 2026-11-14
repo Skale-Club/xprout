@@ -78,3 +78,38 @@ The four explicit configuration edits are documented in
 docs/product/marketing-design-v2.md. A read-only production plan confirms the
 old values and preserves all other fields. Publication must include that merge,
 normal CI/performance checks and production visual verification after approval.
+
+## Follow-up: stronger color and motion
+
+The owner found the first preview too static. A second local pass adds supporting
+sage/olive tones, a curved hero backplate, a feature ribbon, distinct setup-card
+surfaces, changing demo backgrounds, layered shadows and richer forest gradients.
+The exact logo, configured content and commercial calculations remain intact.
+
+Native CSS animations handle the hero/QR label, example swaps, subtle hover depth,
+section fades, a sliding monthly/yearly selector and exact amount changes. A small
+shared client controller gates this progressive enhancement, reveals focused
+content and persists Pause/Resume. System reduced motion, data saving and missing
+JavaScript preserve a fully visible static presentation. The live announcement
+container for example copy stays mounted while its animated child changes.
+
+Verification for this pass:
+
+- Nineteen focused unit tests passed; TypeScript and scoped ESLint passed.
+- Eight responsive states and all ten existing browser behavior checks passed.
+- Normal-motion browser checks passed: section reveal, actual example transition,
+  exact annual values, pause stopping animations, cross-page preference, system
+  reduced motion, data saving and no-JavaScript content visibility.
+- A temporary local fixture verified configured video playback, Pause/Resume,
+  offscreen pause and no video-source request under reduced motion. The fixture
+  route was removed after verification and is not part of the application.
+- Four axe WCAG 2 A/AA states report no detected violations after correcting the
+  preview caption contrast; incomplete gradient/table/icon checks remain limits.
+- No new image/font assets or animation dependencies enter the application.
+- A silent 13.42-second review recording is H.264 / 1200×900 / 24 fps / 830,332 B;
+  its 5 MiB / 30 s cap and optimized poster are checked before review delivery.
+
+Evidence: `output/premium-motion/2026-11-14`, including JSON results, optimized
+captures, recording and poster. Delivery: `N:/My Drive/Xprout/Reviews/2026-11-14
+Premium Motion`. This follow-up remains on the local feature branch. Production
+continues on 5336b99; no production data write, push or deployment occurred.

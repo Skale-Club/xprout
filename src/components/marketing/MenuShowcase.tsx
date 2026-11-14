@@ -36,7 +36,7 @@ export default function MenuShowcase() {
   const [selected, setSelected] = useState(0)
   const example = examples[selected]
 
-  return <section id="experience" className="mk-section scroll-mt-24" aria-labelledby="examples-title">
+  return <section id="experience" className="mk-experience mk-section scroll-mt-24" aria-labelledby="examples-title">
     <div className="mk-container">
       <div className="mb-8 grid gap-6 md:mb-12 md:grid-cols-[1.2fr_1fr] md:items-end">
         <div>
@@ -54,24 +54,25 @@ export default function MenuShowcase() {
         </button>)}
       </div>
 
-      <div className="grid overflow-hidden rounded-3xl border border-[var(--mk-line)] bg-[var(--mk-panel)] md:grid-cols-2">
+      <div data-example={selected} className="mk-showcase-stage grid overflow-hidden rounded-3xl border border-[var(--mk-line)] bg-[var(--mk-panel)] md:grid-cols-2">
         <figure className="m-0 flex min-w-0 flex-col items-center justify-center gap-6 bg-[color-mix(in_srgb,var(--mk-forest)_8%,var(--mk-paper))] p-6 sm:p-10">
           <p className="mk-eyebrow text-center">Guest menu preview</p>
-          <div className="w-full max-w-[240px] overflow-hidden rounded-[32px] border-[6px] border-[var(--mk-forest)] bg-[var(--mk-forest)] shadow-[0_16px_36px_rgb(20_39_29_/_0.15)]">
-            <DeliveryImage key={example.image} src={example.image} alt={example.alt} width={390} height={844}
+          <div key={example.image} className="mk-phone-swap w-full max-w-[240px] overflow-hidden rounded-[32px] border-[6px] border-[var(--mk-forest)] bg-[var(--mk-forest)] shadow-[0_16px_36px_rgb(20_39_29_/_0.15)]">
+            <DeliveryImage src={example.image} alt={example.alt} width={390} height={844}
               sizes="(max-width: 359px) 220px, 240px" className="h-auto w-full" />
           </div>
           <figcaption className="text-center text-sm text-[var(--mk-ink)]">
             <span className="block font-semibold">{example.label}</span>
+            <span className="mk-muted mt-1 block text-xs tabular-nums">Preview / {String(selected + 1).padStart(2, '0')} of {String(examples.length).padStart(2, '0')}</span>
             <span className="mk-muted mt-1 block text-xs">A captured preview. Open the menu to explore.</span>
           </figcaption>
         </figure>
         <div className="flex min-w-0 flex-col justify-center p-6 sm:p-10 lg:p-14">
-          <div aria-live="polite" aria-atomic="true">
+          <div aria-live="polite" aria-atomic="true"><div key={example.name} className="mk-copy-swap">
             <p className="mk-eyebrow mb-5">{example.category} · Menu example</p>
             <h3 className="mk-h2 mb-5">{example.title}</h3>
             <p className="mk-lead mb-8">{example.description}</p>
-          </div>
+          </div></div>
           <a href={example.href} target="_blank" rel="noopener noreferrer" className="mk-button w-full sm:w-fit">
             Open {example.name} <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
             <span className="sr-only"> menu in a new tab</span>

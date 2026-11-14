@@ -96,3 +96,37 @@ object, preserving every other field and the original image/video references:
 These are explicit configuration edits, not CSS substitutions of stored colors.
 The original media URLs remain available for rollback; the new default hero uses
 an optimized owned food image instead of requesting the old background video.
+
+## Color and motion refinement — 2026-11-14
+
+Owner feedback requested more color differences, movement and effects. Add sage
+`#DCE6CD`, light olive `#D1DFAB` and olive `#A9BD7D` as supporting marketing roles;
+forest and ivory remain the brand anchors. The ivory hero receives a curved
+green backplate; explicit custom hero colors/media retain their configured
+background. A feature ribbon, differentiated project cards, tinted previews,
+dark plan gradients and a sage estimator give sections distinct visual rhythms.
+Small text in preview panels uses `#435541` for sufficient contrast.
+
+MarketingMotion progressively enables an entrance for the hero artwork, a subtle
+floating QR label, section opacity reveals, preview transitions, card/photo hover
+effects, a sliding billing selector and exact-price transitions. Prices never
+count through invented intermediate values. Section reveals do not move controls
+under a pointer, and keyboard focus immediately makes the relevant section visible.
+An optional CSS scroll progress indicator uses a supported scroll timeline with
+a static fallback. No animation library or new media download is added.
+
+The visible Pause motion / Resume motion control persists a local preference
+across marketing pages (`xprout.marketing.motion.v1`). System reduced motion and
+data saving disable decorative animation and omit that control. Server-rendered
+content is visible before JavaScript, and pausing reveals all pending sections.
+An explicitly configured legacy hero video also obeys Pause/Resume and pauses
+offscreen or when the document is hidden; reduced motion avoids its source request.
+These controls and normal-motion behavior are verified in a real Chromium run;
+older browsers retain visible content when IntersectionObserver is unavailable.
+
+Review evidence: `output/premium-motion/2026-11-14`. The private UI recording is
+delivered as a 1200×900, 24 fps, silent H.264 MP4 with fast-start metadata, capped
+at 5 MiB / 30 s, with a WebP poster capped at 180 KiB / 1200 px. This review-only
+profile does not change guest video-upload budgets or resolve their known gaps.
+The measured recording is 13.42 s / 830,332 B. Publication remains a separate
+release step; production settings and source release are unchanged by this round.

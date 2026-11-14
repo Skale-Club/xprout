@@ -58,7 +58,7 @@ function BuildSection() {
     <section id="projects" aria-labelledby="build-title" className="mk-container mk-section scroll-mt-24">
       <SectionHead id="build-title" eyebrow="01 / Your project" title="A considered start. Made for your restaurant." lead="Choose how much you want us to take care of. Each project is a one-time price, with the first month included." />
       <div className="grid gap-5 lg:grid-cols-3">
-        <article className={`${card} grid content-start gap-4 p-6`}>
+        <article data-tier="diy" className={`${card} mk-project-card grid content-start gap-4 p-6`}>
           <h3 className="mk-eyebrow">You add the items</h3>
           <Price launch={PROJECTS.diy.launch} list={PROJECTS.diy.list} note="one-time" />
           <Inc items={[
@@ -71,7 +71,7 @@ function BuildSection() {
           <p className="mk-muted border-t border-current/15 pt-4 text-base">Unlimited items, added by you.</p>
         </article>
 
-        <article className="mk-dark grid min-w-0 content-start gap-5 rounded-[24px] p-6 sm:p-8">
+        <article data-tier="complete" className="mk-project-card mk-dark grid min-w-0 content-start gap-5 rounded-[24px] p-6 sm:p-8">
           <h3 className="mk-eyebrow">Complete setup · we do everything</h3>
           <Price launch={we.launch} list={we.list} note={`one-time · up to ${we.includedItems} items`} />
           <Inc items={[
@@ -87,7 +87,7 @@ function BuildSection() {
           </p>
         </article>
 
-        <article className={`${card} grid content-start gap-4 p-6`}>
+        <article data-tier="3d" className={`${card} mk-project-card grid content-start gap-4 p-6`}>
           <h3 className="mk-eyebrow">Menu with 3D · we do everything</h3>
           <Price launch={td.launch} list={td.list} note={`one-time · up to ${td.includedItems} items, all as 3D dishes`} />
           <Inc items={[
@@ -179,25 +179,24 @@ function PlansSection() {
       features: ['Everything in Waiter', 'Enabled online payments and pickup', 'Payments into your Stripe account'],
     },
   }
-  const seg = (on: boolean) =>
-    `min-h-12 rounded-full px-4 py-3 text-base font-medium transition-colors motion-reduce:transition-none ${focus} ${on ? 'bg-[var(--mk-paper)] text-[var(--mk-forest)]' : 'text-[var(--mk-paper)] hover:bg-white/10'}`
+  const seg = `min-h-12 rounded-full px-4 py-3 text-base font-medium ${focus}`
   return (
-    <section id="plans" aria-labelledby="monthly-title" className="mk-dark mk-section scroll-mt-24">
+    <section id="plans" aria-labelledby="monthly-title" className="mk-plans mk-dark mk-section scroll-mt-24">
       <div className="mk-container">
       <SectionHead id="monthly-title" eyebrow="02 / Ongoing service" title="From the first look to the last order." lead="Hosting, software, changes and support. Start with the menu; add table service and payments when you are ready." />
-      <div role="group" aria-label="Billing period" className="mb-8 flex w-fit max-w-full flex-wrap gap-1 rounded-[28px] border border-white/25 p-1">
-        <button type="button" aria-pressed={!yearly} onClick={() => setYearly(false)} className={seg(!yearly)}>Monthly</button>
-        <button type="button" aria-pressed={yearly} onClick={() => setYearly(true)} className={seg(yearly)}>Yearly · {YEARLY_FREE_MONTHS} months free</button>
+      <div role="group" aria-label="Billing period" data-yearly={yearly} className="mk-billing-switch mb-8 grid w-fit max-w-full grid-cols-2 gap-1 rounded-[28px] border border-white/25 p-1">
+        <button type="button" aria-pressed={!yearly} onClick={() => setYearly(false)} className={seg}>Monthly</button>
+        <button type="button" aria-pressed={yearly} onClick={() => setYearly(true)} className={seg}>Yearly · {YEARLY_FREE_MONTHS} months free</button>
       </div>
       <div className="mb-8 grid gap-4 lg:grid-cols-3">
         {keys.map(key => (
-          <article key={key} className={`grid min-w-0 content-start gap-5 rounded-[24px] border p-6 sm:p-8 ${key === 'waiter' ? 'border-white/50 bg-white/10' : 'border-white/25'}`}>
+          <article key={key} data-plan={key} className={`mk-plan-card grid min-w-0 content-start gap-5 rounded-[24px] border p-6 sm:p-8 ${key === 'waiter' ? 'border-white/50 bg-white/10' : 'border-white/25'}`}>
             <div className="grid gap-2">
               <h3 className="text-xl font-semibold">{names[key]}</h3>
               <p className="mk-muted text-base leading-relaxed">{summaries[key].lead}</p>
             </div>
             <p>
-              <strong className="mk-price text-4xl font-semibold">{formatUsd(yearly ? PLANS[key].yearly : PLANS[key].monthly)}</strong>
+              <strong className="mk-price text-4xl font-semibold"><span key={String(yearly)} className="mk-price-swap">{formatUsd(yearly ? PLANS[key].yearly : PLANS[key].monthly)}</span></strong>
               <span className="mk-muted ml-2 text-base">{yearly ? 'per year' : 'per month'}</span>
             </p>
             <Inc items={summaries[key].features} />
@@ -209,7 +208,7 @@ function PlansSection() {
           </article>
         ))}
       </div>
-      <details className="rounded-[24px] border border-white/25">
+      <details className="mk-comparison rounded-[24px] border border-white/25">
         <summary className={`cursor-pointer rounded-[24px] px-5 py-5 text-base font-medium sm:px-6 ${focus}`}>Compare everything included</summary>
         <div className="px-3 pb-3 sm:px-5 sm:pb-5">
       <p className="mk-muted mb-3 text-base lg:hidden">Scroll the comparison to see every plan.</p>
@@ -222,7 +221,7 @@ function PlansSection() {
               {keys.map((k) => (
                 <th key={k} scope="col" className={`px-5 py-8 text-center align-top ${k === 'waiter' ? 'bg-white/5' : ''}`}>
                   <span className="block text-lg font-medium">{names[k]}</span>
-                  <span className="mk-price mt-4 block text-3xl font-semibold">{formatUsd(yearly ? PLANS[k].yearly : PLANS[k].monthly)}</span>
+                  <span className="mk-price mt-4 block text-3xl font-semibold"><span key={String(yearly)} className="mk-price-swap">{formatUsd(yearly ? PLANS[k].yearly : PLANS[k].monthly)}</span></span>
                   <span className="mk-muted mt-2 block text-base font-normal">{yearly ? 'per year' : 'per month'}</span>
                   {PLANS[k].paymentFeePercent ? <span className="mk-muted mt-2 block text-base font-normal">+ {PLANS[k].paymentFeePercent}% per payment</span> : null}
                 </th>
@@ -333,7 +332,7 @@ function Estimator() {
   )
 
   return (
-    <section id="estimate" aria-labelledby="estimate-title" className="mk-container mk-section scroll-mt-24 border-t border-[var(--mk-line)]">
+    <section id="estimate" aria-labelledby="estimate-title" className="mk-estimator mk-container mk-section scroll-mt-24 border-t border-[var(--mk-line)]">
       <SectionHead id="estimate-title" eyebrow="A little clarity" title="Picture your menu. See your estimate." lead="Explore the options before we talk. Your first month is part of the project, so the ongoing plan starts in month two." />
       <div className="grid items-start gap-6 lg:grid-cols-[1.15fr_1fr]">
         <form className={`${card} grid min-w-0 content-start gap-6 p-5 sm:grid-cols-2 sm:p-8`} onSubmit={(ev) => ev.preventDefault()} noValidate>
@@ -370,7 +369,7 @@ function Estimator() {
           </label>
         </form>
 
-        <div className="mk-dark grid min-w-0 content-start gap-6 rounded-[24px] p-5 sm:p-8" aria-live="polite" aria-atomic="true">
+        <div className="mk-estimate-result mk-dark grid min-w-0 content-start gap-6 rounded-[24px] p-5 sm:p-8" aria-live="polite" aria-atomic="true">
           <p className="mk-eyebrow">Your estimate</p>
           <div className="grid gap-3 text-base">
             {line('Menu build', e.base, mode === 'diy' ? 'you add the items' : `${PROJECTS.we.includedItems} items included`)}
@@ -425,7 +424,7 @@ export default function PricingClient({ appName, logoUrl, footerData }: {
       <div className="min-h-screen bg-[var(--mk-paper)] text-[var(--mk-ink)]">
         <Nav appName={appName} logoUrl={logoUrl} startHref={PRICING_CTA_HREF} activePage="pricing" />
         <main>
-          <header className="mk-container mk-section">
+          <header className="mk-pricing-hero mk-container mk-section">
             <div className="grid items-end gap-10 lg:grid-cols-[1.4fr_1fr] lg:gap-20">
               <div className="grid gap-6">
                 <span className="mk-eyebrow">Pricing / A menu worth gathering around</span>
@@ -436,7 +435,7 @@ export default function PricingClient({ appName, logoUrl, footerData }: {
                   <a href="#estimate" className="mk-button mk-button--outline">Estimate your project</a>
                 </div>
               </div>
-              <div className="grid gap-6 border-y border-[var(--mk-line)] py-8">
+              <div className="mk-cost-summary grid gap-6 border-y border-[var(--mk-line)] py-8">
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
                   <span className="mk-muted text-base">One-time setup from</span>
                   <strong className="mk-price text-4xl font-semibold">{formatUsd(PROJECTS.diy.launch)}</strong>
