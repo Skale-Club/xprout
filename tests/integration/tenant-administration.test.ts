@@ -125,8 +125,9 @@ test('tenant/menu/category readers enforce both tenant and menu, settings enforc
  await assert.rejects(write(q=>tenantSettings(q,context,id,{tenant_id:foreign})),{status:400})
  await assert.rejects(write(q=>tenantSettings(q,context,id,{primary_color:'red;script'})),{status:400})
  await assert.rejects(write(q=>tenantSettings(q,context,id,{amber_threshold_minutes:11})),{status:400})
- await write(q=>tenantSettings(q,context,id,{custom_tags:['Fresh'],business_hours:{monday:'closed'},table_management_enabled:false}))
- assert.deepEqual((await admin.query('SELECT custom_tags,business_hours FROM tenant_settings WHERE tenant_id=$1',[id])).rows[0],{custom_tags:['Fresh'],business_hours:{monday:'closed'}})
+ await write(q=>tenantSettings(q,context,id,{custom_tags:['Vegan'],business_hours:{monday:'closed'},table_management_enabled:false}))
+ await assert.rejects(write(q=>tenantSettings(q,context,id,{custom_tags:['Fresh']})),{status:400,message:'Invalid custom tags'})
+ assert.deepEqual((await admin.query('SELECT custom_tags,business_hours FROM tenant_settings WHERE tenant_id=$1',[id])).rows[0],{custom_tags:['Vegan'],business_hours:{monday:'closed'}})
 })
 test('delete removes only empty local shell, preserves users/provider UUIDs and audit, cancels pending outbox; archive remains functional',async()=>{
  const result=await write(q=>createTenant(q,context,input())),id=String(result.tenant.id),providers=await snapshot('app_identity_bindings')
