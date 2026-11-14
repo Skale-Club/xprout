@@ -34,13 +34,13 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
     <Link className="mk-nav-link" href="/#how-it-works" onClick={() => setOpen(false)}>How it works</Link>
     <Link className="mk-nav-link" href={PRICING_PATH} aria-current={activePage === 'pricing' ? 'page' : undefined} onClick={() => setOpen(false)}>Pricing</Link>
   </>
-  return <nav className="mk-nav" aria-label="Main navigation">
+  return <nav className="mk-nav mk-dark" aria-label="Main navigation">
     <div className="mk-container mk-nav-inner">
-      <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="forest" /></Link>
+      <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
       <div className="mk-nav-links">{links}</div>
       <div className="mk-nav-actions">
-        {startHref ? <Link href={startHref} className="mk-button mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></Link>
-          : <button type="button" onClick={onLoginOpen} className="mk-button mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></button>}
+        {startHref ? <Link href={startHref} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></Link>
+          : <button type="button" onClick={onLoginOpen} className="mk-button mk-button--light mk-nav-cta">Start<span className="hidden lg:inline"> your menu</span></button>}
         <button ref={toggle} type="button" className="mk-nav-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="marketing-mobile-navigation" onClick={() => setOpen(value => !value)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
       </div>
     </div>

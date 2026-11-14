@@ -15,6 +15,8 @@ Fraunces Semibold is the approved editorial face; retain Inter for body, control
 and tabular price figures. Fonts and styles are scoped to marketing, leaving
 customer menus and auth/admin typography unchanged. Preserve explicit platform
 CTA colors, app name, custom logo and configurable landing content/media.
+The shared header uses forest with the approved ivory signature, ivory navigation
+and an ivory CTA as an explicit contrast role; stored CTA colors are not rewritten.
 
 ## Shared contract
 
@@ -30,7 +32,7 @@ Shared CSS lives in marketing.css. Pages use these shared roles:
 - `mk-dark`: deep forest, ivory type and role-specific borders/muted text.
 - `mk-panel`, `mk-pill`, `mk-price`: restrained surfaces and tabular figures.
 
-Mobile headings use 44–48px, desktop hero 64–82px; section titles 32–52px. UI/body
+Hero headings use 40–68px with responsive scaling; section titles 32–52px. UI/body
 copy uses 16–18px. Cards use16–24px radii, fields12px, buttons pill. One-column
 content at 320px; no hidden page overflow used to conceal broken layouts. Respect
 reduced motion and keep primary content visible without an entrance animation.
@@ -130,3 +132,21 @@ at 5 MiB / 30 s, with a WebP poster capped at 180 KiB / 1200 px. This review-onl
 profile does not change guest video-upload budgets or resolve their known gaps.
 The measured recording is 13.42 s / 830,332 B. Publication remains a separate
 release step; production settings and source release are unchanged by this round.
+
+## Green header and compact hero refinement
+
+Owner feedback on 2026-11-14 requests a forest header and less hero height.
+The shared header now uses #283F32 with ivory logo, navigation, button and focus
+rings on both landing and pricing; inner height is 64px mobile / 72px desktop.
+The landing reduces vertical spacing, display size and photo aspect, using a
+square on mobile and 6:5 from tablet. Two columns begin at 768px. Image sizes
+reflect the revised layout, and the caption remains a contained overlay.
+Pricing receives the same reduced display range and 40/48px hero padding.
+Natural content flow is retained; no fixed viewport height or clipped copy.
+
+At 1440px, measured landing hero height changes from 900.69 to 585.14px (35%);
+at 390px from 1185.39 to 963.67px; at 768px from 1297.64 to 549.67px. Pricing
+hero at 1440px changes from 558.11 to 432.14px. Eight responsive states, nine
+focused unit tests, ten existing browser behaviors, TypeScript and scoped lint
+pass. Four axe states detect no violations, retaining incomplete findings.
+Evidence: output/compact-hero/2026-11-14. This remains a local review.

@@ -135,38 +135,38 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
     '--mk-line': dark ? '#718174' : '#d4d9cd',
   } as React.CSSProperties : undefined
 
-  return <section className={`mk-hero relative isolate pb-16 pt-12 md:pb-24 md:pt-20 ${!hasMedia && color.toLowerCase() === '#f3efe5' ? 'mk-hero-paper' : ''} ${dark ? 'mk-dark' : ''}`} style={style} aria-labelledby="hero-title">
+  return <section className={`mk-hero relative isolate py-10 md:py-12 ${!hasMedia && color.toLowerCase() === '#f3efe5' ? 'mk-hero-paper' : ''} ${dark ? 'mk-dark' : ''}`} style={style} aria-labelledby="hero-title">
     {bgType === 'video' && bgVideo && !videoError ? <DeferredHeroVideo src={bgVideo} poster={bgImage || undefined} onError={() => setVideoError(true)} /> : null}
     {bgImage && (bgType === 'image' || (bgType === 'video' && (!bgVideo || videoError))) ?
       <DeliveryImage src={bgImage} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /> : null}
     {hasMedia ? <div className="absolute inset-0 bg-[#14271d]/85" aria-hidden="true" /> : null}
-    <div className="mk-container relative grid min-w-0 items-center gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+    <div className="mk-container relative grid min-w-0 items-center gap-8 md:grid-cols-[1.1fr_1fr] md:gap-10 lg:gap-12">
       <div className="mk-hero-copy min-w-0">
-        <p className="mk-eyebrow mb-6">{s.badge ?? 'Digital menus, thoughtfully served'}</p>
+        <p className="mk-eyebrow mb-4">{s.badge ?? 'Digital menus, thoughtfully served'}</p>
         <h1 id="hero-title" className="mk-display max-w-2xl">
           {s.heading ?? 'Your food has a story.'}{' '}
           <span className="block">{s.heading_highlight ?? 'Give it a menu to match.'}</span>
         </h1>
-        <p className="mk-lead mt-7 max-w-lg">{s.subheading ?? 'A digital menu that feels like your restaurant. Beautiful dishes, clear choices and a little more time to enjoy the table.'}</p>
-        <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <p className="mk-lead mt-5 max-w-lg">{s.subheading ?? 'A digital menu that feels like your restaurant. Beautiful dishes, clear choices and a little more time to enjoy the table.'}</p>
+        <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <button type="button" onClick={onLoginOpen} className={`mk-button ${dark ? 'mk-button--light' : ''}`}>
             {s.cta_primary ?? 'Start'} <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
           </button>
           <a href="#how-it-works" className="mk-button mk-button--outline">{s.cta_secondary ?? 'See how it works'}</a>
         </div>
-        <p className="mk-muted mt-6 text-sm leading-relaxed">Your own identity. A link to share.<br className="sm:hidden" /> No app for guests to download.</p>
+        <p className="mk-muted mt-4 text-sm leading-relaxed">Your own identity. A link to share.<br className="sm:hidden" /> No app for guests to download.</p>
       </div>
       <figure className="mk-hero-art relative m-0 min-w-0 pb-12 sm:pb-8">
         <div className="mk-hero-halo" aria-hidden="true" />
-        <div className="mk-hero-photo relative aspect-[4/5] overflow-hidden rounded-t-[5rem] rounded-b-3xl border border-[var(--mk-line)] sm:aspect-square lg:aspect-[4/5]">
+        <div className="mk-hero-photo relative aspect-square overflow-hidden rounded-t-[5rem] rounded-b-3xl border border-[var(--mk-line)] md:aspect-[6/5]">
           <DeliveryImage src="/brands/bella-vista/tagliatelle-al-ragu.webp" alt="Tagliatelle al ragù with parmesan and basil, from the Bella Vista menu" fill preload
-            sizes="(max-width: 1023px) calc(100vw - 40px), (max-width: 1239px) 45vw, 532px" className="object-cover" />
+            sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px" className="object-cover" />
         </div>
         <div className="mk-hero-label absolute -top-4 right-3 z-10 inline-flex max-w-[calc(100%_-_1.5rem)] items-center gap-2 rounded-full border border-[#d4d9cd] bg-[#F3EFE5] px-4 py-3 text-xs font-semibold text-[#20372b]">
           <QrCode className="size-4 shrink-0" aria-hidden="true" />
           <span>One scan. A whole experience.</span>
         </div>
-        <figcaption className="mk-hero-caption absolute bottom-0 left-3 right-3 rounded-2xl border border-[#d4d9cd] bg-[#fbf8f0] p-5 text-[#20372b] sm:left-6 sm:right-6 sm:p-6 lg:-left-6 lg:right-8">
+        <figcaption className="mk-hero-caption absolute bottom-0 left-3 right-3 rounded-2xl border border-[#d4d9cd] bg-[#fbf8f0] p-4 text-[#20372b] lg:-left-6 lg:right-8 lg:p-6">
           <div className="mb-3 flex items-center justify-between gap-3 border-b border-[#d4d9cd] pb-3">
             <span className="text-xs font-semibold uppercase tracking-[0.12em]">A taste of Bella Vista</span>
             <UtensilsCrossed className="size-4 shrink-0" aria-hidden="true" />

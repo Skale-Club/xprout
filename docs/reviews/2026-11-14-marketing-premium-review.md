@@ -113,3 +113,23 @@ Evidence: `output/premium-motion/2026-11-14`, including JSON results, optimized
 captures, recording and poster. Delivery: `N:/My Drive/Xprout/Reviews/2026-11-14
 Premium Motion`. This follow-up remains on the local feature branch. Production
 continues on 5336b99; no production data write, push or deployment occurred.
+
+## Follow-up: forest header and a shorter hero
+
+The owner approved the premium direction and requested a green header plus less
+vertical hero space. Both pages now use the forest header with the existing
+approved ivory signature, light navigation/CTA and visible focus. Landing uses
+smaller responsive headings, tighter spacing, a shorter photo composition and
+tablet columns; pricing's hero padding and display size are reduced as well.
+The screenshot source and exact logo shapes remain unchanged.
+
+Measured at 1440px, landing hero height is 585.14px instead of 900.69px (~35%
+shorter), ending at y=658.14 including the header. Tablet hero is 549.67px and
+390px mobile is 963.67px, with content flowing naturally. Pricing's desktop
+hero is 432.14px instead of 558.11px. There is no horizontal overflow in any of
+the eight measured page/viewport states and no browser page error.
+
+Nine focused unit tests, TypeScript, scoped ESLint, ten browser behaviors and
+four axe states pass (zero detected violations; incomplete findings retained).
+Evidence and optimized before/after captures: output/compact-hero/2026-11-14.
+Local preview only; no push, deployment or configuration write.
