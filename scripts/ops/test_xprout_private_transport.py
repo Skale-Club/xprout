@@ -119,6 +119,27 @@ class Guards(unittest.TestCase):
         with self.assertRaises(ValueError):
             prepare.client_network_guard(c+changed+c, n)
 
+    def test_rebranded_xprout_app_is_admitted_and_unknown_names_are_not(self):
+        # 2026-11-15 outage: the rebranded image/resource was refused on restart.
+        c = [{"Name": "/app-"+prepare.NETWORK+"-20261114T224229", "State": {"Running": True},
+              "Image": "sha256:"+"a"*64,
+              "Config": {"Image": "ghcr.io/skale-club/xprout:"+"b"*40,
+                         "Labels": {"coolify.applicationUuid": prepare.NETWORK, "coolify.managed": "true",
+                                    "coolify.resourceName": "xprout", "coolify.type": "application",
+                                    "com.docker.compose.project": prepare.NETWORK, "com.docker.compose.service": "app"}},
+              "NetworkSettings": {"Networks": {prepare.NETWORK: {"IPAddress": "10.0.4.2", "Gateway": "10.0.4.1"}}}}]
+        n = {"Name": prepare.NETWORK, "Id": prepare.NETWORK_ID, "Driver": "bridge",
+             "IPAM": {"Config": [{"Subnet": "10.0.4.0/24", "Gateway": "10.0.4.1"}]}}
+        prepare.client_network_guard(c, n)
+        for mutate in [lambda a: a["Config"].update(Image="ghcr.io/skale-club/other:"+"b"*40),
+                       lambda a: a["Config"].update(Image="ghcr.io/skale-club/xprout:main"),
+                       lambda a: a["Config"]["Labels"].update({"coolify.resourceName": "other"}),
+                       lambda a: a["Config"]["Labels"].pop("coolify.resourceName")]:
+            wrong = copy.deepcopy(c)
+            mutate(wrong[0])
+            with self.assertRaises(ValueError):
+                prepare.client_network_guard(wrong, n)
+
     def test_known_host_trust_is_existing_pin_not_keyscan(self):
         # Use a synthetic public key and temporarily pin its hash, never a real private key.
         raw = b"synthetic public host key fixture"

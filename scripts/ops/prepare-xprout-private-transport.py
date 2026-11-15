@@ -193,11 +193,14 @@ def client_network_guard(containers, network):
         labels = app.get("Config", {}).get("Labels", {})
         address = ipaddress.ip_address(n.get("IPAddress", ""))
         if (not re.fullmatch(r"/app-" + NETWORK + r"-\d{8}T\d{6}", app["Name"])
-                or not re.fullmatch(r"ghcr\.io/skale-club/xmartmenu:[0-9a-f]{40}", app.get("Config", {}).get("Image", ""))
+                # The Xprout rebrand renamed the image and Coolify resource; the
+                # legacy names stay accepted so a rollback image is still admitted.
+                or not re.fullmatch(r"ghcr\.io/skale-club/(?:xprout|xmartmenu):[0-9a-f]{40}", app.get("Config", {}).get("Image", ""))
                 or not re.fullmatch(r"sha256:[0-9a-f]{64}", app.get("Image", ""))
+                or labels.get("coolify.resourceName") not in ("xprout", "xmartmenu")
                 or any(labels.get(k) != v for k, v in {
                     "coolify.applicationUuid": NETWORK, "coolify.managed": "true",
-                    "coolify.resourceName": "xmartmenu", "coolify.type": "application",
+                    "coolify.type": "application",
                     "com.docker.compose.project": NETWORK, "com.docker.compose.service": "app"}.items())
                 or address not in ipaddress.ip_network("10.0.4.0/24")
                 or str(address) in ("10.0.4.0", "10.0.4.1", "10.0.4.255")
