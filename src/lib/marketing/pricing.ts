@@ -13,8 +13,11 @@ export const NFC_NOTE = 'NFC Stands and NFC Plates for your tables are sold sepa
 
 export interface PricePair { launch: number; list: number }
 
+/**
+ * Setup projects. Our team always builds the menu and adds the dishes; the
+ * do-it-yourself project was withdrawn by the owner on 2026-11-15.
+ */
 export const PROJECTS = {
-  diy: { launch: 290, list: 490 },
   we: { launch: 590, list: 990, includedItems: 20, extraItem: { launch: 9, list: 19 } },
   threeD: {
     launch: 1190, list: 2490, includedItems: 20,
@@ -39,7 +42,6 @@ export const PAYMENT_SPLIT = { start: 50, launch: 50 }
 export const ADDONS = {
   extraLanguage: { launch: 90, list: 190 },
   extraItem: { launch: 9, list: 19 },
-  photoTouchUp: { launch: 5, list: 9 },
   threeDDish: {
     launch: 39, list: 99,
     from10Each: 34.9, from10Total: 349,
@@ -75,15 +77,10 @@ export function threeDCost(n: number): number {
   return Math.round(each * count * 100) / 100
 }
 
-export type EstimateMode = 'diy' | 'we'
-
 export interface EstimateInput {
-  mode: EstimateMode
   items: number
   threeDDishes: number
   extraLanguages: number
-  /** Only counted in 'diy' mode. */
-  photos?: number
   plan?: PlanKey
 }
 
@@ -92,7 +89,6 @@ export interface Estimate {
   extraItems: number
   threeD: number
   languages: number
-  photoTouchUps: number
   project: number
   monthly: number
   firstYear: number
@@ -107,20 +103,16 @@ export function estimateProject(input: EstimateInput): Estimate {
   const items = clampInt(input.items, 0, MAX_ITEMS)
   const threeDCount = clampInt(input.threeDDishes, 0, items)
   const langs = clampInt(input.extraLanguages, 0, MAX_LANGUAGES)
-  const photos = input.mode === 'diy' ? clampInt(input.photos ?? 0, 0, 5000) : 0
 
-  const base = input.mode === 'diy' ? PROJECTS.diy.launch : PROJECTS.we.launch
-  const extraItems = input.mode === 'we'
-    ? Math.max(0, items - PROJECTS.we.includedItems) * PROJECTS.we.extraItem.launch
-    : 0
+  const base = PROJECTS.we.launch
+  const extraItems = Math.max(0, items - PROJECTS.we.includedItems) * PROJECTS.we.extraItem.launch
   const threeD = threeDCost(threeDCount)
   const languages = langs * ADDONS.extraLanguage.launch
-  const photoTouchUps = photos * ADDONS.photoTouchUp.launch
-  const project = Math.round((base + extraItems + threeD + languages + photoTouchUps) * 100) / 100
+  const project = Math.round((base + extraItems + threeD + languages) * 100) / 100
 
   const plan = PLANS[input.plan ?? 'waiter']
   return {
-    base, extraItems, threeD, languages, photoTouchUps, project,
+    base, extraItems, threeD, languages, project,
     monthly: plan.monthly,
     firstYear: Math.round((project + plan.monthly * 11) * 100) / 100,
     paymentFeePercent: plan.paymentFeePercent ?? 0,

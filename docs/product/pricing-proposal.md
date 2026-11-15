@@ -1,6 +1,8 @@
 # Xprout pricing (proposal v5)
 
-Status: **proposal for the owner's decision**, 2026-11-12. All prices in US dollars. Nothing here is live: the plans table, Stripe prices and the public pricing section still show the old numbers.
+Status: **proposal for the owner's decision**, 2026-11-12.
+
+> **Update 2026-11-15 (owner):** the do-it-yourself project ($290, "you add the items") is withdrawn. The public offer is now the $590 setup (we add the first 20 dishes) or the $1,190 setup with 20 dishes in 3D, plus a monthly plan. Live numbers: `src/lib/marketing/pricing.ts`. All prices in US dollars. Nothing here is live: the plans table, Stripe prices and the public pricing section still show the old numbers.
 
 ## How we got here
 

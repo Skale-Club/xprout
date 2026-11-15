@@ -9,7 +9,7 @@ import type { FooterData } from '@/components/marketing/MarketingChrome'
 export const revalidate = 60
 
 const title = 'Pricing — Xprout'
-const description = `Menu websites for restaurants from ${formatUsd(PROJECTS.diy.launch)} and plans from ${formatUsd(PLANS.menu.monthly)}/month. We build it, you approve it, we keep it updated. Launch pricing for our first ${LAUNCH_SLOTS} restaurants.`
+const description = `Menu websites for restaurants: setup from ${formatUsd(PROJECTS.we.launch)}, paid once, and plans from ${formatUsd(PLANS.menu.monthly)}/month. We build it, you approve it, we keep it updated. Launch pricing for our first ${LAUNCH_SLOTS} restaurants.`
 
 export const metadata: Metadata = {
   // Absolute: the title already carries the brand (see the marketing layout).

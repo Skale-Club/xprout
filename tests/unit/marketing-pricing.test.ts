@@ -13,31 +13,29 @@ describe('3D dish tiers', () => {
 
 describe('estimateProject', () => {
   it('we, 40 items, no 3D = 770', () => {
-    expect(estimateProject({ mode: 'we', items: 40, threeDDishes: 0, extraLanguages: 0 }).project).toBe(770)
+    expect(estimateProject({ items: 40, threeDDishes: 0, extraLanguages: 0 }).project).toBe(770)
   })
   it('we, 20 items, 20 in 3D = 1,190', () => {
-    expect(estimateProject({ mode: 'we', items: 20, threeDDishes: 20, extraLanguages: 0 }).project).toBe(1190)
+    expect(estimateProject({ items: 20, threeDDishes: 20, extraLanguages: 0 }).project).toBe(1190)
   })
-  it('diy, any items, 10 in 3D = 639', () => {
-    expect(estimateProject({ mode: 'diy', items: 25, threeDDishes: 10, extraLanguages: 0 }).project).toBe(639)
-    expect(estimateProject({ mode: 'diy', items: 80, threeDDishes: 10, extraLanguages: 0 }).project).toBe(639)
+  it('20 items, 10 in 3D = 939', () => {
+    expect(estimateProject({ items: 20, threeDDishes: 10, extraLanguages: 0 }).project).toBe(939)
   })
   it('we, 40 items, 20 in 3D = 1,370', () => {
-    expect(estimateProject({ mode: 'we', items: 40, threeDDishes: 20, extraLanguages: 0 }).project).toBe(1370)
-    expect(estimateProject({ mode: 'we', items: 40, threeDDishes: 20, extraLanguages: 2 }).project).toBe(1550)
+    expect(estimateProject({ items: 40, threeDDishes: 20, extraLanguages: 0 }).project).toBe(1370)
+    expect(estimateProject({ items: 40, threeDDishes: 20, extraLanguages: 2 }).project).toBe(1550)
   })
   it('clamps 3D dishes to the item count and ignores bad input', () => {
-    expect(estimateProject({ mode: 'we', items: 5, threeDDishes: 50, extraLanguages: 0 }).threeDCount).toBe(5)
-    expect(estimateProject({ mode: 'we', items: NaN, threeDDishes: -3, extraLanguages: -1 }).project).toBe(590)
+    expect(estimateProject({ items: 5, threeDDishes: 50, extraLanguages: 0 }).threeDCount).toBe(5)
+    expect(estimateProject({ items: NaN, threeDDishes: -3, extraLanguages: -1 }).project).toBe(590)
   })
-  it('photo touch-ups only count in diy mode', () => {
-    expect(estimateProject({ mode: 'diy', items: 30, threeDDishes: 0, extraLanguages: 0, photos: 10 }).project).toBe(340)
-    expect(estimateProject({ mode: 'we', items: 20, threeDDishes: 0, extraLanguages: 0, photos: 10 }).project).toBe(590)
+  it('the 3D setup equals the menu setup plus 20 dishes in 3D', () => {
+    expect(PROJECTS.we.launch + threeDCost(PROJECTS.threeD.includedItems)).toBe(PROJECTS.threeD.launch)
   })
   it('first year = project + 11 months of the plan', () => {
-    const e = estimateProject({ mode: 'we', items: 20, threeDDishes: 0, extraLanguages: 0, plan: 'waiter' })
+    const e = estimateProject({ items: 20, threeDDishes: 0, extraLanguages: 0, plan: 'waiter' })
     expect(e.firstYear).toBe(590 + 179 * 11)
-    expect(estimateProject({ mode: 'we', items: 20, threeDDishes: 0, extraLanguages: 0, plan: 'payments' }).paymentFeePercent).toBe(1)
+    expect(estimateProject({ items: 20, threeDDishes: 0, extraLanguages: 0, plan: 'payments' }).paymentFeePercent).toBe(1)
   })
 })
 
@@ -46,7 +44,8 @@ describe('price constants', () => {
     for (const p of Object.values(PLANS)) expect(p.yearly).toBe(p.monthly * 10)
   })
   it('launch is always below list', () => {
-    expect(PROJECTS.diy.launch).toBeLessThan(PROJECTS.diy.list)
+    expect(PROJECTS.we.launch).toBeLessThan(PROJECTS.we.list)
+    expect(PROJECTS.threeD.launch).toBeLessThan(PROJECTS.threeD.list)
     expect(ADDONS.extraLanguage.launch).toBeLessThan(ADDONS.extraLanguage.list)
   })
 })

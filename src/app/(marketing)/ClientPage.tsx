@@ -56,8 +56,8 @@ const faqs = [
   { q: 'How does viewing a dish on the table work?', a: 'A dish needs a prepared 3D model. Guests can turn it on screen, and on supported phones they can use the camera to see it on their own table. Availability depends on the dish, phone and browser. No app download is needed.' },
   { q: 'Can guests order and pay?', a: 'The Waiter plan supports staff ordering, tables and a kitchen display. Guest ordering is available with the Payments plan when enabled by your restaurant. Online payments also require a connected Stripe account. You can also choose a menu-only setup.' },
   { q: 'Can my menu be in multiple languages?', a: 'Yes. Choose the languages you need. Additional languages are available, with the options and prices explained on our pricing page.' },
-  { q: 'Can you build the menu for me?', a: 'Yes. Send us your menu and dish photos, and our team can put it together. Prefer to add your own items? There is a project option for that, too. We can also discuss which dishes you would like to prepare for 3D.' },
-  { q: 'What does it cost?', a: `Menu projects start at ${formatUsd(PROJECTS.diy.launch)}, with ongoing plans from ${formatUsd(PLANS.menu.monthly)}/month. Choose to add the items yourself or have our team build the menu. The pricing page explains both.` },
+  { q: 'Can you build the menu for me?', a: 'Yes. Send us your menu and dish photos, and our team puts it together. We can also discuss which dishes you would like to prepare for 3D.' },
+  { q: 'What does it cost?', a: `Setup starts at ${formatUsd(PROJECTS.we.launch)}, paid once, with our team building your menu and adding your first ${PROJECTS.we.includedItems} dishes. Plans start at ${formatUsd(PLANS.menu.monthly)}/month from month two. The pricing page has every option.` },
 ]
 
 function FoodDrinkCombo({ className }: { className?: string }) {
@@ -212,13 +212,13 @@ function PricingTeaser() {
   return <section className="mk-pricing-teaser mk-section" aria-labelledby="pricing-title">
     <div className="mk-container grid gap-10 md:grid-cols-[1.15fr_1fr] md:items-center">
       <div><p className="mk-eyebrow mb-4">A place to start</p><h2 id="pricing-title" className="mk-h2 max-w-xl">A clear price.<br />Room to grow.</h2>
-        <p className="mk-lead mt-6 max-w-lg">A one-time project to get your menu ready, then a plan to keep it running. Choose how much you want our team to take care of.</p>
+        <p className="mk-lead mt-6 max-w-lg">A one-time setup where our team builds your menu, then a plan to keep it running.</p>
         <a href={PRICING_PATH} className="mk-button mk-button--outline mt-8">Explore pricing <ArrowRight className="size-4" aria-hidden="true" /></a>
       </div>
       <div className="mk-panel min-w-0 p-7 sm:p-10">
         <p className="mk-eyebrow mb-5">Menu project · from</p>
-        <p className="mk-price text-5xl sm:text-6xl">{formatUsd(PROJECTS.diy.launch)}</p>
-        <p className="mk-muted mt-3 text-base">One-time setup · you add the items</p>
+        <p className="mk-price text-5xl sm:text-6xl">{formatUsd(PROJECTS.we.launch)}</p>
+        <p className="mk-muted mt-3 text-base">One-time setup</p>
         <div className="mt-8 border-t border-[var(--mk-line)] pt-6"><p className="text-lg font-semibold">Then from {formatUsd(PLANS.menu.monthly)} / month</p><p className="mk-muted mt-2 text-sm leading-relaxed">The first month is included in the project. Full options, add-ons and terms are on our pricing page.</p></div>
       </div>
     </div>
