@@ -1,6 +1,6 @@
 # Xprout complete rename — verified status
 
-Owner instruction, 2026-11-13: rename the application everywhere, including the Dev checkout and GitHub. This supersedes the old plan's exemption for repository/internal naming. **Status: partial.** GitHub and local source naming are changed; the physical checkout move, Codex project binding, Drive runtime consolidation and live infrastructure migration are not complete.
+Owner instruction, 2026-11-13: rename the application everywhere, including the Dev checkout and GitHub. This supersedes the old plan's exemption for repository/internal naming. **Status: partial.** GitHub and local source naming are changed. On the Surface the checkout and Drive runtime folder are moved (see the 2026-11-15 update); the per-computer `.env.local` relink and Codex binding, and the live infrastructure migration, are not complete.
 
 ## Completed and verified
 
@@ -17,6 +17,26 @@ Owner instruction, 2026-11-13: rename the application everywhere, including the 
 | Shared registry | Local `skaleclub-apps` commit `a3439db` records current Xprout identity and pending operations; original migration history preserved |
 | Notion | Product container title is Xprout; Journal keeps its existing identity/history and XMM prefix |
 | Drive deliverables | `N:\My Drive\Xprout` remains canonical; child folder `Add Feature Xmartmenu` renamed to `Add Feature Xprout`; brand pack and color-review evidence remain there |
+
+## Update 2026-11-15 (Surface, `VANILDO-TABLET`)
+
+The local move is done on this computer: the checkout is `C:\Users\Vanildo\Dev\xprout` (same history, `dev`/`main` aligned with origin) and `C:\Users\Vanildo\Dev\xmartmenu` no longer exists. The Drive runtime folder was renamed to `My Drive\Dev\xprout` (holds `.env.local` and `ar-models`; `AR_MODELS_DIR` already points there), not consolidated into `My Drive\Xprout\Runtime` as the original helper planned. The section below is kept as history.
+
+| Item | State |
+| --- | --- |
+| Git remote | Fixed to `https://github.com/Skale-Club/xprout.git` (was still the redirecting old URL) |
+| Stale worktrees | Two worktrees registered under the old path pruned; four already-merged local branches deleted |
+| Dev `.env.local` values | `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_BASE_URL` switched from the old host to `https://xprout.app` (backup `.env.local.bak-xprout-20261115171521` in the Drive folder); R2 bucket names unchanged (compatibility) |
+| Claude Code memory | Copied from the old project folder to the `Dev\xprout` project folder |
+| `.env.local` symlink | **Pending owner:** still targeted `G:\My Drive\Dev\xmartmenu\.env.local` (broken) and was removed; creating the new link needs an elevated shell |
+| Codex project | **Pending owner:** `config.toml` and `.codex-global-state.json` still name `Dev\xmartmenu`; must be edited with Codex closed |
+| Shared registry | **Pending (desktop):** `skaleclub-apps/apps/xmartmenu.md` on origin still shows the old repository; the Xprout update `a3439db` was never pushed from the computer that made it |
+
+Both pending local items are handled by [relink-xprout-local.ps1](../../scripts/ops/relink-xprout-local.ps1) (Windows PowerShell 5.1, no network). It finds the Drive letter itself (`G:` here, `N:` on the desktop), refuses to replace a regular `.env.local`, skips the Codex step while Codex is running, and keeps timestamped backups. Its replacements were dry-run in memory on this computer (8 Codex state paths, 1 trust entry); the file writes themselves have not run yet. Run once per computer, in an elevated PowerShell with Codex closed:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Vanildo\Dev\xprout\scripts\ops\relink-xprout-local.ps1"
+```
 
 ## Pending local move and resolved Coolify access
 
