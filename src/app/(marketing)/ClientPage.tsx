@@ -154,15 +154,16 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
 
 function FeatureRibbon() {
   const items = [
-    { icon: BookOpen, label: 'Photo-led menus' },
-    { icon: Box, label: 'Interactive 3D' },
-    { icon: UtensilsCrossed, label: 'On your table' },
-    { icon: Palette, label: 'Your identity' },
+    { icon: BookOpen, label: 'Photo-led menus', body: 'Every dish leads with a real photo, not a wall of text.' },
+    { icon: Box, label: 'Interactive 3D', body: 'Guests turn selected dishes around right inside the menu.' },
+    { icon: UtensilsCrossed, label: 'On your table', body: 'On supported phones, the camera sets the dish on the table.' },
+    { icon: Palette, label: 'Your identity', body: 'Your logo and colors on every page of the menu.' },
   ]
   return <div className="mk-feature-ribbon">
-    <ul aria-label="Ways to experience your menu" className="mk-container grid grid-cols-2 gap-5 py-7 lg:grid-cols-4">
-      {items.map(({ icon: Icon, label }) => <li key={label} className="flex min-w-0 items-center justify-center gap-3 text-sm font-semibold sm:text-base">
-        <Icon className="size-5 shrink-0" aria-hidden="true" /><span>{label}</span>
+    <ul aria-label="Ways to experience your menu" className="mk-container">
+      {items.map(({ icon: Icon, label, body }) => <li key={label}>
+        <span className="mk-feature-ribbon-icon" aria-hidden="true"><Icon /></span>
+        <div className="min-w-0"><p className="mk-feature-ribbon-title">{label}</p><p className="mk-feature-ribbon-body">{body}</p></div>
       </li>)}
     </ul>
   </div>
@@ -242,7 +243,7 @@ function FAQ() {
 
 function FooterCTABand({ data, onLoginOpen }: { data?: CtaData | null; onLoginOpen: () => void }) {
   return <section className="mk-invitation mk-dark mk-section relative isolate" aria-labelledby="invitation-title">
-    {data?.bg_image_url ? <><DeliveryImage src={data.bg_image_url} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /><div className="absolute inset-0 bg-[#14271d]/90" aria-hidden="true" /></> : null}
+    {data?.bg_image_url ? <><DeliveryImage src={data.bg_image_url} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-platform-brand-accent/70 via-platform-brand-accent/45 to-platform-brand-accent/25" aria-hidden="true" /></> : null}
     <div className="mk-container relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
       <div><p className="mk-eyebrow mb-5">Your next chapter</p><h2 id="invitation-title" className="mk-h2 max-w-2xl whitespace-pre-line">{data?.heading ?? landingCopy.cta.heading}</h2>
         <p className="mk-lead mt-6 max-w-xl">{data?.text ?? landingCopy.cta.text}</p>

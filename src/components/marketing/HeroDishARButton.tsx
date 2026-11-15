@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Box } from 'lucide-react'
 import {
   AR_UNAVAILABLE_HASH, arFallbackUrl, arPlatform, currentArEnvironment,
-  openQuickLook, quickLookUrl, sceneViewerIntentUrl, type ArPlatform,
+  isComputer, openQuickLook, quickLookUrl, sceneViewerIntentUrl, type ArPlatform,
 } from '@/lib/ar/launch'
 
 const base = 'https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/ar/'
@@ -34,9 +34,14 @@ const platformSnapshot = () => {
   return mobile ? arPlatform(environment) : null
 }
 const serverPlatformSnapshot = () => null
+const computerSnapshot = () => isComputer(currentArEnvironment())
+// Hidden until hydration so computers never flash the phone-only control.
+const serverComputerSnapshot = () => true
 
 export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: HeroDishId; onExplore3D?: () => void }) {
   const platform = useSyncExternalStore(subscribePlatform, platformSnapshot, serverPlatformSnapshot)
+  // Computers have no AR camera, and the hero already turns the dish in 3D there.
+  const computer = useSyncExternalStore(subscribePlatform, computerSnapshot, serverComputerSnapshot)
   const [notice, setNotice] = useState('')
 
   useEffect(() => {
@@ -62,6 +67,8 @@ export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: Hero
     if (platform === 'quick-look') openQuickLook(href)
     else window.location.assign(href)
   }
+
+  if (computer) return null
 
   return <div className="mk-hero-ar">
     <button type="button" onClick={launch} className="mk-hero-ar-button min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
