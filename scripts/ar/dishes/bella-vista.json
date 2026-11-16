@@ -1,0 +1,33 @@
+{
+  "$comment": "AR dish sizes for Bella Vista Trattoria (menu-only demo). Same rules as aurora-kitchen-bar.json: sizes are the dish as it sits on the table, in cm; plate_cm = plate diameter drawn in Blender, food_cm = the food's largest side, plate_cm null = keep the serving vessel Rodin made (no drawn plate). Bella Vista serves on speckled cream stoneware, hence plate_glaze cream. Glass drinks have no 3D (owner decision 2026-11-15).",
+  "tenant_slug": "bella-vista",
+  "tenant_id": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+  "photos": "docs/media/menu-photo-batches/2026-11-15.json",
+  "plate_glaze": "cream",
+  "grade": { "contrast": 1.2, "saturation": 1.1, "sharpen": 1.0 },
+  "defaults": {
+    "main": { "plate_cm": 28, "food_ratio": 0.75 },
+    "starter": { "plate_cm": 23, "food_ratio": 0.75 },
+    "dessert": { "plate_cm": 21, "food_ratio": 0.5 }
+  },
+  "dishes": {
+    "arancini-siciliani": { "product": "Arancini Siciliani", "category": "starter", "food_cm": 17, "$comment": "three ~8 cm rice balls, one split open" },
+    "vitello-tonnato": { "product": "Vitello Tonnato", "category": "starter", "food_ratio": 0.8 },
+    "cacio-e-pepe": { "product": "Cacio e Pepe", "category": "main", "food_ratio": 0.55 },
+    "ossobuco-alla-milanese": { "product": "Ossobuco alla Milanese", "category": "main", "food_ratio": 0.75 },
+    "branzino-al-forno": { "product": "Branzino al Forno", "category": "main", "plate_cm": 30, "food_cm": 26, "$comment": "whole fish, ~26 cm" },
+    "cotoletta-alla-milanese": { "product": "Cotoletta alla Milanese", "category": "main", "plate_cm": 30, "food_ratio": 0.8 },
+    "affogato-al-caffe": { "product": "Affogato al Caffè", "category": "dessert", "plate_cm": null, "food_cm": 14, "$comment": "footed ceramic cup on its saucer, kept from the photo; the saucer is ~14 cm" },
+    "torta-della-nonna": { "product": "Torta della Nonna", "category": "dessert", "plate_cm": 24, "food_cm": 18, "$comment": "whole ~18 cm tart with one slice cut, as in the photo" },
+    "burrata-prosciutto": { "product": "Burrata & Prosciutto", "category": "starter", "plate_cm": 28, "food_ratio": 0.8 },
+    "calamari-fritti": { "product": "Calamari Fritti", "category": "starter", "plate_cm": 26, "food_ratio": 0.8, "$comment": "rings plus an aioli ramekin and lemon wedges" },
+    "cannoli-siciliani": { "product": "Cannoli Siciliani", "category": "dessert", "plate_cm": 22, "food_cm": 15, "$comment": "three ~13 cm cannoli" },
+    "panna-cotta": { "product": "Panna Cotta", "category": "dessert", "food_cm": 12, "$comment": "unmoulded panna cotta with berries around it" },
+    "bistecca-alla-fiorentina": { "product": "Bistecca alla Fiorentina", "category": "main", "plate_cm": 32, "food_cm": 28, "$comment": "sliced T-bone with roast potatoes" },
+    "parmigiana-di-melanzane": { "product": "Parmigiana di Melanzane", "category": "main", "plate_cm": 27, "food_cm": 16 },
+    "lobster-ravioli": { "product": "Lobster Ravioli", "category": "main", "plate_cm": 30, "food_cm": 24, "$comment": "Rodin drops the pasta bowl even when asked; ravioli in their sauce on the drawn plate" },
+    "penne-arrabbiata": { "product": "Penne Arrabbiata", "category": "main", "plate_cm": 27, "food_cm": 20, "$comment": "Rodin drops the pasta bowl; drawn plate instead" },
+    "spaghetti-carbonara": { "product": "Spaghetti Carbonara", "category": "main", "plate_cm": 27, "food_cm": 20, "$comment": "Rodin drops the pasta bowl; drawn plate instead" },
+    "tagliatelle-al-ragu": { "product": "Tagliatelle al Ragu", "category": "main", "plate_cm": 27, "food_cm": 20, "$comment": "Rodin drops the pasta bowl; drawn plate instead" }
+  }
+}

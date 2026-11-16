@@ -173,8 +173,11 @@ with Blender in the middle so anything can be fixed by hand:
    from `scripts/ar/dishes/<tenant>.json`. Standard sizes: main course on a
    30 cm plate, starter 23 cm, dessert 21 cm (food at its real portion),
    drinks by height; the owner changes any dish there. The first run scales
-   the food, draws the plate (lathed stoneware, foot ring, near-black glossy
-   speckled glaze; `--replace-plate` swaps an old one) and saves an editable
+   the food, draws the plate (lathed stoneware, foot ring, speckled glaze:
+   near-black glossy by default, or `"plate_glaze": "cream"` in the manifest
+   for Bella Vista's cream stoneware, `--plate-glaze` in Blender; a dish with
+   `"plate_cm": null` keeps the vessel Rodin made, e.g. a cup or bowl;
+   `--replace-plate` swaps an old one) and saves an editable
    `.blend`; later runs only resize that `.blend`, keeping manual edits.
    `--food-contrast/--food-saturation/--food-sharpen` grade the food texture,
    always from the original kept in the `.blend` (`<image>__orig`).

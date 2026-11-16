@@ -62,6 +62,9 @@ def parse_args():
     parser.add_argument('--fit-width-cm', type=float)
     parser.add_argument('--fit-height-cm', type=float)
     parser.add_argument('--replace-plate', action='store_true')
+    # dark: Aurora's near-black glossy glaze. cream: Bella Vista's speckled cream
+    # stoneware with a brown rim, matching its menu photos.
+    parser.add_argument('--plate-glaze', choices=sorted(GLAZES), default='dark')
     parser.add_argument('--food-contrast', type=float)    # e.g. 1.15; from the original texture each time
     parser.add_argument('--food-saturation', type=float)  # e.g. 1.10
     parser.add_argument('--food-sharpen', type=float)     # unsharp-mask amount, e.g. 0.8 (0 = off)
@@ -143,7 +146,7 @@ def import_and_normalise(args):
     size = hi - lo
     factor = (args.width_cm / 100.0) / max(size.x, size.y) if args.width_cm else (args.height_cm / 100.0) / size.z
     centre = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
-    lift = add_plate(args.plate_cm / 100.0) if args.plate_cm else 0.0
+    lift = add_plate(args.plate_cm / 100.0, args.plate_glaze) if args.plate_cm else 0.0
     for obj in food:
         for vertex in obj.data.vertices:
             vertex.co = (vertex.co - centre) * factor + Vector((0, 0, lift))
@@ -181,8 +184,19 @@ def plate_profile(radius):
     return top + lip_arc + under
 
 
-def plate_textures(size=1024, seed=7):
-    """Speckled dark stoneware glaze with a bronze rim, as base-colour and roughness images."""
+GLAZES = {
+    # Linear RGB. dark/light are the mottled glaze, edge the lip where it thins,
+    # speck the clay flecks with their density (share of pixels), rough the base gloss.
+    'dark': {'dark': (0.010, 0.010, 0.011), 'light': (0.022, 0.021, 0.021), 'edge': (0.060, 0.056, 0.052),
+             'speck': (0.20, 0.19, 0.17), 'speck_share': 0.0015, 'rough': 0.20},
+    'cream': {'dark': (0.62, 0.56, 0.47), 'light': (0.74, 0.69, 0.60), 'edge': (0.30, 0.20, 0.12),
+              'speck': (0.16, 0.10, 0.06), 'speck_share': 0.012, 'rough': 0.32},
+}
+
+
+def plate_textures(glaze='dark', size=1024, seed=7):
+    """Speckled stoneware glaze (GLAZES) with a thinner lip, as base-colour and roughness images."""
+    spec = GLAZES[glaze]
     import numpy as np
     rng = np.random.default_rng(seed)
 
@@ -199,14 +213,14 @@ def plate_textures(size=1024, seed=7):
     # never brown (a wide bronze band read as burnt on the phone).
     lip = np.clip((r - 0.955) / 0.04, 0, 1)
     lip = lip * lip * (3 - 2 * lip) * (0.7 + 0.3 * noise(40))
-    dark = np.array([0.010, 0.010, 0.011])      # near-black glaze: food reads against it
-    light = np.array([0.022, 0.021, 0.021])
-    edge = np.array([0.060, 0.056, 0.052])
+    dark = np.array(spec['dark'])
+    light = np.array(spec['light'])
+    edge = np.array(spec['edge'])
     colour = dark + (light - dark) * mottle[..., None]
     colour = colour + (edge - colour) * lip[..., None]
     specks = rng.random((size, size))
-    colour[specks > 0.9985] = [0.20, 0.19, 0.17]   # sparse pale flecks in the clay
-    rough = 0.20 + 0.10 * noise(24) + 0.20 * lip   # glossy glaze: highlights give depth
+    colour[specks > 1 - spec['speck_share']] = spec['speck']   # flecks in the clay
+    rough = spec['rough'] + 0.10 * noise(24) + 0.20 * lip   # glossy glaze: highlights give depth
 
     def image(name, rgb, non_colour):
         img = bpy.data.images.new(name, size, size, alpha=False, float_buffer=False)
@@ -222,7 +236,7 @@ def plate_textures(size=1024, seed=7):
     return image('plate_basecolor', colour, False), image('plate_roughness', np.dstack([rough] * 3), True)
 
 
-def add_plate(diameter):
+def add_plate(diameter, glaze='dark'):
     """A round stoneware plate (lathed profile, foot ring, speckled glaze); returns the food's resting height."""
     radius = diameter / 2
     profile = plate_profile(radius)
@@ -243,7 +257,7 @@ def add_plate(diameter):
     plate = bpy.data.objects.new(PLATE_NAME, mesh)
     bpy.context.scene.collection.objects.link(plate)
 
-    base_image, rough_image = plate_textures()
+    base_image, rough_image = plate_textures(glaze)
     material = bpy.data.materials.new('stoneware')
     material.use_nodes = True
     nodes, links = material.node_tree.nodes, material.node_tree.links
@@ -320,7 +334,7 @@ def grade_food(contrast=None, saturation=None, sharpen=None):
         image['grade'] = f'contrast {c}, saturation {s}, sharpen {k}'
 
 
-def replace_plate():
+def replace_plate(glaze='dark'):
     """Swaps the plate of an existing .blend for the current design, at the same diameter."""
     old = [obj for obj in mesh_objects() if obj.name.startswith(PLATE_NAME)]
     if not old:
@@ -334,7 +348,7 @@ def replace_plate():
             bpy.data.meshes.remove(mesh)
     for material in [m for m in bpy.data.materials if m.users == 0]:
         bpy.data.materials.remove(material)
-    add_plate(diameter)
+    add_plate(diameter, glaze)
 
 
 def enforce_limits(args):
@@ -414,7 +428,7 @@ def main():
             if obj.type in ('CAMERA', 'LIGHT'):
                 bpy.data.objects.remove(obj, do_unlink=True)
         if args.replace_plate:
-            replace_plate()
+            replace_plate(args.plate_glaze)
         if args.food_contrast or args.food_saturation or args.food_sharpen is not None:
             grade_food(args.food_contrast, args.food_saturation, args.food_sharpen)
         if args.fit_width_cm or args.fit_height_cm:
