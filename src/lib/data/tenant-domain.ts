@@ -40,9 +40,14 @@ export async function readHostTenantSlug(query: AdminMenuQuery, host: string, ba
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]'])
 
-/** Only the middleware's own loopback call: a proxied request carries x-forwarded-for and a public Host. */
+/** Next adds the socket's loopback address before the handler. Public proxy
+ * traffic has a non-loopback chain or Cloudflare provenance and is rejected. */
 export function isLoopbackCall(headers: Headers): boolean {
-  if (headers.get('x-forwarded-for') !== null) return false
+  if (headers.has('cf-ray') || headers.has('cf-connecting-ip')) return false
+  const forwarded = headers.get('x-forwarded-for')
+  if (forwarded !== null && !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(forwarded)) return false
   const host = (headers.get('host') ?? '').toLowerCase().replace(/:\d{1,5}$/, '')
+  const forwardedHost = headers.get('x-forwarded-host')?.toLowerCase().replace(/:\d{1,5}$/, '')
+  if (forwardedHost !== undefined && !LOOPBACK_HOSTS.has(forwardedHost)) return false
   return LOOPBACK_HOSTS.has(host)
 }
