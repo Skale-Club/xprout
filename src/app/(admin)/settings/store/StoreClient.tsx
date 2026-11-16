@@ -1,6 +1,6 @@
 'use client'
 
-import { BRAND_HOST } from '@/lib/brand'
+import { BRAND_HOST, BRAND_NAME } from '@/lib/brand'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { TenantSettings } from '@/types/database'
@@ -170,6 +170,9 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     latitude: settings?.latitude != null ? String(settings.latitude) : '',
     longitude: settings?.longitude != null ? String(settings.longitude) : '',
     price_range: settings?.price_range ?? '',
+    order_online_url: settings?.order_online_url ?? '',
+    reservation_url: settings?.reservation_url ?? '',
+    hide_platform_brand: settings?.hide_platform_brand === true,
     tip_percentage_1: settings?.tip_percentage_1 ?? 15,
     tip_percentage_2: settings?.tip_percentage_2 ?? 18,
     tip_percentage_3: settings?.tip_percentage_3 ?? 20,
@@ -387,6 +390,8 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
         postal_code: form.postal_code.trim() || null,
         country: form.country.trim() || null,
         price_range: form.price_range.trim() || null,
+        order_online_url: form.order_online_url.trim() || null,
+        reservation_url: form.reservation_url.trim() || null,
         latitude: parseCoord(form.latitude),
         longitude: parseCoord(form.longitude),
         business_hours: Object.keys(filteredHours).length > 0 ? filteredHours : null,
@@ -612,6 +617,41 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
                     className={cn(inputClassName, "pl-14")}
                   />
                 </div>
+              </div>
+              <div className="space-y-4 border-t border-zinc-100 pt-6">
+                <div>
+                  <h3 className="text-[14px] font-black text-zinc-950">Links</h3>
+                  <p className="text-[11px] text-zinc-400 mt-1">Buttons on your menu&apos;s &ldquo;Get in touch&rdquo; section. Use full https:// addresses; leave empty to hide.</p>
+                </div>
+                <div>
+                  <label className={labelClassName}>Order online link</label>
+                  <input
+                    type="url"
+                    value={form.order_online_url}
+                    onChange={e => setForm(f => ({ ...f, order_online_url: e.target.value }))}
+                    maxLength={500}
+                    placeholder="https://www.doordash.com/store/your-restaurant"
+                    className={inputClassName}
+                  />
+                  <p className="text-[11px] text-zinc-400 mt-1.5 ml-1">Shown only while guests cannot order from the menu itself.</p>
+                </div>
+                <div>
+                  <label className={labelClassName}>Reserve a table link</label>
+                  <input
+                    type="url"
+                    value={form.reservation_url}
+                    onChange={e => setForm(f => ({ ...f, reservation_url: e.target.value }))}
+                    maxLength={500}
+                    placeholder="https://www.opentable.com/r/your-restaurant"
+                    className={inputClassName}
+                  />
+                </div>
+                <ToggleRow
+                  title={`Hide "Powered by ${BRAND_NAME}"`}
+                  description="Removes the credit line at the bottom of your public menu."
+                  checked={form.hide_platform_brand}
+                  onChange={checked => setForm(f => ({ ...f, hide_platform_brand: checked }))}
+                />
               </div>
             </div>
           </div>
