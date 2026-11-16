@@ -47,6 +47,11 @@ export interface ModelViewerProps {
   className?: string
   /** Starting camera, e.g. "30deg 60deg auto" (from above, like a dish on a table). */
   cameraOrbit?: string
+  /**
+   * model-viewer's own AR button (default on). Off where the page offers the
+   * menu's ArButton instead, so a phone never shows two camera buttons.
+   */
+  ar?: boolean
 }
 
 type ModelViewerElement = HTMLElement & { canActivateAR?: boolean }
@@ -63,6 +68,7 @@ export default function ModelViewer({
   onError,
   className,
   cameraOrbit,
+  ar = true,
 }: ModelViewerProps) {
   const [libraryReady, setLibraryReady] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -120,10 +126,12 @@ export default function ModelViewer({
       ios-src={iosSrc ?? undefined}
       poster={poster ?? undefined}
       alt={alt}
-      ar
-      ar-modes="webxr scene-viewer quick-look"
-      ar-scale={realScale ? 'fixed' : 'auto'}
-      ar-placement="floor"
+      {...(ar ? {
+        ar: true,
+        'ar-modes': 'webxr scene-viewer quick-look',
+        'ar-scale': realScale ? 'fixed' as const : 'auto' as const,
+        'ar-placement': 'floor' as const,
+      } : {})}
       camera-controls
       camera-orbit={cameraOrbit}
       touch-action="pan-y"
@@ -139,7 +147,7 @@ export default function ModelViewer({
       style={{ backgroundColor: 'transparent' }}
     >
       {/* Shown by model-viewer only on devices that can open AR. */}
-      <button
+      {ar && <button
         type="button"
         slot="ar-button"
         onClick={() => callbacks.current.onArLaunch?.()}
@@ -147,7 +155,7 @@ export default function ModelViewer({
       >
         <Box className="size-4" aria-hidden />
         {arLabel}
-      </button>
+      </button>}
       {!loaded && (
         <div slot="progress-bar" className="absolute inset-x-0 top-0 h-1 bg-zinc-200">
           <div className="h-full bg-zinc-900 transition-[width] duration-200" style={{ width: `${Math.round(progress * 100)}%` }} />
