@@ -15,6 +15,8 @@ const slug = `seo-${token}`, host = `restaurant-${token}.example.org`, partnerHo
 const name = `SEO Restaurant ${token}`, partnerName = `Independent Brand ${token}`
 const partnerSlug = `partner-restaurant-${token}`, companySlug = `company-${token}`
 const publicDish = { id: productId, name: 'Tomato Soup' }
+const branch = { name: 'Riverside', slug: 'riverside', address: '42 Riverside Example Road', city: 'Example City', phone: '+1 212 555 0142' }
+const reviewUrl = `https://search.google.com/local/writereview?placeid=synthetic-${token}`
 const dish = dishSlug(publicDish)
 const head = (html: string) => html.match(/<head[^>]*>([\s\S]*?)<\/head>/i)?.[1] ?? html
 const canonical = (html: string) => (html.match(/<link\b[^>]*>/gi) ?? []).find(tag => /rel=["']canonical["']/i.test(tag))?.match(/href=["']([^"']*)/i)?.[1]
@@ -32,6 +34,7 @@ test.beforeAll(async () => {
   ].map(row => ({ business_kind: 'restaurant', custom_domain_verified: false, ...row }))))
   checked(await db().from('tenant_settings').insert({ tenant_id: tenantId, language: 'pt', currency: 'USD', visual_feed_enabled: false, menu_default_view: 'list',
     address: '10 Example Street', city: 'Example City', phone: '+1 212 555 0100', business_hours: { mon: '09:00-21:00' }, seo_noindex: false,
+    google_review_url: reviewUrl,
     orders_enabled: false, direct_orders_enabled: false, logo_url: '/brands/aurora-kitchen-bar/logo.webp' }))
   checked(await db().from('tenant_settings').insert([
     { tenant_id: partnerTenantId, language: 'fr', currency: 'EUR', seo_noindex: false, orders_enabled: false, direct_orders_enabled: false, visual_feed_enabled: false },
@@ -43,6 +46,9 @@ test.beforeAll(async () => {
     { id: privateMenuId, tenant_id: tenantId, name: 'Private menu', slug: 'members', language: 'pt', supported_languages: ['pt'], is_active: true, is_default: false, is_private: true },
     { id: partnerMenuId, tenant_id: partnerTenantId, name: 'Partner menu', slug: 'dinner', language: 'fr', supported_languages: ['fr'], is_active: true, is_default: true, is_private: false },
   ]))
+  // One branch keeps the root on its menu; all location facts are synthetic.
+  checked(await db().from('locations').insert({ tenant_id: tenantId, menu_id: menuId, ...branch, is_active: true,
+    business_hours: { mon: '10:00-20:00', tue: '10:00-20:00' }, region: 'NY', postal_code: '10001', country: 'US', latitude: 40.75, longitude: -73.99 }))
   checked(await db().from('products').insert([
     { id: productId, tenant_id: tenantId, menu_id: menuId, name: publicDish.name, description: 'Roasted tomatoes and basil.', price: 12.50, is_available: true, image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp' },
     { id: privateProductId, tenant_id: tenantId, menu_id: privateMenuId, name: `CONFIDENTIAL-DISH-${token}`, description: 'This content must never enter a public response.', price: 50, is_available: true, image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp' },
@@ -55,10 +61,11 @@ test.afterAll(async () => {
   checked(await db().from('brands').delete().eq('id', brandId))
 })
 
-test('raw tenant SSR has canonical identity, language, Restaurant data and crawlable dish links', async ({ request }) => {
+test('raw tenant SSR has canonical identity, language, Restaurant data and crawlable dish links', async ({ request }, testInfo) => {
   const response = await request.get('/', { headers: { host } })
   expect(response.status()).toBe(200)
   const html = await response.text()
+  await testInfo.attach('tenant-home-ssr.html', { body: Buffer.from(html), contentType: 'text/html' })
   expect(canonical(html)).toBe(`https://${host}`)
   expect(html).toMatch(/<html[^>]+lang=["']pt(?:-BR)?["']/i)
   expect(html).toContain(`${host}#restaurant`)
@@ -70,10 +77,11 @@ test('raw tenant SSR has canonical identity, language, Restaurant data and crawl
   expect(response.headers()['set-cookie']).toBeUndefined()
 })
 
-test('dish content is server rendered and private dishes never leak', async ({ request }) => {
+test('dish content is server rendered and private dishes never leak', async ({ request }, testInfo) => {
   const response = await request.get(`/dinner/${dish}`, { headers: { host } })
   expect(response.status()).toBe(200)
   const html = await response.text()
+  await testInfo.attach('tenant-dish-ssr.html', { body: Buffer.from(html), contentType: 'text/html' })
   expect(canonical(html)).toBe(`https://${host}/dinner/${dish}`)
   expect(html).toContain('Roasted tomatoes and basil.')
   expect(html).toMatch(/"@type"\s*:\s*"MenuItem"/)
@@ -85,6 +93,24 @@ test('dish content is server rendered and private dishes never leak', async ({ r
   expect(privateMenu.headers()['x-robots-tag']).toContain('noindex')
   expect(privateMenu.headers()['cache-control']).toContain('no-store')
   expect(await privateMenu.text()).not.toContain(`CONFIDENTIAL-DISH-${token}`)
+})
+
+test('public branch SSR exposes its canonical identity and stored local facts', async ({ request }, testInfo) => {
+  const response = await request.get(`/${branch.slug}`, { headers: { host } })
+  expect(response.status()).toBe(200)
+  const html = await response.text()
+  await testInfo.attach('tenant-branch-ssr.html', { body: Buffer.from(html), contentType: 'text/html' })
+  expect(canonical(html)).toBe(`https://${host}/${branch.slug}`)
+  expect(html).toContain(branch.address)
+  expect(html).toContain(branch.phone)
+  expect(html).toContain('10:00-20:00')
+  const structured = [...html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    .map(match => JSON.parse(match[1]) as Record<string, unknown>)
+  const restaurant = structured.find(item => item['@type'] === 'Restaurant' && item.url === `https://${host}/${branch.slug}`)
+  expect(restaurant).toMatchObject({ '@id': `https://${host}/${branch.slug}#restaurant`, name: branch.name,
+    telephone: branch.phone, address: { streetAddress: branch.address, addressLocality: branch.city },
+    geo: { latitude: 40.75, longitude: -73.99 }, parentOrganization: { '@id': `https://${host}#restaurant` } })
+  expect(restaurant?.openingHoursSpecification).toEqual(expect.arrayContaining([expect.objectContaining({ opens: '10:00', closes: '20:00' })]))
 })
 
 test('sitemaps exclude demos and private dishes while listing the eligible dish', async ({ request }) => {
@@ -163,7 +189,7 @@ test('partner tenant and company apex use their assigned host authority without 
   expect(body).not.toMatch(/"@type"\s*:\s*"Restaurant"/)
 })
 
-test('partner social image is an actually bounded PNG and icon retains partner identity', async ({ request }) => {
+test('partner social image is an actually bounded PNG and icon retains partner identity', async ({ request }, testInfo) => {
   const image = await request.get('/opengraph-image', { headers: { host: partnerHost } })
   expect(image.status()).toBe(200)
   expect(image.headers()['content-type']).toContain('image/png')
@@ -172,6 +198,8 @@ test('partner social image is an actually bounded PNG and icon retains partner i
   expect(bytes.readUInt32BE(16)).toBe(1200)
   expect(bytes.readUInt32BE(20)).toBe(630)
   expect(bytes.byteLength).toBeLessThanOrEqual(180 * 1024)
+  await testInfo.attach('partner-social.png', { body: bytes, contentType: 'image/png' })
+  await testInfo.attach('partner-social-measurements.json', { body: Buffer.from(JSON.stringify({ bytes: bytes.byteLength, width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20), contentType: image.headers()['content-type'] })), contentType: 'application/json' })
   const icon = await request.get('/icon.png', { headers: { host: partnerHost }, maxRedirects: 0 })
   expect([200, 307]).toContain(icon.status())
   if (icon.status() === 307) expect(icon.headers().location).toContain('/brands/aurora-kitchen-bar/logo.webp')
@@ -187,16 +215,26 @@ test('internal site lookup rejects public Host and forwarded loopback callers', 
   }
 })
 
-test('mobile and desktop menu/dish screenshots retain readable read-only layouts without overflow', async ({ page }, testInfo) => {
+test('mobile and desktop menu/branch/dish screenshots retain readable read-only layouts without overflow', async ({ page }, testInfo) => {
   for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     // Local paths intentionally avoid external DNS and custom browser Host overrides.
     await page.goto(`/${slug}`)
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Avaliar no Google', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Avaliar no Google', exact: true })).toHaveAttribute('href', reviewUrl)
     await expect(page.locator(`a[href$="/dinner/${dish}"]`).first()).toHaveAttribute('href', `https://${host}/dinner/${dish}`)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
     await expect(page.getByRole('button', { name: /add to cart|view cart|checkout|adicionar ao carrinho|finalizar pedido/i })).toHaveCount(0)
     await testInfo.attach(`menu-${width}.png`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+
+    await page.goto(`/${slug}/${branch.slug}`)
+    await expect(page.getByRole('heading', { name: `${name} – ${branch.name}, ${branch.city}`, exact: true })).toBeVisible()
+    await expect(page.getByText(branch.address, { exact: false }).first()).toBeVisible()
+    await expect(page.getByRole('link', { name: branch.phone, exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /add to cart|view cart|checkout|adicionar ao carrinho|finalizar pedido/i })).toHaveCount(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+    await testInfo.attach(`branch-${width}.png`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
 
     await page.goto(`/${slug}/dinner/${dish}`)
     await expect(page.getByRole('heading', { name: publicDish.name, exact: true })).toBeVisible()
