@@ -23,6 +23,8 @@ server validation or production evidence.
    another image derivative. No custom cache key or paid regex operator is used.
 3. A final rule bypasses cache for cookies, authorization/RSC/prefetch headers,
    private paths, methods other than GET/HEAD and queries except image queries.
+   Immutable `/_next/static/` assets retain normal origin/CDN caching; framework
+   data/control endpoints are excluded from the public HTML policy.
 
 Eligibility respects origin Cache-Control for both edge and browser TTL. The
 operator does not override private/no-store, Set-Cookie behavior or freshness

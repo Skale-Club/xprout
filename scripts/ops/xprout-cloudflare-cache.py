@@ -53,7 +53,7 @@ def desired_rules():
     private = '(' + ' or '.join(f'(http.request.uri.path eq "{path}" or starts_with(http.request.uri.path, "{path}/"))' for path in prefixes) + ')'
     nested = '(' + ' or '.join(f'(ends_with(http.request.uri.path, "/{part}") or http.request.uri.path contains "/{part}/")' for part in ['me', 'waiter', 'preview', 'staging']) + ')'
     image = '(http.request.uri.path eq "/_next/image")'
-    framework = '(starts_with(http.request.uri.path, "/_next/") and not ' + image + ')'
+    framework = '(starts_with(http.request.uri.path, "/_next/") and not starts_with(http.request.uri.path, "/_next/static/") and not ' + image + ')'
     clean = f'({methods} and http.cookie eq "" and not {sensitive})'
     origin = {'cache': True, 'edge_ttl': {'mode': 'respect_origin'}, 'browser_ttl': {'mode': 'respect_origin'}}
     return [
