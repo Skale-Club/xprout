@@ -22,6 +22,7 @@ import { recordTrustedOrderAnalyticsEvent } from '@/lib/analytics/server'
 import { captureSecurityEvent } from '@/lib/observability'
 import { log } from '@/lib/observability/log'
 import { paymentTransition, type PaymentSignal } from '@/lib/orders/status-machine'
+import { notifyOrderEmail } from '@/lib/orders/order-email-data'
 
 export interface IntentFacts {
   id: string
@@ -62,7 +63,18 @@ async function recordDivergence(
   log.warn('payments.divergence', { kind, order_id: order?.id, payment_intent_id: intent.id })
 }
 
+/** Applies the payment evidence; when it just confirmed the payment, the guest gets "order received". */
 export async function applyPaymentSignal(
+  supabase: SupabaseClient | undefined,
+  intent: IntentFacts,
+  signal: PaymentSignal,
+): Promise<PaymentSyncResult> {
+  const result = await applyPaymentSignalToOrder(supabase, intent, signal)
+  if (result.ok && result.changed && result.status === 'paid') await notifyOrderEmail(intent.metadata?.tenant_id, intent.metadata?.order_id, 'received')
+  return result
+}
+
+async function applyPaymentSignalToOrder(
   supabase: SupabaseClient | undefined,
   intent: IntentFacts,
   signal: PaymentSignal,

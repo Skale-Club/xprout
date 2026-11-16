@@ -16,7 +16,7 @@ export default async function OrdersPage() {
     const data = await readOwnedOrdersKdsPage({ tenantId, role: effective.role })
     if (!data.capabilities.kds) redirect('/dashboard')
     return <OrdersClient initialOrders={data.orders} tenantId={tenantId} amberThreshold={data.amberThreshold}
-      redThreshold={data.redThreshold} locations={data.locations} currency={data.currency} timeZone={data.timeZone} />
+      redThreshold={data.redThreshold} locations={data.locations} currency={data.currency} timeZone={data.timeZone} restaurantName={data.restaurantName} canExportContacts={effective.role !== 'store-staff'} />
   }
 
   const supabase = await createClient()
@@ -28,7 +28,7 @@ export default async function OrdersPage() {
   // Bound the KDS initial load to a recent window + hard cap (matches
   // /api/orders): the full history is unbounded and PostgREST truncates at 1000.
   const ordersCutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-  const [{ data: orders }, { data: settings }, { data: locations }] = await Promise.all([
+  const [{ data: orders }, { data: settings }, { data: locations }, { data: tenantRow }] = await Promise.all([
     supabase
       .from('orders')
       .select('*, order_items(*)')
@@ -47,6 +47,7 @@ export default async function OrdersPage() {
       .eq('tenant_id', tenantId)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
+    supabase.from('tenants').select('name').eq('id', tenantId).maybeSingle(),
   ])
 
   return (
@@ -57,6 +58,8 @@ export default async function OrdersPage() {
       redThreshold={settings?.red_threshold_minutes ?? 20}
       locations={locations ?? []}
       currency={settings?.currency ?? 'USD'}
+      restaurantName={tenantRow?.name ?? null}
+      canExportContacts={effective.role !== 'store-staff'}
       timeZone={schedulingTimeZone({ country: settings?.country, region: settings?.region, currency: settings?.currency })}
     />
   )

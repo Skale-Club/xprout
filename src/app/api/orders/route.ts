@@ -13,6 +13,9 @@ import { legacyRecordTaxPromo, legacyTaxPromo } from '@/lib/orders/tax-promo-leg
 import { TAX_PROMO_NOT_READY, normalizePromoCode, priceOrder, promoRejection, type TaxPromoState } from '@/lib/orders/tax-promo'
 import { legacyRecordScheduledFor, legacyScheduling } from '@/lib/orders/scheduled-orders-legacy'
 import { SCHEDULING_NOT_READY, resolveScheduledFor, type SchedulingState } from '@/lib/orders/scheduled-orders'
+import { hasContactValues, resolveContact } from '@/lib/orders/order-contact'
+import { legacyContactReady, legacyRecordContact } from '@/lib/orders/order-contact-legacy'
+import { notifyOrderEmail } from '@/lib/orders/order-email-data'
 import { createOrderSchema, describeInputError, orderFingerprint, parseIdempotencyKey, type OrderItemInput } from '@/lib/orders/order-input'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
@@ -133,8 +136,10 @@ async function handlePOST(request: Request) {
       return NextResponse.json({ error: describeInputError(parsed.error) }, { status: 400 })
     }
     const idempotencyKey = parseIdempotencyKey(request.headers.get('idempotency-key'))
+    // Set by checkout once the guest gave an email; used after the transaction commits.
+    const afterCommit: { email?: { tenantId: string; orderId: string; requiresPayment: boolean } } = {}
     const checkout = async (owned?: OwnedOrderRepository) => {
-      const { tenant_id, customer_name, customer_phone, items, order_type: rawOrderType, delivery_address: rawDeliveryAddress, delivery_street: rawDeliveryStreet, delivery_complement: rawDeliveryComplement, delivery_zipcode: rawDeliveryZipcode, delivery_city: rawDeliveryCity, delivery_notes: rawDeliveryNotes, location_id: rawLocationId, tip_cents: rawTipCents, menu_id: rawMenuId, promo_code: rawPromoCode, scheduled_for: rawScheduledFor, table_name: rawTableName, table_id: rawTableId, analytics_session_id: rawAnalyticsSessionId } = parsed.data
+      const { tenant_id, customer_name, customer_phone, items, order_type: rawOrderType, delivery_address: rawDeliveryAddress, delivery_street: rawDeliveryStreet, delivery_complement: rawDeliveryComplement, delivery_zipcode: rawDeliveryZipcode, delivery_city: rawDeliveryCity, delivery_notes: rawDeliveryNotes, location_id: rawLocationId, tip_cents: rawTipCents, menu_id: rawMenuId, promo_code: rawPromoCode, scheduled_for: rawScheduledFor, customer_email: rawCustomerEmail, customer_language: rawCustomerLanguage, marketing_sms_opt_in: rawSmsOptIn, marketing_email_opt_in: rawEmailOptIn, table_name: rawTableName, table_id: rawTableId, analytics_session_id: rawAnalyticsSessionId } = parsed.data
 
       const service = owned ? undefined : await createServiceClient()
 
@@ -561,6 +566,17 @@ async function handlePOST(request: Request) {
         }
       }
 
+      // Receipt email and marketing opt-ins, once the schema step ran (a guest-checkout feature).
+      const contact = resolveContact({ email: rawCustomerEmail, language: rawCustomerLanguage, phone: customer_phone, smsOptIn: rawSmsOptIn, emailOptIn: rawEmailOptIn })
+      if (!isStaffOrder && capabilities.guestOrdering && hasContactValues(contact) && !order.replayed) {
+        if (owned) { if (await owned.contactReady()) await owned.recordContact(order.id, contact) }
+        else if (await legacyContactReady(service!)) {
+          const { error: contactError } = await legacyRecordContact(service!, tenant_id, order.id, contact)
+          if (contactError) log.error('orders.contact_record_error', { err: contactError, order_id: order.id })
+        }
+        if (contact.email) afterCommit.email = { tenantId: tenant_id, orderId: order.id, requiresPayment }
+      }
+
       if (analyticsSessionId && !order.replayed) {
         if (owned) await owned.recordAnalytics(order.id, 'order_created')
         else await recordTrustedOrderAnalyticsEvent(order.id, 'order_created')
@@ -568,7 +584,10 @@ async function handlePOST(request: Request) {
 
       return NextResponse.json({ id: order.id, status: order.status, total: Number(order.total), order_type: order.order_type, requires_payment: requiresPayment })
     }
-    return ordersDataOwned() ? await withOwnedOrders(parsed.data.tenant_id, true, checkout) : await checkout()
+    const response = ordersDataOwned() ? await withOwnedOrders(parsed.data.tenant_id, true, checkout) : await checkout()
+    // "Order received" now only when nothing is left to pay; card orders send it when the payment is confirmed.
+    if (afterCommit.email && !afterCommit.email.requiresPayment && response.ok) await notifyOrderEmail(afterCommit.email.tenantId, afterCommit.email.orderId, 'received')
+    return response
   } catch (error) {
     if (error instanceof OwnedAuthenticationUnavailable) return NextResponse.json({ error: error.message },{ status: 503 })
     if (error instanceof OrderDataError) return NextResponse.json({ error: error.message }, { status: error.status })

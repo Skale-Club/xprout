@@ -4,6 +4,9 @@ import { resolveTenantCapabilities, type ServiceSettings } from '../service-mode
 import { resolveOptionSelection, type OptionSelectionState, type ServerOptionGroup } from '../menu/option-pricing'
 import { TAX_PROMO_NOT_READY, TAX_PROMO_READY_SQL, type PromoCodeRow, type TaxPromoState } from '../orders/tax-promo'
 import { SCHEDULING_NOT_READY, SCHEDULING_READY_SQL, schedulingTimeZone, type Hours, type SchedulingState } from '../orders/scheduled-orders'
+import { CONTACT_READY_SQL, buildOptedInContacts, type OptInOrderRow, type OrderContactValues } from '../orders/order-contact'
+import { EMAIL_COLUMN, EMAIL_STATUSES, buildEmailData } from '../orders/order-email-data'
+import type { OrderEmailData, OrderEmailKind } from '../orders/order-emails'
 import type { Order, OrderItem, UserRole } from '@/types/database'
 
 export type OrderQuery = (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>
@@ -25,6 +28,8 @@ export type KdsBootstrap = {
   currency: string
   /** The restaurant's time zone (from its profile), for scheduled orders; null when unknown. */
   timeZone: string | null
+  /** The restaurant's name, for the printed kitchen ticket. */
+  restaurantName: string | null
 }
 export class OrderDataError extends Error {
   constructor(public status: number, message: string) { super(message) }
@@ -123,8 +128,8 @@ export async function assertOrderRpcCompatibility(query: OrderQuery) {
 export class OwnedOrderRepository {
   constructor(private query: OrderQuery, readonly tenantId: string) { tenant(tenantId) }
   async tenantSettings() {
-    return ok(rows<{ id: string; is_active: boolean; tenant_settings: Settings | null }>(await this.query(`SELECT
-      jsonb_build_object('id',t.id,'is_active',t.is_active,'tenant_settings',CASE WHEN s.tenant_id IS NULL THEN NULL ELSE ${projected(SETTINGS_COLUMNS, 's')} END) AS row
+    return ok(rows<{ id: string; is_active: boolean; name?: string | null; tenant_settings: Settings | null }>(await this.query(`SELECT
+      jsonb_build_object('id',t.id,'is_active',t.is_active,'name',t.name,'tenant_settings',CASE WHEN s.tenant_id IS NULL THEN NULL ELSE ${projected(SETTINGS_COLUMNS, 's')} END) AS row
       FROM public.tenants t LEFT JOIN public.tenant_settings s ON s.tenant_id=t.id WHERE t.id=$1 AND t.is_active=true LIMIT 1`, [this.tenantId]), 1)[0] ?? null)
   }
   async locations() {
@@ -148,6 +153,7 @@ export class OwnedOrderRepository {
       redThreshold: threshold(settings?.red_threshold_minutes, 20),
       currency: typeof settings?.currency === 'string' ? settings.currency : 'USD',
       timeZone: schedulingTimeZone({ country: settings?.country, region: settings?.region, currency: settings?.currency }),
+      restaurantName: typeof tenant.name === 'string' ? tenant.name : null,
     }
   }
   async capabilities(settings?: Settings | null) {
@@ -289,6 +295,56 @@ export class OwnedOrderRepository {
     if (!UUID.test(orderId) || !Number.isFinite(Date.parse(scheduledFor))) throw new OrderDataError(400, 'Invalid order')
     const updated = await this.query('UPDATE public.orders SET scheduled_for=$3::timestamptz WHERE tenant_id=$1 AND id=$2 RETURNING id', [this.tenantId, orderId, scheduledFor])
     if (updated.rows.length !== 1) throw new OrderDataError(503, 'Order creation result is unavailable')
+  }
+  /** Whether the order-contact schema step ran; until it did, no email or opt-in is stored or sent. */
+  async contactReady() {
+    return (await this.query(CONTACT_READY_SQL)).rows[0]?.ready === true
+  }
+  /** Stores the receipt email, language and opt-ins on the order just created, in the same transaction. */
+  async recordContact(orderId: string, values: OrderContactValues) {
+    if (!UUID.test(orderId)) throw new OrderDataError(400, 'Invalid order')
+    const updated = await this.query(`UPDATE public.orders SET customer_email=$3,customer_language=$4,marketing_sms_opt_in=$5,marketing_email_opt_in=$6
+      WHERE tenant_id=$1 AND id=$2 RETURNING id`, [this.tenantId, orderId, values.email, values.language, values.smsOptIn, values.emailOptIn])
+    if (updated.rows.length !== 1) throw new OrderDataError(503, 'Order creation result is unavailable')
+  }
+  /**
+   * Claims the order's email stamp (conditional UPDATE: once per order and kind) and
+   * returns what to send. Null when the schema is not applied, the restaurant does not
+   * take guest orders, the order has no email, was already claimed or is not in a
+   * status where this email makes sense.
+   */
+  async claimEmail(orderId: string, kind: OrderEmailKind): Promise<OrderEmailData | null> {
+    if (!UUID.test(orderId) || !(kind in EMAIL_COLUMN)) return null
+    if (!(await this.contactReady())) return null
+    if (!(await this.capabilities()).guestOrdering) return null
+    const column = EMAIL_COLUMN[kind]
+    const claimed = await this.query(`UPDATE public.orders SET ${column}=now()
+      WHERE tenant_id=$1 AND id=$2 AND ${column} IS NULL AND customer_email IS NOT NULL AND status=ANY($3::text[]) RETURNING id`,
+    [this.tenantId, orderId, [...EMAIL_STATUSES[kind]]])
+    if (claimed.rows.length !== 1) return null
+    const columns = 'id customer_email customer_language order_type subtotal total currency delivery_fee_cents tip_cents delivery_address'
+      + ((await this.taxPromoReady()) ? TAX_PROMO_ORDER_COLUMNS : '') + ((await this.schedulingReady()) ? SCHEDULED_ORDER_COLUMNS : '')
+    const order = rows<Record<string, unknown>>(await this.query(`SELECT ${projected(columns, 'o')} AS row FROM public.orders o WHERE o.tenant_id=$1 AND o.id=$2 LIMIT 2`, [this.tenantId, orderId]), 1)[0]
+    if (!order) return null
+    const items = rows<Record<string, unknown>>(await this.query(`SELECT ${projected('product_name quantity unit_price selected_options notes ingredient_modifications', 'oi')} AS row
+      FROM public.order_items oi WHERE oi.order_id=$1 ORDER BY oi.id LIMIT 201`, [orderId]), 201)
+    const settings = rows<Record<string, unknown>>(await this.query(`SELECT ${projected('logo_url primary_color phone address city region postal_code country currency pickup_eta_minutes', 's')} AS row
+      FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2`, [this.tenantId]), 1)[0] ?? null
+    const tenant = (await this.query('SELECT name FROM public.tenants WHERE id=$1 LIMIT 1', [this.tenantId])).rows[0]
+    return buildEmailData({ order, items: items.slice(0, 200), settings, tenantName: typeof tenant?.name === 'string' ? tenant.name : null })
+  }
+  /** Gives the claim back after a failed send, so a later retry can still send it. */
+  async releaseEmail(orderId: string, kind: OrderEmailKind) {
+    if (!UUID.test(orderId) || !(kind in EMAIL_COLUMN)) return
+    await this.query(`UPDATE public.orders SET ${EMAIL_COLUMN[kind]}=NULL WHERE tenant_id=$1 AND id=$2`, [this.tenantId, orderId])
+  }
+  /** Distinct opted-in contacts of this restaurant only (empty until the schema step ran). */
+  async optedInContacts(context: OrderContext) {
+    staff(context, this.tenantId)
+    if (!(await this.contactReady())) return []
+    const found = rows<OptInOrderRow>(await this.query(`SELECT ${projected('tenant_id customer_name customer_phone customer_email marketing_sms_opt_in marketing_email_opt_in created_at', 'o')} AS row
+      FROM public.orders o WHERE o.tenant_id=$1 AND (o.marketing_sms_opt_in OR o.marketing_email_opt_in) ORDER BY o.created_at DESC,o.id DESC LIMIT 5000`, [this.tenantId]), 5000)
+    return buildOptedInContacts(found, this.tenantId)
   }
   async list(context: OrderContext, cutoff: string) {
     staff(context, this.tenantId)
