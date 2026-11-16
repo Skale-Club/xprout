@@ -248,7 +248,7 @@ test('customer panel claims only anonymous exact-current-phone rows in the selec
     CREATE TABLE public.app_accounts(id uuid PRIMARY KEY,disabled_at timestamptz);
     CREATE TABLE public.profiles(id uuid PRIMARY KEY REFERENCES public.app_accounts(id),role text,must_change_password boolean);
     ALTER TABLE public.orders ADD CONSTRAINT fixture_customer_fk FOREIGN KEY(customer_id) REFERENCES public.app_accounts(id);
-    ALTER TABLE public.tenants ADD COLUMN slug text,ADD COLUMN name text;
+    ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS slug text,ADD COLUMN IF NOT EXISTS name text;
     ALTER TABLE public.tenant_settings ADD COLUMN primary_color text,ADD COLUMN accent_color text,ADD COLUMN address text,ADD COLUMN phone text,ADD COLUMN logo_url text`)
   for(const id of [customerUid,foreignUid,googleUid]){await admin.query('INSERT INTO public.app_accounts VALUES($1,NULL)',[id]);await admin.query("INSERT INTO public.profiles VALUES($1,'customer',false)",[id])}
   await admin.query("UPDATE public.tenants SET slug=CASE WHEN id=$1 THEN 'customer-fixture' ELSE 'foreign-fixture' END,name='Fixture'",[a])

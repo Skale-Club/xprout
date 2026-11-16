@@ -66,7 +66,7 @@ describe('opted-in contacts', () => {
 
 describe('schema not applied yet', () => {
   const owned = (ready: boolean, extra: (text: string) => unknown[] = () => []) => {
-    const query = vi.fn(async (text: string) => {
+    const query = vi.fn(async (text: string, _values?: unknown[]) => {
       if (text.includes('information_schema.columns')) return { rows: [{ ready }] }
       return { rows: extra(text) as Record<string, unknown>[] }
     })
@@ -108,14 +108,14 @@ describe('GET /api/admin/orders/contacts-export', () => {
     vi.doMock('@/lib/supabase/server', () => ({ createServiceClient: async () => ({ from: () => builder }) }))
   })
   it('blocks staff and anonymous callers', async () => {
-    const { GET } = await import('@/app/api/admin/orders/contacts-export/route')
+    const GET = (await import('@/app/api/admin/orders/contacts-export/route')).GET as unknown as () => Promise<Response>
     effective.mockResolvedValue(null)
     expect((await GET()).status).toBe(401)
     effective.mockResolvedValue({ tenantId: TENANT, role: 'store-staff' })
     expect((await GET()).status).toBe(403)
   })
   it('serves only the session tenant', async () => {
-    const { GET } = await import('@/app/api/admin/orders/contacts-export/route')
+    const GET = (await import('@/app/api/admin/orders/contacts-export/route')).GET as unknown as () => Promise<Response>
     effective.mockResolvedValue({ tenantId: TENANT, role: 'store-admin' })
     const response = await GET()
     expect(response.status).toBe(200)
