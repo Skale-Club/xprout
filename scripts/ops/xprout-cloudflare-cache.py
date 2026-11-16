@@ -55,7 +55,7 @@ def desired_rules():
     image = '(http.request.uri.path eq "/_next/image")'
     framework = '(starts_with(http.request.uri.path, "/_next/") and not starts_with(http.request.uri.path, "/_next/static/") and not ' + image + ')'
     clean = f'({methods} and http.cookie eq "" and not {sensitive})'
-    origin = {'cache': True, 'edge_ttl': {'mode': 'respect_origin'}, 'browser_ttl': {'mode': 'respect_origin'}}
+    origin = {'cache': True, 'edge_ttl': {'mode': 'bypass_by_default'}, 'browser_ttl': {'mode': 'respect_origin'}}
     return [
         {'ref': REFS[0], 'description': 'Xprout anonymous pretty HTML: honor origin policy', 'enabled': True,
          'action': 'set_cache_settings', 'action_parameters': origin,

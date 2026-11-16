@@ -134,7 +134,7 @@ class CacheOperatorTests(unittest.TestCase):
 
     def test_final_bypass_preserves_image_query_keys_and_origin_privacy(self):
         html, image, bypass = ops.desired_rules()
-        self.assertEqual(html['action_parameters']['edge_ttl'], {'mode': 'respect_origin'})
+        self.assertEqual(html['action_parameters']['edge_ttl'], {'mode': 'bypass_by_default'})
         self.assertEqual(image['action_parameters']['browser_ttl'], {'mode': 'respect_origin'})
         self.assertNotIn('cache_key', image['action_parameters'])
         self.assertEqual(image['action_parameters']['vary'], {'default': {'action': 'passthrough'}})

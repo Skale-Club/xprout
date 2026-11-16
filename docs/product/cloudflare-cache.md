@@ -27,6 +27,8 @@ server validation or production evidence.
    data/control endpoints are excluded from the public HTML policy.
 
 Eligibility respects origin Cache-Control for both edge and browser TTL. The
+edge API mode is `bypass_by_default`: absent origin freshness must not silently
+fall back to a Cloudflare status-code TTL. Browser TTL uses `respect_origin`.
 operator does not override private/no-store, Set-Cookie behavior or freshness
 with an unconditional TTL. Anonymous HTML's application policy is 60 seconds
 plus 60 seconds stale-while-revalidate; private responses are no-store. Media
