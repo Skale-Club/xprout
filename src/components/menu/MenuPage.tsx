@@ -15,7 +15,7 @@ import { type CartItem, type CartAddedVia, type CartEditorState, buildCartKey, g
 import { arOrderSummary, dishQuantity, lineToDecrement } from './ar-cart'
 import { getGuestCopy } from './guest-copy'
 import WaiterCallButtons from './WaiterCallButtons'
-import { fill, formatMoney, formatWeekday, getMenuCopy, localeFor, matchDeviceLanguage } from './menu-i18n'
+import { fill, formatMoney, translateTag, formatWeekday, getMenuCopy, localeFor, matchDeviceLanguage } from './menu-i18n'
 import { computeOpenState, resolveTimeZone } from '@/lib/chat-context'
 import NoticePill from './NoticePill'
 import { NO_CAPABILITIES, type TenantCapabilities } from '@/lib/service-modes'
@@ -53,7 +53,7 @@ import {
 } from './menu-session'
 import BottomSheet from '@/components/ui/BottomSheet'
 import LanguagePicker from './LanguagePicker'
-import { dishFeature } from '@/lib/menu/dish-tags'
+import { dishFeature, dishTagOptions, filterByDishTags } from '@/lib/menu/dish-tags'
 import DishFeaturePill from './DishFeaturePill'
 import { ui } from './menu-ui'
 import { buildCartSuggestions, canQuickAdd } from './upsell'
@@ -180,6 +180,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   // A table link means the guest is eating here: the order goes to that table.
   const defaultOrderType: string = defaultOrderTypeFor(capabilities, atTable)
   const [search, setSearch] = useState('')
+  // Client-side diet filter: the tags the guest switched on (AND).
+  const [dietFilter, setDietFilter] = useState<string[]>([])
   // Tabs scroll to a section instead of filtering; the list is never narrowed to one category.
   const activeCategory: string | null = null
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
@@ -320,7 +322,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     }
   }, [activeMenuView])
 
-  const filtered = products.filter(p => {
+  const dietOptions = useMemo(() => dishTagOptions(products), [products])
+  const narrowed = search !== '' || dietFilter.length > 0
+  const filtered = filterByDishTags(products, dietFilter).filter(p => {
     const matchSearch = search === '' ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.description ?? '').toLowerCase().includes(search.toLowerCase())
@@ -760,7 +764,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   // The current tab is the last section whose top has passed under the tab
   // bar — computed from the scroll position, so jumps and fast flicks agree.
   useEffect(() => {
-    if (search) {
+    if (narrowed) {
       setVisibleCategory(null)
       return
     }
@@ -793,7 +797,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
     }
-  }, [search, groupedByCategory.length, uncategorized.length])
+  }, [narrowed, groupedByCategory.length, uncategorized.length])
 
   useEffect(() => {
     if (!visibleCategory) return
@@ -971,7 +975,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     .filter((part): part is string => !!part && !!part.trim())
 
   const tabs: Array<{ id: string; label: string }> = [
-    ...(featured.length > 0 && !search ? [{ id: FEATURED_TAB, label: copy.featured }] : []),
+    ...(featured.length > 0 && !narrowed ? [{ id: FEATURED_TAB, label: copy.featured }] : []),
     ...groupedByCategory.map(({ category }) => ({ id: category.id, label: category.name })),
     ...(uncategorized.length > 0 ? [{ id: OTHER_TAB, label: copy.other }] : []),
   ]
@@ -1114,11 +1118,35 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
             </button>
             <GuestAccountButton slug={tenant.slug} primaryColor={primaryColor} copy={copy} lang={selectedLanguage} locale={localeFor(selectedLanguage)} phoneContext={{ country: settings?.country, currency }} bannerUrl={settings?.banner_url} logoUrl={settings?.logo_url} restaurantName={tenant.name} />
           </div>
+          {dietOptions.length > 0 && (
+            <div role="group" aria-label={copy.dietFilter} className="scrollbar-hide mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-4 pb-3 sm:px-8">
+              {dietOptions.map(tag => {
+                const on = dietFilter.includes(tag)
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setDietFilter(cur => (cur.includes(tag) ? cur.filter(t => t !== tag) : [...cur, tag]))}
+                    className={`h-8 shrink-0 whitespace-nowrap rounded-full border px-3 text-[13px] font-medium transition-colors ${on ? 'text-white' : 'border-zinc-300 bg-white/70 text-zinc-700 hover:bg-zinc-100'}`}
+                    style={on ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
+                  >
+                    {translateTag(tag, selectedLanguage)}
+                  </button>
+                )
+              })}
+              {dietFilter.length > 0 && (
+                <button type="button" onClick={() => setDietFilter([])} className="h-8 shrink-0 whitespace-nowrap rounded-full px-2 text-[13px] font-medium text-zinc-600 underline-offset-2 hover:underline">
+                  {copy.clearFilters}
+                </button>
+              )}
+            </div>
+          )}
         </nav>
       )}
 
       {/* Featured: a quiet row you swipe yourself */}
-      {activeMenuView === 'list' && featured.length > 0 && !search && (
+      {activeMenuView === 'list' && featured.length > 0 && !narrowed && (
         <section
           ref={el => { categoryRefs.current[FEATURED_TAB] = el }}
           data-category-id={FEATURED_TAB}
