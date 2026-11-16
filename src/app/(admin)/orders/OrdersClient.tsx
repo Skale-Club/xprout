@@ -105,6 +105,8 @@ interface OrdersClientProps {
   timeZone?: string | null
   /** The restaurant's name, printed on the kitchen ticket. */
   restaurantName?: string | null
+  /** Owners and admins (not staff) may download the opted-in marketing contacts. */
+  canExportContacts?: boolean
 }
 
 function OrderCard({
@@ -275,7 +277,7 @@ function OrderCard({
   )
 }
 
-export default function OrdersClient({ initialOrders, tenantId, amberThreshold, redThreshold, locations = [], currency = 'USD', timeZone = null, restaurantName = null }: OrdersClientProps) {
+export default function OrdersClient({ initialOrders, tenantId, amberThreshold, redThreshold, locations = [], currency = 'USD', timeZone = null, restaurantName = null, canExportContacts = false }: OrdersClientProps) {
   // Render money in the tenant's configured currency (the KDS previously
   // hardcoded "R$" regardless of currency).
   const fmtMoney = (value: number) => {
@@ -475,6 +477,14 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
           </div>
         </div>
       </div>
+
+      {canExportContacts && (
+        <div className="flex justify-end">
+          <a href="/api/admin/orders/contacts-export" download className="text-[10px] font-black uppercase tracking-widest text-zinc-500 underline-offset-4 hover:text-zinc-950 hover:underline">
+            Download opted-in contacts (CSV)
+          </a>
+        </div>
+      )}
 
       {/* Filter Chips */}
       <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar">

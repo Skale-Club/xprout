@@ -16,7 +16,7 @@ export default async function OrdersPage() {
     const data = await readOwnedOrdersKdsPage({ tenantId, role: effective.role })
     if (!data.capabilities.kds) redirect('/dashboard')
     return <OrdersClient initialOrders={data.orders} tenantId={tenantId} amberThreshold={data.amberThreshold}
-      redThreshold={data.redThreshold} locations={data.locations} currency={data.currency} timeZone={data.timeZone} restaurantName={data.restaurantName} />
+      redThreshold={data.redThreshold} locations={data.locations} currency={data.currency} timeZone={data.timeZone} restaurantName={data.restaurantName} canExportContacts={effective.role !== 'store-staff'} />
   }
 
   const supabase = await createClient()
@@ -59,6 +59,7 @@ export default async function OrdersPage() {
       locations={locations ?? []}
       currency={settings?.currency ?? 'USD'}
       restaurantName={tenantRow?.name ?? null}
+      canExportContacts={effective.role !== 'store-staff'}
       timeZone={schedulingTimeZone({ country: settings?.country, region: settings?.region, currency: settings?.currency })}
     />
   )
