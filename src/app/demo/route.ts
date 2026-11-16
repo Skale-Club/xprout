@@ -15,13 +15,18 @@ export const dynamic = 'force-dynamic'
 
 const DEMO_SLUG = 'bella-vista'
 const DEMO_EMAIL = process.env.DEMO_OWNER_EMAIL || 'demo-owner@xmartmenu.local'
+// Public showcase menu (full guest flow and 3D dishes) used when the admin demo
+// cannot run. Links to /demo (blog CTAs, old emails) must never land on an error.
+const PUBLIC_DEMO_SLUG = 'aurora'
 
-const unavailable = () => NextResponse.json({ error: 'The demo is temporarily unavailable' },
-  { status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '3600' } })
+const publicDemo = (origin: string) => NextResponse.redirect(`${origin}/${PUBLIC_DEMO_SLUG}`, {
+  status: 307, headers: { 'Cache-Control': 'no-store' },
+})
 
 export async function GET(request: Request) {
-  // The demo creates and signs in a Supabase Auth user, which owned mode never does.
-  if (ownedModeActive()) return unavailable()
+  // The admin demo creates and signs in a Supabase Auth user, which owned mode
+  // never does: send the visitor to the public showcase menu instead.
+  if (ownedModeActive()) return publicDemo(getRequestOrigin(request))
   const DEMO_PASSWORD = demoPassword()
   const origin = getRequestOrigin(request)
   const service = createServiceClient()

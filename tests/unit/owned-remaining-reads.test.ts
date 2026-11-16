@@ -201,7 +201,7 @@ describe('public SEO reads', () => {
 })
 
 describe('legacy-only operations are closed in owned mode', () => {
-  it('demo has no fixed password: random per hit unless pinned, and 503 only in owned mode', async () => {
+  it('demo has no fixed password: random per hit unless pinned, and redirects to the public showcase in owned mode', async () => {
     expect(read('src/app/demo/route.ts')).not.toContain('XmartDemo2026')
     expect(read('.env.example')).not.toContain('XmartDemo2026')
     const { GET } = await import('@/app/demo/route')
@@ -212,7 +212,9 @@ describe('legacy-only operations are closed in owned mode', () => {
     expect(demoPassword({ DEMO_OWNER_PASSWORD: 'short' })).not.toBe('short')
     expect(demoPassword({ DEMO_OWNER_PASSWORD: 'pinned-by-operator' })).toBe('pinned-by-operator')
     vi.stubEnv('OWNED_PUBLIC_MENU_ENABLED', 'true')
-    expect((await GET(new Request('http://localhost/demo'))).status).toBe(503)
+    const res = await GET(new Request('http://localhost/demo'))
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toMatch(/\/aurora$/)
   }, 30_000)
   it('migrate-webp is blocked before any credential check', async () => {
     vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', 'true')
