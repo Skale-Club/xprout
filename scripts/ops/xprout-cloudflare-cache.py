@@ -61,7 +61,7 @@ def desired_rules():
          'action': 'set_cache_settings', 'action_parameters': origin,
          'expression': f'{scope} and {clean} and http.request.uri.query eq "" and not {private} and not {nested} and not {framework} and not (http.request.uri.path contains ".")'},
         {'ref': REFS[1], 'description': 'Xprout Next image: preserve complete default query key', 'enabled': True,
-         'action': 'set_cache_settings', 'action_parameters': origin.copy(), 'expression': f'{scope} and {image} and {clean}'},
+         'action': 'set_cache_settings', 'action_parameters': {**origin, 'vary': {'default': {'action': 'passthrough'}}}, 'expression': f'{scope} and {image} and {clean}'},
         {'ref': REFS[2], 'description': 'Xprout final private/session/RSC/query bypass', 'enabled': True,
          'action': 'set_cache_settings', 'action_parameters': {'cache': False},
          'expression': f'{scope} and (not {methods} or http.cookie ne "" or {sensitive} or {private} or {nested} or {framework} or (http.request.uri.query ne "" and not {image}))'},
@@ -77,6 +77,9 @@ def clean_rule(rule):
 
 
 def candidate(previous):
+    managed_names = {rule['description'] for rule in desired_rules()}
+    if any(rule.get('description') in managed_names and rule.get('ref') not in REFS for rule in (previous or {}).get('rules', [])):
+        raise Refused('Existing dashboard rules require explicit reviewed adoption; refusing duplicate rules')
     body = writable(previous) if previous else {'name': 'Xprout cache settings', 'kind': 'zone', 'phase': PHASE}
     body['rules'] = [clean_rule(rule) for rule in (previous or {}).get('rules', []) if rule.get('ref') not in REFS] + desired_rules()
     return body

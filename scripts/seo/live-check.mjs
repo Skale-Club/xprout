@@ -9,6 +9,7 @@ for (let i = 0; i < args.length; i++) {
   else if (key === '--tenant') options.tenants.push(...args[++i].split(','))
   else if (key === '--expect-demos-noindex') options.demos = true
   else if (key === '--preview') options.preview = true
+  else if (key === '--expect-edge-cache') options.edgeCache = true
   else if (key === '--json') options.json = args[++i]
   else throw new Error(`Unknown option: ${key}`)
 }
@@ -48,6 +49,11 @@ function inspectPage(label, page, expectedRoot = false, demo = false) {
 }
 const home = await get('/')
 inspectPage('home', home, true)
+if (options.edgeCache) {
+  if (preview) throw new Error('Edge cache proof requires the canonical public host')
+  const repeated = await get('/')
+  check('home: repeated anonymous edge HIT', repeated.headers.get('cf-cache-status')?.toUpperCase() === 'HIT', repeated.headers.get('cf-cache-status') ?? 'missing')
+}
 const sitemap = await get('/sitemap.xml'), robots = await get('/robots.txt')
 const publicHost = !preview && origin === canonicalOrigin
 check('robots reachable', robots.status === 200)
@@ -68,18 +74,29 @@ for (const slug of [...new Set(options.tenants)].slice(0, 20)) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error('Invalid tenant slug')
   const page = await get(`/${slug}`), demo = options.demos && ['aurora', 'bella-vista'].includes(slug)
   inspectPage(slug, page, false, demo)
+  if (options.edgeCache) {
+    const repeated = await get(`/${slug}`)
+    check(`${slug}: repeated anonymous edge HIT`, repeated.headers.get('cf-cache-status')?.toUpperCase() === 'HIT', repeated.headers.get('cf-cache-status') ?? 'missing')
+  }
   const map = await get(`/${slug}/sitemap.xml`)
   check(`${slug}: sitemap policy`, demo || preview || origin !== canonicalOrigin ? map.status === 404 : [200, 404].includes(map.status), String(map.status))
 }
 for (const [label, path, headers] of [
-  ['cookie', '/', { Cookie: 'seo-live-check=1' }], ['query', '/?table=seo-live-check', {}],
+  ['cookie first visitor', '/', { Cookie: 'seo-live-check=visitor-one' }],
+  ['cookie second visitor', '/', { Cookie: 'seo-live-check=visitor-two' }],
+  ['authorization', '/', { Authorization: 'Bearer seo-live-check-invalid' }],
+  ['table query', '/?table=seo-live-check', {}], ['language query', '/?lang=pt', {}], ['view query', '/?view=feed', {}],
   ['RSC', '/', { RSC: '1', 'Next-Router-Prefetch': '1' }],
 ]) {
   const page = await get(path, headers)
   const cache = `${page.headers.get('cache-control') ?? ''} ${page.headers.get('cdn-cache-control') ?? ''}`
   const cf = page.headers.get('cf-cache-status') ?? ''
   check(`${label}: no shared cache hit`, !['HIT', 'STALE', 'UPDATING', 'REVALIDATED'].includes(cf.toUpperCase()), cf || 'no CDN hit header')
-  check(`${label}: response bypass policy`, /private|no-store|max-age=0/i.test(cache), cache || 'missing cache policy')
+  check(`${label}: response bypass policy`, /private/i.test(cache) && /no-store/i.test(cache), cache || 'missing cache policy')
+  if (label.startsWith('cookie')) {
+    check(`${label}: isolated public identity`, canonical(page.text) === canonical(home.text)
+      && !/seo-live-check=visitor-(?:one|two)/.test(page.text))
+  }
 }
 const report = { origin, canonicalOrigin, preview: Boolean(preview), checkedAt: new Date().toISOString(), passed: checks.filter(item => item.ok).length, failed: checks.filter(item => !item.ok).length, checks }
 if (options.json) await writeFile(options.json, JSON.stringify(report, null, 2) + '\n')

@@ -46,7 +46,9 @@ export async function GET(request: Request) {
   }
   if (site.brand.id !== '00000000-0000-4000-8000-000000000001' || site.kind === 'brand-apex-tenant') {
     const entries: SitemapUrl[] = [{ url: site.origin, changeFrequency: 'weekly', priority: 1 }]
-    if (site.tenant?.id) {
+    // Website CMS is owned-only. Legacy development serves the documented
+    // branded fallback and must never open an owned database for its sitemap.
+    if (site.tenant?.id && ownedModeActive()) {
       const { ownedPublishedPageEntries } = await import('@/lib/data/tenant-pages-runtime')
       const pages = await ownedPublishedPageEntries(site.tenant.id)
       for (const page of pages) {

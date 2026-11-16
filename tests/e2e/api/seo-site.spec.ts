@@ -27,7 +27,7 @@ test.beforeAll(async () => {
     { id: demoId, slug: `demo-${token}`, name: 'Unpublished synthetic demo', is_active: true, is_demo: true, published_at: null },
     { id: partnerTenantId, slug: partnerSlug, name: 'Partner Restaurant', brand_id: brandId, is_active: true, is_demo: false, published_at: '2026-01-01T00:00:00Z' },
     { id: companyTenantId, slug: companySlug, name: partnerName, brand_id: brandId, business_kind: 'software', is_active: true, is_demo: false, published_at: '2026-01-01T00:00:00Z' },
-  ].map(row => ({ business_kind: 'restaurant', ...row }))))
+  ].map(row => ({ business_kind: 'restaurant', custom_domain_verified: false, ...row }))))
   checked(await db().from('tenant_settings').insert({ tenant_id: tenantId, language: 'pt', currency: 'USD', visual_feed_enabled: false, menu_default_view: 'list',
     address: '10 Example Street', city: 'Example City', phone: '+1 212 555 0100', business_hours: { mon: '09:00-21:00' }, seo_noindex: false,
     orders_enabled: false, direct_orders_enabled: false, logo_url: '/brands/aurora-kitchen-bar/logo.webp' }))
@@ -137,6 +137,10 @@ test('partner host owns root metadata, robots, sitemap and manifest identity', a
   const sitemap = await request.get('/sitemap.xml', { headers: { host: partnerHost } })
   expect(sitemap.status()).toBe(200)
   expect(await sitemap.text()).not.toContain('xprout.app')
+  const leaf = await request.get('/sitemaps/platform.xml', { headers: { host: partnerHost } })
+  expect(leaf.status()).toBe(200)
+  expect(await leaf.text()).toContain(`<loc>https://${partnerHost}</loc>`)
+  expect(await leaf.text()).not.toContain('xprout.app')
   const manifest = await request.get('/manifest.webmanifest', { headers: { host: partnerHost } })
   expect(await manifest.json()).toMatchObject({ name: partnerName })
   expect(await manifest.text()).not.toMatch(/Xprout|xprout\.app/i)

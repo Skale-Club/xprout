@@ -17,7 +17,9 @@ server validation or production evidence.
    authorization, RSC or Next prefetch/state headers, is eligible for cache.
    Private/global routes and nested customer/private paths are excluded.
 2. `/_next/image` is eligible with its normal complete query string in the
-   default cache key. Source URL, width and quality must never share a key with
+   default cache key. Its Vary policy retains raw origin-declared header values,
+   including Next Image's Accept variant, so an incompatible format is never
+   reused across clients. Source URL, width and quality must never share a key with
    another image derivative. No custom cache key or paid regex operator is used.
 3. A final rule bypasses cache for cookies, authorization/RSC/prefetch headers,
    private paths, methods other than GET/HEAD and queries except image queries.

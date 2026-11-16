@@ -137,9 +137,15 @@ class CacheOperatorTests(unittest.TestCase):
         self.assertEqual(html['action_parameters']['edge_ttl'], {'mode': 'respect_origin'})
         self.assertEqual(image['action_parameters']['browser_ttl'], {'mode': 'respect_origin'})
         self.assertNotIn('cache_key', image['action_parameters'])
+        self.assertEqual(image['action_parameters']['vary'], {'default': {'action': 'passthrough'}})
         self.assertEqual(bypass['action_parameters'], {'cache': False})
         for name in ['authorization', 'rsc', 'next-router-state-tree', 'next-router-prefetch']:
             self.assertIn(f'any(http.request.headers["{name}"][*] ne "")', bypass['expression'])
+
+    def test_dashboard_managed_rules_cannot_be_duplicated_silently(self):
+        dashboard = {**ops.desired_rules()[0], 'ref': 'dashboard-generated-id'}
+        with self.assertRaisesRegex(ops.Refused, 'reviewed adoption'):
+            ops.candidate({'rules': [dashboard]})
 
 
 if __name__ == '__main__':

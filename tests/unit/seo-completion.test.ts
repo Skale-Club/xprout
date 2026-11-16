@@ -3,13 +3,13 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { resolveSite } from '@/lib/site/resolve-site'
 
-const mocks = vi.hoisted(() => ({ native: vi.fn(), publicPosts: vi.fn(), tags: vi.fn(), archive: vi.fn(), nativePosts: vi.fn(), nativeTags: vi.fn(), nativeArchive: vi.fn(), ownedBlog: vi.fn(), image: vi.fn(), dish: vi.fn(), site: vi.fn() }))
+const mocks = vi.hoisted(() => ({ owned: vi.fn(), native: vi.fn(), publicPosts: vi.fn(), tags: vi.fn(), archive: vi.fn(), nativePosts: vi.fn(), nativeTags: vi.fn(), nativeArchive: vi.fn(), ownedBlog: vi.fn(), image: vi.fn(), dish: vi.fn(), site: vi.fn() }))
 vi.mock('@/lib/blog/native/selected', () => ({ nativeBlogSelected: mocks.native, requireNativeBlogConfiguration: () => {} }))
 vi.mock('@/lib/blog/public-queries', () => ({ listPublishedPosts: mocks.publicPosts, listTags: mocks.tags, listArchive: mocks.archive }))
 vi.mock('@/lib/blog/native/public-data', () => ({ readNativePublishedPosts: mocks.nativePosts, readNativeBlogTags: mocks.nativeTags, readNativeBlogArchive: mocks.nativeArchive }))
 vi.mock('@/lib/data/admin-menus-runtime', () => ({ ownedAdminTransaction: async (_write: boolean, operation: (query: unknown) => Promise<unknown>) => operation(vi.fn()) }))
 vi.mock('@/lib/data/public-seo-runtime', () => ({ ownedPlatformBlogSitemap: mocks.ownedBlog }))
-vi.mock('@/lib/data/owned-mode', () => ({ ownedModeActive: () => true }))
+vi.mock('@/lib/data/owned-mode', () => ({ ownedModeActive: mocks.owned }))
 vi.mock('@/lib/site/discovery-request', () => ({ discoveryRequestSite: mocks.site }))
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: () => { throw new Error('Unexpected legacy DB') } }))
 vi.mock('@/components/blog/post-list', () => ({ BlogPostList: () => null }))
@@ -33,6 +33,7 @@ const params = () => Promise.resolve({ slug: 'pizza', menuSlug: 'dinner', dishSl
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.native.mockReturnValue(true)
+  mocks.owned.mockReturnValue(true)
   mocks.publicPosts.mockResolvedValue([]); mocks.tags.mockResolvedValue([]); mocks.archive.mockResolvedValue([])
   mocks.nativePosts.mockResolvedValue([]); mocks.nativeTags.mockResolvedValue([]); mocks.nativeArchive.mockResolvedValue([])
   mocks.ownedBlog.mockResolvedValue({ posts: [], tags: [], archive: [] })
@@ -41,6 +42,15 @@ beforeEach(() => {
 })
 
 describe('empty platform blogs stay out of discovery', () => {
+  it('serves the legacy partner apex fallback sitemap without opening an owned database', async () => {
+    mocks.owned.mockReturnValue(false)
+    mocks.site.mockResolvedValue({ ...platformSite, origin: 'https://partner.example.org', kind: 'brand-apex-tenant',
+      brand: { ...platformSite.brand, id: 'partner' }, tenant: { id: 'company', slug: 'company' } })
+    const response = await platformSitemap(new Request('https://partner.example.org/sitemaps/platform.xml'))
+    expect(response.status).toBe(200)
+    expect(await response.text()).toContain('<loc>https://partner.example.org</loc>')
+    expect(mocks.ownedBlog).not.toHaveBeenCalled()
+  })
   it('noindexes the empty blog and preserves parent authority when live posts exist', async () => {
     expect((await blogMetadata()).robots).toEqual({ index: false, follow: false })
     mocks.publicPosts.mockResolvedValue([{ slug: 'published', published_at: '2026-01-01T00:00:00Z' }])
