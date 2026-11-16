@@ -18,4 +18,6 @@ export const RESERVED_PATHS = new Set([
   'sitemap', 'robots',
   // /preview/<token> is a menu staging preview on a custom domain.
   'preview',
+  // The public 3D dish gallery (src/lib/marketing/3d-gallery.ts).
+  '3d-gallery',
 ])
