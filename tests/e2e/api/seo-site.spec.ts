@@ -152,6 +152,30 @@ test('cookie, parameter and RSC requests bypass shared cache without leaking ano
   }
 })
 
+test('canonical platform HTML is public while real Flight/prefetch requests stay private', async ({ request }) => {
+  // The preview host is always private and tenant rewrites can mask this bug.
+  // This seeded canonical brand takes the same non-rewrite path as production.
+  const platformHost = 'xprout.app'
+  const html = await request.get('/', { headers: { host: platformHost } })
+  expect(html.status()).toBe(200)
+  expect(canonical(await html.text())).toBe(`https://${platformHost}`)
+  expect(html.headers()['cache-control']).toContain('s-maxage=60')
+  const variants: Array<{ path: string; headers: Record<string, string> }> = [
+    { path: '/', headers: { RSC: '1' } },
+    { path: '/', headers: { RSC: '1', 'Next-Router-Prefetch': '1' } },
+    { path: '/', headers: { 'Next-Router-Prefetch': '1' } },
+    { path: '/', headers: { 'Next-Router-State-Tree': '[]' } },
+    { path: '/', headers: { 'Next-Router-Segment-Prefetch': '/' } },
+    { path: '/?_rsc=cache-boundary-fixture', headers: {} },
+  ]
+  for (const variant of variants) {
+    const response = await request.get(variant.path, { headers: { host: platformHost, ...variant.headers } })
+    expect(response.status()).toBe(200)
+    expect(response.headers()['cache-control']).toMatch(/private.*no-store/)
+    if (variant.headers.RSC) expect(response.headers()['content-type']).toContain('text/x-component')
+  }
+})
+
 test('partner host owns root metadata, robots, sitemap and manifest identity', async ({ request }) => {
   const response = await request.get('/', { headers: { host: partnerHost } })
   expect(response.status()).toBe(200)

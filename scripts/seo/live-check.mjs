@@ -87,6 +87,11 @@ for (const [label, path, headers] of [
   ['authorization', '/', { Authorization: 'Bearer seo-live-check-invalid' }],
   ['table query', '/?table=seo-live-check', {}], ['language query', '/?lang=pt', {}], ['view query', '/?view=feed', {}],
   ['RSC', '/', { RSC: '1', 'Next-Router-Prefetch': '1' }],
+  ['RSC navigation', '/', { RSC: '1' }],
+  ['prefetch', '/', { 'Next-Router-Prefetch': '1' }],
+  ['router state', '/', { 'Next-Router-State-Tree': '[]' }],
+  ['segment prefetch', '/', { 'Next-Router-Segment-Prefetch': '/' }],
+  ['RSC query', '/?_rsc=seo-live-check', {}],
 ]) {
   const page = await get(path, headers)
   const cache = `${page.headers.get('cache-control') ?? ''} ${page.headers.get('cdn-cache-control') ?? ''}`

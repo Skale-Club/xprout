@@ -21,6 +21,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The public cache guard must see RSC/prefetch headers and the _rsc query.
+  // Next otherwise strips them before middleware, hiding client navigations.
+  skipProxyUrlNormalize: true,
   expireTime: 86400,
   // Coolify/Docker target: emit a minimal traced server (.next/standalone) with
   // its own server.js instead of bundling the full node_modules. Required for
