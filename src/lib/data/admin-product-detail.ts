@@ -6,6 +6,7 @@ import { PUBLIC_MENU_COLUMNS } from './public-menu'
 import { planCeiling } from '../service-modes'
 import { sanitizeTranslations } from '../menu-translations'
 import { mutateArModel } from './admin-product-ar'
+import { OPTION_IMAGE_READY_SQL, optionColumns, validOptionImageUrl } from '../menu/option-images'
 
 type Entity = 'groups' | 'options' | 'ingredients' | 'media' | 'translations' | 'ar'
 type Action = 'list' | 'create' | 'patch' | 'delete' | 'reorder'
@@ -74,8 +75,12 @@ export function groupFields(value: unknown, creating: boolean) {
   // Preserve the existing independent min/max semantics; no pricing-policy rewrite.
   return body
 }
-export function optionFields(value: unknown, creating: boolean) {
-  const body = fields(value, ['name', 'base_price', 'price_modifier', 'is_available'])
+/** Whether product_options.image_url exists yet (docs/owned-schema/20261116160000_delivery_rules_option_images.sql). */
+export async function optionImageColumnReady(query: AdminMenuQuery): Promise<boolean> {
+  return (await query(OPTION_IMAGE_READY_SQL)).rows[0]?.ready === true
+}
+export function optionFields(value: unknown, creating: boolean, imageReady = true) {
+  const body = fields(value, ['name', 'base_price', 'price_modifier', 'is_available', 'image_url'])
   if (creating || 'name' in body) body.name = name(body.name)
   if (creating) {
     if (!('base_price' in body)) body.base_price = null
@@ -85,12 +90,21 @@ export function optionFields(value: unknown, creating: boolean) {
   if ('base_price' in body) money(body.base_price, false, true)
   if ('price_modifier' in body) money(body.price_modifier, true)
   if ('is_available' in body && typeof body.is_available !== 'boolean') throw bad()
+  // Optional photo: a URL from the shared upload pipeline, or null to remove it.
+  if ('image_url' in body) {
+    if (body.image_url !== null && !validOptionImageUrl(body.image_url)) throw bad('Invalid option photo')
+    // The schema step may not have run yet: "no photo" is ignored, a photo is refused.
+    if (!imageReady) {
+      if (body.image_url !== null) throw new AdminMenuError(503, 'Option photos are not available yet')
+      delete body.image_url
+    }
+  }
   return body
 }
 export async function readProductGroups(query: AdminMenuQuery, context: AdminMenuContext, productId: string): Promise<GroupWithOptions[]> {
   const groups = records<ProductOptionGroup>(await query(`SELECT ${projection('g', PUBLIC_MENU_COLUMNS.group)} FROM public.product_option_groups g
     WHERE g.tenant_id=$1 AND g.product_id=$2 ORDER BY g.position,g.id LIMIT 1001`, [context.tenantId, productId]), 1000)
-  const options = records<ProductOption>(await query(`SELECT ${projection('o', PUBLIC_MENU_COLUMNS.option)} FROM public.product_options o
+  const options = records<ProductOption>(await query(`SELECT ${projection('o', optionColumns(PUBLIC_MENU_COLUMNS.option, await optionImageColumnReady(query)))} FROM public.product_options o
     JOIN public.product_option_groups g ON g.id=o.group_id AND g.tenant_id=o.tenant_id
     WHERE o.tenant_id=$1 AND g.product_id=$2 ORDER BY o.position,o.id LIMIT 5001`, [context.tenantId, productId]))
   return groups.map(group => ({ ...group, options: options.filter(option => option.group_id === group.id) }))
@@ -122,7 +136,7 @@ export async function readProductDetailPage(query: AdminMenuQuery, context: Admi
     LEFT JOIN public.categories c ON c.id=p.category_id AND c.tenant_id=p.tenant_id AND c.menu_id IS NOT DISTINCT FROM p.menu_id
     WHERE p.tenant_id=$1 AND p.id<>$2 AND ($3::uuid IS NULL OR p.menu_id=$3) ORDER BY p.position,p.id LIMIT 2001`, [context.tenantId, product.id, product.menu_id])
   if (candidates.rows.length > 2000) throw new AdminMenuError(409, 'Product catalog exceeds the supported limit')
-  return { product, menu, plan: planCeiling(features), groups: await readProductGroups(query, context, product.id), ingredients,
+  return { product, menu, plan: planCeiling(features), groups: await readProductGroups(query, context, product.id), ingredients, optionImagesReady: await optionImageColumnReady(query),
     productIngredients: await productIngredients(query, context, product.id), settings: {
       currency: typeof settings?.currency === 'string' ? settings.currency : 'USD',
       ingredient_customization_enabled: settings?.ingredient_customization_enabled === true,
@@ -210,7 +224,7 @@ export async function mutateProductDetail(query: AdminMenuQuery, context: AdminM
   }
   if (operation.entity === 'options') {
     if (operation.action === 'create') {
-      const parent = await group(query, context, product.id, operation.groupId), values = optionFields(operation.values, true), entries = Object.entries(values)
+      const parent = await group(query, context, product.id, operation.groupId), values = optionFields(operation.values, true, await optionImageColumnReady(query)), entries = Object.entries(values)
       const position = await nextPosition(query, context, 'product_options', 'group_id', parent.id)
       await query(`INSERT INTO public.product_options(tenant_id,group_id,position,${entries.map(([key]) => key).join(',')})
         VALUES($1,$2,$3,${entries.map((_, index) => `$${index + 4}`).join(',')})`, [context.tenantId, parent.id, position, ...entries.map(([, value]) => value)])
@@ -222,7 +236,7 @@ export async function mutateProductDetail(query: AdminMenuQuery, context: AdminM
       if (operation.action === 'delete') {
         await noCascade(query, 'product_options')
         await query('DELETE FROM public.product_options WHERE tenant_id=$1 AND group_id=$2 AND id=$3', [context.tenantId, current.group_id, current.id])
-      } else if (operation.action === 'patch') await patchRow(query, context, 'product_options', current.id, optionFields(operation.values, false))
+      } else if (operation.action === 'patch') await patchRow(query, context, 'product_options', current.id, optionFields(operation.values, false, await optionImageColumnReady(query)))
       else throw bad()
     }
     return readProductGroups(query, context, product.id)

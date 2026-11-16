@@ -51,6 +51,7 @@ export default async function ProductDetailPage({
         upsellCandidates={data.upsellCandidates}
         showcase={isShowcasePlan(data.plan)}
         upsellAvailable={data.plan.payments}
+        optionImagesReady={data.optionImagesReady}
         ownedSource
       />
     )
@@ -91,6 +92,9 @@ export default async function ProductDetailPage({
 
   if (!product) notFound()
 
+  // Option photos exist once the schema step ran: the column can be selected.
+  const { error: optionImageProbe } = await supabase.from('product_options').select('image_url').limit(1)
+
   // Languages to translate into: the dish's own menu, else the menu being edited.
   const { data: ownMenu } = product.menu_id
     ? await supabase.from('menus').select('language, supported_languages').eq('id', product.menu_id).eq('tenant_id', tenantId).maybeSingle()
@@ -129,6 +133,7 @@ export default async function ProductDetailPage({
       upsellCandidates={upsellCandidates}
       showcase={isShowcasePlan(capabilities.plan)}
       upsellAvailable={capabilities.plan.payments}
+      optionImagesReady={!optionImageProbe}
     />
   )
 }

@@ -1592,6 +1592,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           deliveryCity={deliveryCity}
           deliveryNotes={deliveryNotes}
           deliveryZones={deliveryZones}
+          deliveryZonesOnly={settings?.delivery_zones_only === true}
           onOrderTypeChange={setOrderType}
           onDeliveryFieldChange={(field, value) => {
             if (field === 'street') setDeliveryStreet(value)

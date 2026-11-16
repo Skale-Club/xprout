@@ -5,6 +5,7 @@ import { getTenantCapabilities } from '@/lib/tenant-plan'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
 import { adminMenusOwned } from '@/lib/data/admin-menus'
+import { MIN_ORDER_CENTS_MAX, parseMinOrderCents } from '@/lib/orders/delivery-rules'
 import { ownedDeliveryZoneHttp } from '@/lib/admin/owned-locations-http'
 
 const DELIVERY_ZONES_LOCKED = 'Delivery zones are part of the Menu + Payments plan'
@@ -38,9 +39,13 @@ async function handlePOST(request: Request) {
   }
 
   const body = await request.json()
-  const { name, fee_cents, zipcode_prefixes } = body
+  const { name, fee_cents, zipcode_prefixes, min_order_cents } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'Zone name is required' }, { status: 400 })
+
+  if (min_order_cents !== undefined && parseMinOrderCents(min_order_cents) === null) {
+    return NextResponse.json({ error: `Minimum order must be between 0 and ${MIN_ORDER_CENTS_MAX} cents` }, { status: 400 })
+  }
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -50,6 +55,7 @@ async function handlePOST(request: Request) {
       name: name.trim(),
       fee_cents: Math.max(0, Number(fee_cents ?? 0)),
       zipcode_prefixes: Array.isArray(zipcode_prefixes) ? zipcode_prefixes : [],
+      ...(Number(min_order_cents) > 0 ? { min_order_cents } : {}),
     })
     .select()
     .single()

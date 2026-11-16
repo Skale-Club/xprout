@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import DishPhoto from './DishPhoto'
+import OptionThumb from './OptionThumb'
 import { Box, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, MessageCircle, Minus, Phone, Plus, Share2, ShoppingBag, X } from 'lucide-react'
 import ArButton, { useIsComputer, type ArCart, type ArSequenceItem } from '@/components/ar/ArButton'
 import ModelViewer from '@/components/ar/ModelViewer'
@@ -746,6 +747,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                             className="peer sr-only"
                           />
                           <RadioMark selected={isSelected} color={primaryColor} />
+                          <OptionThumb option={opt} />
                           <span className="text-[15px] text-zinc-900">{opt.name}</span>
                         </span>
                         {opt.base_price !== null ? (
@@ -784,6 +786,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                               className="sr-only"
                             />
                             <CheckMark checked={isChecked} color={primaryColor} />
+                            <OptionThumb option={opt} />
                             <span className="text-[15px] text-zinc-900">{opt.name}</span>
                           </span>
                           {opt.price_modifier !== 0 && (
@@ -828,6 +831,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                                       className="sr-only"
                                     />
                                     <RadioMark selected={isSelected} color={primaryColor} />
+                                    <OptionThumb option={opt} />
                                     <span className="text-[15px] text-zinc-900">{opt.name}</span>
                                   </span>
                                   {opt.base_price !== null && (

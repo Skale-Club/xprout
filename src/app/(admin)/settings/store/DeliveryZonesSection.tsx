@@ -9,10 +9,11 @@ interface ZoneDraft {
   name: string
   fee_cents: number
   zipcode_prefixes: string[]
+  min_order_cents: number
   is_active: boolean
 }
 
-const EMPTY: ZoneDraft = { name: '', fee_cents: 0, zipcode_prefixes: [], is_active: true }
+const EMPTY: ZoneDraft = { name: '', fee_cents: 0, zipcode_prefixes: [], min_order_cents: 0, is_active: true }
 
 export default function DeliveryZonesSection() {
   const [zones, setZones] = useState<DeliveryZone[]>([])
@@ -22,6 +23,7 @@ export default function DeliveryZonesSection() {
   const [draft, setDraft] = useState<ZoneDraft>(EMPTY)
   const [saving, setSaving] = useState(false)
   const [prefixInput, setPrefixInput] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/delivery-zones')
@@ -30,14 +32,20 @@ export default function DeliveryZonesSection() {
       .catch(() => setLoading(false))
   }, [])
 
+  // The minimum exists once the delivery-rules schema step ran (zones then carry a number).
+  const minAvailable = zones.length === 0 || zones.some(z => typeof z.min_order_cents === 'number')
+  const minField = () => minAvailable ? { min_order_cents: draft.min_order_cents } : {}
+
   async function saveNew() {
     if (!draft.name.trim()) return
     setSaving(true)
+    setError(null)
     const res = await fetch('/api/admin/delivery-zones', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: draft.name.trim(), fee_cents: draft.fee_cents, zipcode_prefixes: draft.zipcode_prefixes }),
+      body: JSON.stringify({ name: draft.name.trim(), fee_cents: draft.fee_cents, zipcode_prefixes: draft.zipcode_prefixes, ...minField() }),
     })
+    if (!res.ok) setError((await res.json().catch(() => null))?.error ?? 'Could not save the zone')
     if (res.ok) {
       const newZone = await res.json()
       setZones(prev => [...prev, newZone])
@@ -50,11 +58,13 @@ export default function DeliveryZonesSection() {
     if (!draft.name.trim()) return
     const id = mode
     setSaving(true)
+    setError(null)
     const res = await fetch(`/api/admin/delivery-zones/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: draft.name.trim(), fee_cents: draft.fee_cents, zipcode_prefixes: draft.zipcode_prefixes, is_active: draft.is_active }),
+      body: JSON.stringify({ name: draft.name.trim(), fee_cents: draft.fee_cents, zipcode_prefixes: draft.zipcode_prefixes, is_active: draft.is_active, ...minField() }),
     })
+    if (!res.ok) setError((await res.json().catch(() => null))?.error ?? 'Could not save the zone')
     if (res.ok) {
       const zone = await res.json()
       setZones(prev => prev.map(z => z.id === id ? zone : z))
@@ -71,7 +81,7 @@ export default function DeliveryZonesSection() {
 
   function startEdit(zone: DeliveryZone) {
     setMode(zone.id)
-    setDraft({ name: zone.name, fee_cents: zone.fee_cents, zipcode_prefixes: zone.zipcode_prefixes, is_active: zone.is_active })
+    setDraft({ name: zone.name, fee_cents: zone.fee_cents, zipcode_prefixes: zone.zipcode_prefixes, min_order_cents: zone.min_order_cents ?? 0, is_active: zone.is_active })
     setPrefixInput('')
   }
 
@@ -107,6 +117,18 @@ export default function DeliveryZonesSection() {
           />
         </div>
       </div>
+      {minAvailable && (
+        <div>
+          <label className={labelCls}>Minimum order</label>
+          <input
+            type="number" min={0} max={10000} step={0.01} placeholder="0.00"
+            value={(draft.min_order_cents / 100).toFixed(2)}
+            onChange={e => setDraft(d => ({ ...d, min_order_cents: Math.min(1_000_000, Math.max(0, Math.round(Number(e.target.value) * 100) || 0)) }))}
+            className={inputCls}
+          />
+          <p className="text-[13px] font-medium text-zinc-600 ml-1 mt-2">Items subtotal (before discounts) needed to deliver to this area. 0 = no minimum</p>
+        </div>
+      )}
       <div>
         <label className={labelCls}>Zipcode Prefixes</label>
         <div className="flex gap-2">
@@ -174,6 +196,7 @@ export default function DeliveryZonesSection() {
         )}
       </div>
 
+      {error && <p role="alert" className="text-[13px] text-red-600 font-medium">{error}</p>}
       {loading && <p className="text-[13px] text-zinc-600 font-medium">Loading zones...</p>}
       {isCreating && zoneForm}
       {zones.length === 0 && !loading && !isCreating && (
@@ -193,6 +216,7 @@ export default function DeliveryZonesSection() {
                 </div>
                 <div className="flex items-center gap-4 text-[10px] font-bold text-zinc-500">
                   <span>Fee: R$ {(zone.fee_cents / 100).toFixed(2)}</span>
+                  {(zone.min_order_cents ?? 0) > 0 && <span>Min: R$ {((zone.min_order_cents ?? 0) / 100).toFixed(2)}</span>}
                   {zone.zipcode_prefixes.length > 0 && (
                     <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{zone.zipcode_prefixes.join(', ')}</span>
                   )}

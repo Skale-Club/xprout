@@ -5,6 +5,7 @@ import { getTenantCapabilities } from '@/lib/tenant-plan'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
 import { adminMenusOwned } from '@/lib/data/admin-menus'
+import { MIN_ORDER_CENTS_MAX, parseMinOrderCents } from '@/lib/orders/delivery-rules'
 import { ownedDeliveryZoneHttp } from '@/lib/admin/owned-locations-http'
 
 interface Props { params: Promise<{ id: string }> }
@@ -31,10 +32,13 @@ async function handlePATCH(request: Request, { params }: Props) {
   }
 
   const body = await request.json()
-  const allowed = ['name', 'fee_cents', 'zipcode_prefixes', 'is_active']
+  const allowed = ['name', 'fee_cents', 'zipcode_prefixes', 'is_active', 'min_order_cents']
   const update: Record<string, unknown> = {}
   for (const key of allowed) if (key in body) update[key] = body[key]
   if ('fee_cents' in update) update.fee_cents = Math.max(0, Number(update.fee_cents))
+  if ('min_order_cents' in update && parseMinOrderCents(update.min_order_cents) === null) {
+    return NextResponse.json({ error: `Minimum order must be between 0 and ${MIN_ORDER_CENTS_MAX} cents` }, { status: 400 })
+  }
 
   const { data, error } = await ctx.supabase.from('delivery_zones').update(update).eq('id', id).select().single()
   if (error) {

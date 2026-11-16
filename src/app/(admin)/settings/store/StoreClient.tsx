@@ -176,6 +176,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     hide_platform_brand: settings?.hide_platform_brand === true,
     tax_rate_pct: bpsToPercent(settings?.tax_rate_bps ?? 0),
     scheduled_orders_enabled: settings?.scheduled_orders_enabled === true,
+    delivery_zones_only: settings?.delivery_zones_only === true,
     tip_percentage_1: settings?.tip_percentage_1 ?? 15,
     tip_percentage_2: settings?.tip_percentage_2 ?? 18,
     tip_percentage_3: settings?.tip_percentage_3 ?? 20,
@@ -365,6 +366,8 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
   const supabase = ownedSource ? null : createClient()
   const taxEnabled = typeof settings?.tax_rate_bps === 'number' && caps.guestOrdering
   // Scheduled orders exist once the schema step ran (the setting is then a boolean) and guests can order.
+  // Delivery area rules exist once the schema step ran (the switch is then a boolean).
+  const deliveryRulesAvailable = typeof settings?.delivery_zones_only === 'boolean'
   const schedulingAvailable = typeof settings?.scheduled_orders_enabled === 'boolean' && caps.guestOrdering
 
   async function handleSave(e: React.FormEvent) {
@@ -384,7 +387,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     }
 
     // Tip presets only exist on the plan that sells guest ordering.
-    const { tip_percentage_1, tip_percentage_2, tip_percentage_3, tax_rate_pct, scheduled_orders_enabled, ...regionalAndContact } = form
+    const { tip_percentage_1, tip_percentage_2, tip_percentage_3, tax_rate_pct, scheduled_orders_enabled, delivery_zones_only, ...regionalAndContact } = form
     const tipPresets = caps.plan.payments ? { tip_percentage_1, tip_percentage_2, tip_percentage_3 } : {}
 
     // Sales tax exists once the schema step ran and the restaurant takes orders from the menu.
@@ -400,6 +403,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
         ...tipPresets,
         ...(taxBps !== null ? { tax_rate_bps: taxBps } : {}),
         ...(schedulingAvailable ? { scheduled_orders_enabled } : {}),
+        ...(deliveryRulesAvailable ? { delivery_zones_only } : {}),
         // Coerce local-SEO fields: empty strings → null, coordinates → number.
         city: form.city.trim() || null,
         region: form.region.trim() || null,
@@ -878,6 +882,15 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
                 <div className="mt-6 px-5 pb-2">
                   <DeliveryZonesSection />
                 </div>
+              )}
+
+              {service.delivery_enabled && deliveryRulesAvailable && (
+                <ToggleRow
+                  title="Deliver only inside my zones"
+                  description="An address outside every active zone cannot order delivery. Without this, it pays the flat fee above. Needs at least one active zone. Saved with Apply Settings."
+                  checked={form.delivery_zones_only}
+                  onChange={checked => setForm(f => ({ ...f, delivery_zones_only: checked }))}
+                />
               )}
 
               {schedulingAvailable && (

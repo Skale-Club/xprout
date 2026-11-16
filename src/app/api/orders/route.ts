@@ -10,6 +10,8 @@ import { phoneMatchKey, sessionPhoneE164, toE164 } from '@/lib/phone'
 import { recordTrustedOrderAnalyticsEvent } from '@/lib/analytics/server'
 import { OptionSelectionError, resolveOptionSelection } from '@/lib/menu/option-pricing'
 import { legacyRecordTaxPromo, legacyTaxPromo } from '@/lib/orders/tax-promo-legacy'
+import { DELIVERY_RULES_NOT_READY, deliveryRuleViolation, type DeliveryRulesState } from '@/lib/orders/delivery-rules'
+import { legacyDeliveryRules } from '@/lib/orders/delivery-rules-legacy'
 import { TAX_PROMO_NOT_READY, normalizePromoCode, priceOrder, promoRejection, type TaxPromoState } from '@/lib/orders/tax-promo'
 import { legacyRecordScheduledFor, legacyScheduling } from '@/lib/orders/scheduled-orders-legacy'
 import { SCHEDULING_NOT_READY, resolveScheduledFor, type SchedulingState } from '@/lib/orders/scheduled-orders'
@@ -438,30 +440,35 @@ async function handlePOST(request: Request) {
         : 0
       let resolvedZoneId: string | null = null
 
-      if (orderType === 'delivery' && rawDeliveryZipcode) {
-        const cleanZip = rawDeliveryZipcode.trim().replace(/\D/g, '')
-        if (cleanZip) {
-          const { data: activeZones, error: zonesError } = owned ? await owned.deliveryZones() : await service!
-            .from('delivery_zones')
-            .select('id, fee_cents, zipcode_prefixes')
-            .eq('tenant_id', tenant_id)
-            .eq('is_active', true)
-          if (zonesError) {
-            log.error('orders.zones_fetch_error', { err: zonesError })
-            return NextResponse.json({ error: 'Failed to validate the delivery area, please try again' }, { status: 503 })
-          }
-          const matches = (activeZones ?? []).filter(z =>
-            (z.zipcode_prefixes as string[]).some(p => cleanZip.startsWith(p))
-          )
-          // The former query has no ordering contract for overlapping zones.
-          // An independent restore must not silently choose a different fee.
-          if (owned && matches.length > 1) throw new OrderDataError(503, 'Delivery area configuration must be verified')
-          const matched = matches[0]
-          if (matched) {
-            deliveryFeeCents = matched.fee_cents
-            resolvedZoneId = matched.id
-          }
+      // Own-delivery rules (zones only, minimum per zone), once the schema step ran; staff orders are exempt.
+      const deliveryRules: DeliveryRulesState = orderType === 'delivery' && !isStaffOrder
+        ? await (owned ? owned.deliveryRules() : legacyDeliveryRules(service!, tenant_id))
+        : DELIVERY_RULES_NOT_READY
+      const cleanZip = rawDeliveryZipcode?.trim().replace(/\D/g, '') ?? ''
+
+      if (orderType === 'delivery' && (cleanZip || deliveryRules.zonesOnly)) {
+        const { data: activeZones, error: zonesError } = owned ? await owned.deliveryZones() : await service!
+          .from('delivery_zones')
+          .select('id, fee_cents, zipcode_prefixes')
+          .eq('tenant_id', tenant_id)
+          .eq('is_active', true)
+        if (zonesError) {
+          log.error('orders.zones_fetch_error', { err: zonesError })
+          return NextResponse.json({ error: 'Failed to validate the delivery area, please try again' }, { status: 503 })
         }
+        const matches = cleanZip ? (activeZones ?? []).filter(z =>
+          (z.zipcode_prefixes as string[]).some(p => cleanZip.startsWith(p))
+        ) : []
+        // The former query has no ordering contract for overlapping zones.
+        // An independent restore must not silently choose a different fee.
+        if (owned && matches.length > 1) throw new OrderDataError(503, 'Delivery area configuration must be verified')
+        const matched = matches[0]
+        if (matched) {
+          deliveryFeeCents = matched.fee_cents
+          resolvedZoneId = matched.id
+        }
+        const violation = deliveryRuleViolation({ rules: deliveryRules, zonesCount: (activeZones ?? []).length, matchedZoneId: resolvedZoneId, subtotalCents })
+        if (violation) return NextResponse.json({ error: violation.error, code: violation.code }, { status: 400 })
       }
 
       // Sales tax and one promo code (guest checkout only, and only once the schema

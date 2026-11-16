@@ -1,3 +1,5 @@
+import { OPTION_IMAGE_READY_SQL, optionColumns } from '../menu/option-images'
+import { DELIVERY_RULES_READY_SQL } from '../orders/delivery-rules'
 import { BRAND_NAME } from '@/lib/brand'
 import { ACTION_LINK_COLUMNS } from '../menu-action-links'
 import { TAX_PROMO_READY_SQL } from '../orders/tax-promo'
@@ -105,6 +107,9 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
     // Scheduled orders: the restaurant's switch (and each dish's notice, below) once the schema step ran.
     const schedulingReady = settings ? one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${SCHEDULING_READY_SQL}) r`, [], 1))?.ready === true : false
     if (settings && schedulingReady) Object.assign(settings, one(await rows<Row>(query, "SELECT jsonb_build_object('scheduled_orders_enabled', s.scheduled_orders_enabled) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2", [tenantId], 1)))
+    // Own-delivery rules (zones-only switch, each zone's minimum) once the schema step ran.
+    const deliveryRulesReady = settings ? one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${DELIVERY_RULES_READY_SQL}) r`, [], 1))?.ready === true : false
+    if (settings && deliveryRulesReady) Object.assign(settings, one(await rows<Row>(query, "SELECT jsonb_build_object('delivery_zones_only', s.delivery_zones_only) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2", [tenantId], 1)))
     const footer = one(await rows<Row>(query, 'SELECT jsonb_build_object(\'menu_footer_brand\', menu_footer_brand) AS row FROM public.platform_settings LIMIT 2', [], 1))
     const footerBrand = typeof footer?.menu_footer_brand === 'string' ? footer.menu_footer_brand : BRAND_NAME
     // A preview reads exactly one hidden staging menu, the token matched within
@@ -147,7 +152,7 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       ? { audio_enabled: chat.audio_enabled === true, text_enabled: chat.text_enabled === true } : null)
     const tableRows = await rows<Row & { id: string; name: string }>(query,
       'SELECT jsonb_build_object(\'id\', id, \'name\', name) AS row FROM public.restaurant_tables WHERE tenant_id=$1 AND is_active=true ORDER BY position, id LIMIT 1001', [tenantId], 1000)
-    const zones = capabilities.delivery ? await rows<Row>(query, publicSelect('delivery_zones', 'z', PUBLIC_MENU_COLUMNS.zone,
+    const zones = capabilities.delivery ? await rows<Row>(query, publicSelect('delivery_zones', 'z', deliveryRulesReady ? `${PUBLIC_MENU_COLUMNS.zone} min_order_cents` : PUBLIC_MENU_COLUMNS.zone,
       'WHERE z.tenant_id=$1 AND z.is_active=true', 'z.created_at, z.id', 1000), [tenantId], 1000) : []
     const categories = menu?.id ? await rows<Row>(query, publicSelect('categories', 'c', PUBLIC_MENU_COLUMNS.category,
       `JOIN public.menus m ON m.id=c.menu_id AND m.tenant_id=c.tenant_id WHERE c.tenant_id=$1 AND c.menu_id=$2 AND c.is_active=true${live}`, 'c.position, c.id', 1000), [tenantId, menu.id], 1000) : []
@@ -164,7 +169,9 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       const ids = products.map(product => product.id)
       const groupRows = await rows<Row>(query, publicSelect('product_option_groups', 'g', PUBLIC_MENU_COLUMNS.group,
         'JOIN public.products p ON p.id=g.product_id AND p.tenant_id=g.tenant_id WHERE g.tenant_id=$1 AND p.menu_id=$2 AND p.is_available=true AND g.product_id=ANY($3::uuid[])', 'g.position, g.id', 5000), [tenantId, menu.id, ids], 5000)
-      const optionRows = await rows<Row & { group_id: string }>(query, publicSelect('product_options', 'o', PUBLIC_MENU_COLUMNS.option,
+      // Option photos once the schema step added the column (a named column, so a column-level grant suffices).
+      const optionImagesReady = one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${OPTION_IMAGE_READY_SQL}) r`, [], 1))?.ready === true
+      const optionRows = await rows<Row & { group_id: string }>(query, publicSelect('product_options', 'o', optionColumns(PUBLIC_MENU_COLUMNS.option, optionImagesReady),
         'JOIN public.product_option_groups g ON g.id=o.group_id AND g.tenant_id=o.tenant_id JOIN public.products p ON p.id=g.product_id AND p.tenant_id=g.tenant_id WHERE o.tenant_id=$1 AND p.menu_id=$2 AND p.is_available=true AND o.is_available=true AND g.product_id=ANY($3::uuid[])', 'o.position, o.id', 20000), [tenantId, menu.id, ids], 20000)
       groups = groupRows.map(group => ({ ...group, options: optionRows.filter(option => option.group_id === group.id) })) as unknown as GroupWithOptions[]
       if (capabilities.ingredientCustomization) {

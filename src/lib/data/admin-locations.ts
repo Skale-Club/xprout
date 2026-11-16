@@ -1,6 +1,7 @@
 import type { DeliveryZone, Location, UserRole } from '@/types/database'
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import { planCeiling } from '../service-modes'
+import { DELIVERY_RULES_READY_SQL, MIN_ORDER_CENTS_MAX, parseMinOrderCents } from '../orders/delivery-rules'
 
 export type AdminLocationContext = { tenantId: string; role: UserRole }
 export type LocationMutation =
@@ -15,6 +16,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const LOCATION_COLUMNS = 'id tenant_id name slug address city phone business_hours region postal_code country latitude longitude menu_id is_active created_at updated_at'
 const MENU_COLUMNS = 'id name slug is_default'
 const ZONE_COLUMNS = 'id tenant_id name fee_cents zipcode_prefixes is_active created_at updated_at'
+const ZONE_COLUMNS_WITH_RULES = `${ZONE_COLUMNS} min_order_cents`
+const zoneColumns = (rulesReady: boolean) => rulesReady ? ZONE_COLUMNS_WITH_RULES : ZONE_COLUMNS
+
+/** Whether the delivery-rules schema step ran (docs/owned-schema/20261116160000_delivery_rules_option_images.sql). */
+async function deliveryRulesReady(query: AdminMenuQuery): Promise<boolean> {
+  return (await query(DELIVERY_RULES_READY_SQL)).rows[0]?.ready === true
+}
 
 function scope(context: AdminLocationContext, write = false) {
   if (!UUID.test(context.tenantId) || !['superadmin', 'store-admin', 'store-staff'].includes(context.role)) throw new AdminMenuError(403, 'Forbidden')
@@ -154,7 +162,7 @@ async function paymentsEntitlement(query: AdminMenuQuery, tenantId: string, lock
   return planCeiling(row.features).payments
 }
 
-function zoneBody(value: unknown, partial: boolean) {
+function zoneBody(value: unknown, partial: boolean, rulesReady: boolean) {
   const body = object(value)
   const update: Record<string, unknown> = {}
   if (!partial || 'name' in body) {
@@ -172,6 +180,13 @@ function zoneBody(value: unknown, partial: boolean) {
     if (Array.isArray(prefixes) && prefixes.some(prefix => typeof prefix !== 'string')) throw new AdminMenuError(400, 'Invalid zipcode prefixes')
     update.zipcode_prefixes = Array.isArray(prefixes) ? prefixes : []
   }
+  // Minimum items subtotal (cents, 0 = none). Before the schema step an untouched 0 is ignored and a real minimum refused.
+  if ('min_order_cents' in body) {
+    const min = parseMinOrderCents(body.min_order_cents)
+    if (min === null) throw new AdminMenuError(400, `Minimum order must be between 0 and ${MIN_ORDER_CENTS_MAX} cents`)
+    if (rulesReady) update.min_order_cents = min
+    else if (min !== 0) throw new AdminMenuError(503, 'Minimum order is not available yet')
+  }
   if (partial && 'is_active' in body) {
     if (typeof body.is_active !== 'boolean') throw new AdminMenuError(400, 'Invalid zone status')
     update.is_active = body.is_active
@@ -182,7 +197,7 @@ function zoneBody(value: unknown, partial: boolean) {
 
 export async function readAdminDeliveryZones(query: AdminMenuQuery, context: AdminLocationContext) {
   scope(context)
-  return records<DeliveryZone>((await query(`SELECT ${projection('z', ZONE_COLUMNS)} AS row FROM public.delivery_zones z
+  return records<DeliveryZone>((await query(`SELECT ${projection('z', zoneColumns(await deliveryRulesReady(query)))} AS row FROM public.delivery_zones z
     WHERE z.tenant_id=$1 ORDER BY z.created_at,z.id LIMIT 1001`, [context.tenantId])).rows, 'Delivery zones')
 }
 
@@ -206,16 +221,17 @@ export async function mutateAdminDeliveryZone(query: AdminMenuQuery, context: Ad
     return { ok: true }
   }
 
-  const values = zoneBody(mutation.body, mutation.kind === 'patch')
+  const rulesReady = await deliveryRulesReady(query)
+  const values = zoneBody(mutation.body, mutation.kind === 'patch', rulesReady)
   const fields = Object.keys(values)
   if (mutation.kind === 'create') {
     const result = await query(`INSERT INTO public.delivery_zones AS z (tenant_id,${fields.join(',')})
-      VALUES ($1,${fields.map((_, index) => `$${index + 2}`).join(',')}) RETURNING ${projection('z', ZONE_COLUMNS)} AS row`,
+      VALUES ($1,${fields.map((_, index) => `$${index + 2}`).join(',')}) RETURNING ${projection('z', zoneColumns(rulesReady))} AS row`,
     [context.tenantId, ...fields.map(field => values[field])])
     return records<DeliveryZone>(result.rows, 'Delivery zones')[0]!
   }
   const result = await query(`UPDATE public.delivery_zones z SET ${fields.map((field, index) => `${field}=$${index + 3}`).join(', ')}
-    WHERE z.tenant_id=$1 AND z.id=$2 RETURNING ${projection('z', ZONE_COLUMNS)} AS row`,
+    WHERE z.tenant_id=$1 AND z.id=$2 RETURNING ${projection('z', zoneColumns(rulesReady))} AS row`,
   [context.tenantId, mutation.id, ...fields.map(field => values[field])])
   const zone = records<DeliveryZone>(result.rows, 'Delivery zones')[0]
   if (!zone) throw new AdminMenuError(404, 'Not found')

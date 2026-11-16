@@ -3,6 +3,7 @@ import { canKitchenMove, isOrderStatus, type OrderStatus } from '../orders/statu
 import { resolveTenantCapabilities, type ServiceSettings } from '../service-modes'
 import { resolveOptionSelection, type OptionSelectionState, type ServerOptionGroup } from '../menu/option-pricing'
 import { TAX_PROMO_NOT_READY, TAX_PROMO_READY_SQL, type PromoCodeRow, type TaxPromoState } from '../orders/tax-promo'
+import { DELIVERY_RULES_NOT_READY, DELIVERY_RULES_READY_SQL, type DeliveryRulesState } from '../orders/delivery-rules'
 import { SCHEDULING_NOT_READY, SCHEDULING_READY_SQL, schedulingTimeZone, type Hours, type SchedulingState } from '../orders/scheduled-orders'
 import { CONTACT_READY_SQL, buildOptedInContacts, type OptInOrderRow, type OrderContactValues } from '../orders/order-contact'
 import { EMAIL_COLUMN, EMAIL_STATUSES, buildEmailData } from '../orders/order-email-data'
@@ -247,6 +248,21 @@ export class OwnedOrderRepository {
     if (!created || !UUID.test(created.id) || !['pending','awaiting_payment','paid','payment_failed','preparing','ready','out_for_delivery','done','cancelled'].includes(created.status)
       || typeof created.replayed !== 'boolean') throw new OrderDataError(503, 'Order creation result is unavailable')
     return ok(created)
+  }
+  /** Whether the delivery-rules schema step ran; until it did, delivery behaves as before. */
+  async deliveryRulesReady() {
+    return (await this.query(DELIVERY_RULES_READY_SQL)).rows[0]?.ready === true
+  }
+  /** The "deliver only inside my zones" switch and each active zone's minimum order. */
+  async deliveryRules(): Promise<DeliveryRulesState> {
+    if (!(await this.deliveryRulesReady())) return DELIVERY_RULES_NOT_READY
+    const settings = rows<{ delivery_zones_only: boolean }>(await this.query(`SELECT ${projected('delivery_zones_only', 's')} AS row
+      FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2`, [this.tenantId]), 1)[0]
+    const zones = rows<{ id: string; min_order_cents: number }>(await this.query(`SELECT ${projected('id min_order_cents', 'z')} AS row
+      FROM public.delivery_zones z WHERE z.tenant_id=$1 AND z.is_active=true ORDER BY z.created_at,z.id LIMIT 1001`, [this.tenantId]), 1000)
+    const minByZone: Record<string, number> = {}
+    for (const zone of zones) minByZone[zone.id] = Number.isInteger(zone.min_order_cents) ? zone.min_order_cents : 0
+    return { ready: true, zonesOnly: settings?.delivery_zones_only === true, minByZone }
   }
   /** Whether the tax and promo schema step ran; until it did, orders behave as before. */
   async taxPromoReady() {
