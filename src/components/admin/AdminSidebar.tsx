@@ -30,6 +30,7 @@ import {
   LogOut,
   Salad,
   Newspaper,
+  Globe,
   Building2,
   Bot,
   Sparkles,
@@ -107,6 +108,7 @@ export default function AdminSidebar({
   const chatInboxItem = { href: '/chat-inbox', label: 'Chat Inbox', icon: Inbox }
   const ingredientItem = { href: '/menu/ingredients', label: 'Ingredients', icon: Salad }
   const blogItem = { href: '/posts', label: 'Blog', icon: Newspaper }
+  const websiteItem = { href: '/website', label: 'Website', icon: Globe }
   const waiterItem = tenantSlug ? { href: `/${tenantSlug}/waiter`, label: 'Waiter app', icon: ConciergeBell } : null
   const visibleMainItems = [
     ...mainItems,
@@ -115,6 +117,7 @@ export default function AdminSidebar({
     ...(capabilities.waiterOrdering && waiterItem ? [waiterItem] : []),
     ...(capabilities.ingredientCustomization ? [ingredientItem] : []),
     ...(capabilities.plan.blog ? [blogItem] : []),
+    ...(capabilities.plan.blog && !isStaff ? [websiteItem] : []),
   ].filter(item => isStaff ? item.href !== '/menus' : true)
   const visibleAdminPanelItems = (isStaff
     ? adminPanelItems.filter((item) => item.href === '/settings/qrcode' || item.href === '/settings/password')
