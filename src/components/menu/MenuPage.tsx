@@ -72,6 +72,7 @@ import {
   ShoppingBag,
   CalendarCheck,
 } from 'lucide-react'
+import type { AppliedPromo } from './CheckoutModal'
 
 const ProductModal = dynamic(() => import('./ProductModal'), { ssr: false })
 const CartPanel = dynamic(() => import('./CartPanel'), { ssr: false })
@@ -219,6 +220,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const [deliveryCity, setDeliveryCity] = useState('')
   const [deliveryNotes, setDeliveryNotes] = useState('')
   const [tipCents, setTipCents] = useState(0)
+  const [promo, setPromo] = useState<AppliedPromo | null>(null)
   const [analyticsTracker, setAnalyticsTracker] = useState<MenuAnalyticsTracker | null>(null)
   const [analyticsDebug, setAnalyticsDebug] = useState(false)
   const categoryRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -239,6 +241,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     ? { dineIn: true, pickup: false, delivery: false, deliveryFeeCents }
     : { dineIn: capabilities.dineIn, pickup: capabilities.pickup, delivery: capabilities.delivery, deliveryFeeCents }
   const tipsEnabled = capabilities.tips
+  // Sales tax and the promo field exist for guest checkout once the schema step ran (the rate is then a number).
+  const taxPromoReady = capabilities.guestOrdering && typeof settings?.tax_rate_bps === 'number'
+  const taxBps = taxPromoReady ? settings?.tax_rate_bps ?? 0 : 0
   const analyticsEnabled = settings?.analytics_enabled ?? true
   const feedAutoplayVideos = settings?.feed_autoplay_videos ?? true
   const tipPercentages: [number, number, number] = [
@@ -469,6 +474,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       customer_name: customerName.trim(),
       customer_phone: customerPhone.trim(),
       ...orderFields,
+      ...(taxPromoReady && promo ? { promo_code: promo.code } : {}),
       location_id: location?.id ?? null,
       table_id: orderingTable ? orderingTable.id : undefined,
       menu_id: menu?.id ?? null,
@@ -497,6 +503,10 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       const data = await response.json()
 
       if (!response.ok) {
+        if (data?.code === 'promo_invalid') {
+          setPromo(null)
+          throw new Error(copy.promoInvalid)
+        }
         throw new Error(copy.errSubmit)
       }
       // Placed: an identical cart later is a new order.
@@ -529,6 +539,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       setDeliveryNotes('')
       setOrderType(defaultOrderType)
       setTipCents(0)
+      setPromo(null)
     } catch (error) {
       setOrderError(error instanceof Error && error.message ? error.message : copy.errSubmit)
     } finally {
@@ -1510,6 +1521,11 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           tipPercentages={tipPercentages}
           tipCents={tipCents}
           onTipChange={setTipCents}
+          tenantId={tenant.id}
+          taxBps={taxBps}
+          promoEnabled={taxPromoReady}
+          promo={taxPromoReady ? promo : null}
+          onPromoChange={setPromo}
         />
       )}
     </div>

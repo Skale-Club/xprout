@@ -118,6 +118,7 @@ export async function updateSession(request: NextRequest, rewriteUrl?: URL) {
       '/settings/store',
       '/settings/branding',
       '/settings/staff',
+      '/settings/promo-codes',
     ]
 
     if (role === 'store-staff' && staffBlockedRoutes.some((route) => pathname.startsWith(route))) {

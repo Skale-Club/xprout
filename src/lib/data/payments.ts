@@ -3,6 +3,7 @@ import { isTenantMemberRole, normalizeRole } from '../auth/role-utils'
 import { planCeiling } from '../service-modes'
 import { isOrderStatus, paymentTransition, type PaymentSignal } from '../orders/status-machine'
 import { currencyMinorFactor, toStripeAmount } from '../orders/payment-money'
+import { TAX_PROMO_READY_SQL } from '../orders/tax-promo'
 export type PaymentQuery=(text:string,values?:unknown[])=>Promise<{rows:Record<string,unknown>[]}>
 export class PaymentDataError extends Error { constructor(public status:number,message:string){super(message)} }
 export const paymentsDataOwned=(env:Record<string,string|undefined>=process.env)=>env.OWNED_PAYMENT_DATA_ENABLED==='true'
@@ -14,7 +15,7 @@ export type PaymentOrder={id:string;tenant_id:string;customer_id:string|null;sta
 export type PaymentConfiguration={currency:string|null;stripe_account_id:string|null;payments:boolean;stripe:boolean;fee:number}
 export type PaymentSnapshot={order:PaymentOrder;config:PaymentConfiguration}
 export type PaymentFacts={id:string;amount:number;currency:string;metadata?:{order_id?:string;tenant_id?:string}|null}
-export type CheckoutOrder=PaymentOrder&{order_items:Array<Record<string,unknown>>;tenants:{slug:string;name:string;tenant_settings:{currency:string|null;primary_color:string|null;accent_color:string|null}}}
+export type CheckoutOrder=PaymentOrder&{discount_cents?:number;tax_cents?:number;promo_code?:string|null;order_items:Array<Record<string,unknown>>;tenants:{slug:string;name:string;tenant_settings:{currency:string|null;primary_color:string|null;accent_color:string|null}}}
 export function assertPayable(order:PaymentOrder){if(!payable.has(order.status))throw new PaymentDataError(409,'Order is not awaiting payment')}
 export function paymentMoney(snapshot:PaymentSnapshot){
   const {order,config}=snapshot,currency=(order.currency??config.currency??'usd').toLowerCase()||'usd'
@@ -76,7 +77,13 @@ export class OwnedPaymentRepository {
     const items=await this.query(`SELECT oi.id,oi.product_name,oi.quantity,oi.unit_price,oi.selected_options
       FROM public.order_items oi JOIN public.orders o ON o.id=oi.order_id AND o.tenant_id=$1 WHERE oi.order_id=$2 ORDER BY oi.id LIMIT 1001`,[order.tenant_id,id])
     if(items.rows.length>1000)throw new PaymentDataError(503,'Order items are unavailable')
-    return{...order,order_items:items.rows,tenants:{slug:String(tenant.slug),name:String(tenant.name),tenant_settings:{currency:tenant.currency===null?null:String(tenant.currency),primary_color:typeof tenant.primary_color==='string'?tenant.primary_color:null,accent_color:typeof tenant.accent_color==='string'?tenant.accent_color:null}}}
+    // Discount and tax lines for the confirmation page, once the tax/promo schema step ran.
+    let breakdown:{discount_cents?:number;tax_cents?:number;promo_code?:string|null}={}
+    if((await this.query(TAX_PROMO_READY_SQL)).rows[0]?.ready===true){
+      const row=(await this.query('SELECT discount_cents,tax_cents,promo_code FROM public.orders WHERE tenant_id=$1 AND id=$2 LIMIT 1',[order.tenant_id,id])).rows[0]
+      if(row)breakdown={discount_cents:Number(row.discount_cents??0),tax_cents:Number(row.tax_cents??0),promo_code:typeof row.promo_code==='string'?row.promo_code:null}
+    }
+    return{...order,...breakdown,order_items:items.rows,tenants:{slug:String(tenant.slug),name:String(tenant.name),tenant_settings:{currency:tenant.currency===null?null:String(tenant.currency),primary_color:typeof tenant.primary_color==='string'?tenant.primary_color:null,accent_color:typeof tenant.accent_color==='string'?tenant.accent_color:null}}}
   }
   async claim(snapshot:PaymentSnapshot,intentId:string){
     if(!/^pi_[A-Za-z0-9]+$/.test(intentId))throw new PaymentDataError(503,'Payment provider response is unavailable')

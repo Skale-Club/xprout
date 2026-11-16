@@ -16,6 +16,7 @@ function fixtureQuery(overrides: { active?: boolean; features?: string[]; settin
       },
     } }] }
     if (text.includes('FROM public.tenant_subscriptions')) return { rows: overrides.features === null ? [] : [{ features: overrides.features ?? ['orders'] }] }
+    if (text.includes('information_schema.columns')) return { rows: [{ ready: false }] }
     if (text.includes('FROM public.orders o')) return { rows: [{ row: order }] }
     if (text.includes('FROM public.locations l')) return { rows: [{ row: { id: 'location-1', name: 'Downtown', slug: 'downtown' } }] }
     throw new Error(`Unexpected query: ${text}`)
