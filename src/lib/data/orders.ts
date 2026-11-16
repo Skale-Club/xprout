@@ -28,6 +28,8 @@ export type KdsBootstrap = {
   currency: string
   /** The restaurant's time zone (from its profile), for scheduled orders; null when unknown. */
   timeZone: string | null
+  /** The restaurant's name, for the printed kitchen ticket. */
+  restaurantName: string | null
 }
 export class OrderDataError extends Error {
   constructor(public status: number, message: string) { super(message) }
@@ -126,8 +128,8 @@ export async function assertOrderRpcCompatibility(query: OrderQuery) {
 export class OwnedOrderRepository {
   constructor(private query: OrderQuery, readonly tenantId: string) { tenant(tenantId) }
   async tenantSettings() {
-    return ok(rows<{ id: string; is_active: boolean; tenant_settings: Settings | null }>(await this.query(`SELECT
-      jsonb_build_object('id',t.id,'is_active',t.is_active,'tenant_settings',CASE WHEN s.tenant_id IS NULL THEN NULL ELSE ${projected(SETTINGS_COLUMNS, 's')} END) AS row
+    return ok(rows<{ id: string; is_active: boolean; name?: string | null; tenant_settings: Settings | null }>(await this.query(`SELECT
+      jsonb_build_object('id',t.id,'is_active',t.is_active,'name',t.name,'tenant_settings',CASE WHEN s.tenant_id IS NULL THEN NULL ELSE ${projected(SETTINGS_COLUMNS, 's')} END) AS row
       FROM public.tenants t LEFT JOIN public.tenant_settings s ON s.tenant_id=t.id WHERE t.id=$1 AND t.is_active=true LIMIT 1`, [this.tenantId]), 1)[0] ?? null)
   }
   async locations() {
@@ -151,6 +153,7 @@ export class OwnedOrderRepository {
       redThreshold: threshold(settings?.red_threshold_minutes, 20),
       currency: typeof settings?.currency === 'string' ? settings.currency : 'USD',
       timeZone: schedulingTimeZone({ country: settings?.country, region: settings?.region, currency: settings?.currency }),
+      restaurantName: typeof tenant.name === 'string' ? tenant.name : null,
     }
   }
   async capabilities(settings?: Settings | null) {

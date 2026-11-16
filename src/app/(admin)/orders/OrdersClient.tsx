@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import WaiterCallsPanel from '@/components/admin/WaiterCallsPanel'
 import { startVisiblePolling } from '@/lib/visible-polling'
 import type { Order, OrderItem } from '@/types/database'
@@ -9,6 +9,7 @@ import { Bell, BellOff, LayoutGrid, List, MessageSquare, Package, Clock, CheckCi
 import { cn } from '@/lib/utils'
 import ModalPortal from '@/components/ui/ModalPortal'
 import { formatScheduled } from '@/components/menu/schedule-format'
+import { PrintTicket } from './KitchenTicket'
 
 /** "Scheduled · Tue 9:00 AM" for an order a guest booked for later, in the restaurant's time zone (the device's when unknown). */
 function scheduledBadge(order: { scheduled_for?: string | null }, timeZone: string | null | undefined): string | null {
@@ -102,6 +103,8 @@ interface OrdersClientProps {
   currency?: string
   /** The restaurant's time zone, for scheduled orders. */
   timeZone?: string | null
+  /** The restaurant's name, printed on the kitchen ticket. */
+  restaurantName?: string | null
 }
 
 function OrderCard({
@@ -114,6 +117,7 @@ function OrderCard({
   onClick,
   formatMoney,
   timeZone,
+  onPrint,
 }: {
   order: OrderWithItems
   loadingId: string | null
@@ -124,6 +128,7 @@ function OrderCard({
   onClick: () => void
   formatMoney: (value: number) => string
   timeZone?: string | null
+  onPrint: () => void
 }) {
   const scheduledLabel = scheduledBadge(order, timeZone)
   const { minutes, chipClass } = useElapsedTime(order.created_at, amberMinutes, redMinutes)
@@ -249,6 +254,13 @@ function OrderCard({
             {isLoading ? 'Processing...' : ADVANCE_LABEL[order.status]}
           </button>
         )}
+        <button
+          type="button"
+          onClick={onPrint}
+          className="w-full py-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-950 transition-colors"
+        >
+          Print ticket
+        </button>
         {(order.status === 'pending' || order.status === 'preparing') && (
           <button
             onClick={() => onCancel(order.id)}
@@ -263,7 +275,7 @@ function OrderCard({
   )
 }
 
-export default function OrdersClient({ initialOrders, tenantId, amberThreshold, redThreshold, locations = [], currency = 'USD', timeZone = null }: OrdersClientProps) {
+export default function OrdersClient({ initialOrders, tenantId, amberThreshold, redThreshold, locations = [], currency = 'USD', timeZone = null, restaurantName = null }: OrdersClientProps) {
   // Render money in the tenant's configured currency (the KDS previously
   // hardcoded "R$" regardless of currency).
   const fmtMoney = (value: number) => {
@@ -275,6 +287,9 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
   }
   const [orders, setOrders] = useState(initialOrders)
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null)
+  // The order whose 80 mm ticket is being printed (see KitchenTicket.tsx).
+  const [printOrder, setPrintOrder] = useState<OrderWithItems | null>(null)
+  const clearPrint = useCallback(() => setPrintOrder(null), [])
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [activeFilter, setActiveFilter] = useState<FilterValue>(DEFAULT_FILTER)
@@ -553,6 +568,7 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
               onClick={() => setSelectedOrder(order)}
               formatMoney={fmtMoney}
               timeZone={timeZone}
+              onPrint={() => setPrintOrder(order)}
             />
           ))}
         </div>
@@ -816,6 +832,13 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
                   </button>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={() => setPrintOrder(selectedOrder)}
+                className="min-h-12 rounded-full px-6 py-3 text-sm font-black uppercase tracking-widest text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-950 sm:px-10 sm:py-5"
+              >
+                Print
+              </button>
               <button 
                 onClick={() => updateStatus(selectedOrder.id, 'cancelled')}
                 className="min-h-12 rounded-full px-6 py-3 text-sm font-black uppercase tracking-widest text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-500 sm:px-10 sm:py-5"
@@ -827,6 +850,7 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
         </div>
         </ModalPortal>
       )}
+      {printOrder && <PrintTicket order={printOrder} restaurantName={restaurantName} timeZone={timeZone} formatMoney={fmtMoney} onDone={clearPrint} />}
     </div>
   )
 }
