@@ -14,5 +14,6 @@ export function anonymousPublicHtml(request: { method: string; url: string; head
   const accept = request.headers.get('accept') ?? ''
   if (accept && !accept.includes('text/html') && !accept.includes('*/*')) return false
   if (/\.(?:xml|txt|webmanifest|json|png|jpg|webp|svg|ico)$/.test(url.pathname)) return false
-  return site.indexable || (site.tenant?.is_demo === true && site.tenant.is_active === true)
+  return site.indexable || (site.tenant?.is_demo === true && site.tenant.is_active === true
+    && (site.reason === 'demo' || site.reason === 'unpublished'))
 }

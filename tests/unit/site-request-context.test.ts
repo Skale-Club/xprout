@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { readRequestSite } from '@/lib/site/request-data'
+import { resolveSite, type ResolveSiteInput, type SiteTenant } from '@/lib/site/resolve-site'
 import { anonymousPublicHtml, PRIVATE_HTML_CACHE, PUBLIC_HTML_CACHE } from '@/lib/site/cache-policy'
 import { parseRequestSite, serializeRequestSite, siteLocale, type RequestSite } from '@/lib/site/request-contract'
 import { lookupRequestSite, type SiteCacheEntry } from '@/lib/site/request-lookup'
@@ -59,6 +60,23 @@ describe('request site and routing snapshot', () => {
 describe('anonymous HTML cache boundary', () => {
   const site = { indexable: true, privatePage: false, pathname: '/pizza', tenant: null } as RequestSite
   const request = (url = 'https://xprout.app/pizza', extra: Record<string, string> = {}, method = 'GET') => ({ url, method, headers: new Headers({ accept: 'text/html', ...extra }) })
+  const demo: SiteTenant = { slug: 'pizza', is_active: true, is_demo: true, published_at: null }
+  const demoContext = (input: Partial<ResolveSiteInput> = {}): RequestSite => {
+    const pathname = input.pathname ?? '/pizza'
+    return { ...resolveSite({ host: 'xprout.app', tenant: demo, pathname, platformOrigin: 'https://xprout.app', subdomainBase: null, ...input }),
+      pathname, rewrite: null, privatePage: input.privatePage ?? false }
+  }
+  it('allows canonical public demos without making previews, aliases or protected routes cacheable', () => {
+    expect(anonymousPublicHtml(request(), demoContext())).toBe(true)
+    expect(anonymousPublicHtml(request(), demoContext({ tenant: { ...demo, published_at: '2026-01-01T00:00:00Z' } }))).toBe(true)
+    for (const input of [
+      { host: 'localhost' }, { host: 'localhost', platformOrigin: 'http://localhost' },
+      { host: 'www.xprout.app' }, { pathname: '/pizza/draft' }, { privatePage: true },
+      { tenant: { ...demo, is_active: false } }, { tenant: { ...demo, brand_id: 'another-brand' } },
+    ] as Partial<ResolveSiteInput>[]) {
+      expect(anonymousPublicHtml(request(), demoContext(input))).toBe(false)
+    }
+  })
   it('allows only anonymous cookie-free parameter-free HTML GET', () => {
     expect(anonymousPublicHtml(request(), site)).toBe(true)
     expect(PUBLIC_HTML_CACHE).toContain('s-maxage=60')
