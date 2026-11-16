@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 
 /** Pixels per second the row drifts on its own: slow enough to read the names. */
 const SPEED = 28
 /** How long the row waits after a guest touches it before drifting again. */
 const RESUME_AFTER_MS = 2500
+
+const subscribeNothing = () => () => {}
 
 /**
  * An endless row: the dishes repeat forever in both directions, drift slowly
@@ -31,6 +33,10 @@ export default function FeaturedCarousel({ items, className = '' }: {
   const scrollerRef = useRef<HTMLDivElement | null>(null)
   const rowRef = useRef<HTMLDivElement | null>(null)
   const [copies, setCopies] = useState(3)
+  // The server (and the first client pass) renders ONE copy, so the page text,
+  // crawlers and screen readers see each dish once. The repeated copies exist
+  // only after hydration, hidden from assistive tech and inert (no focus).
+  const hydrated = useSyncExternalStore(subscribeNothing, () => true, () => false)
 
   /** One copy's width including the gap that follows it: the distance the loop jumps. */
   const copyWidth = () => {
@@ -61,7 +67,7 @@ export default function FeaturedCarousel({ items, className = '' }: {
     const scroller = scrollerRef.current
     const width = copyWidth()
     if (scroller && width > 0 && scroller.scrollLeft < width / 2) scroller.scrollLeft = width
-  }, [copies])
+  }, [copies, hydrated])
 
   // Mouse drag: touch already scrolls natively; a mouse grabs and throws the row
   // too, and a drag never counts as a click on the dish under the pointer.
@@ -143,7 +149,8 @@ export default function FeaturedCarousel({ items, className = '' }: {
       const dt = last ? Math.min(now - last, 64) : 0
       last = now
       const width = copyWidth()
-      if (width > 0) {
+      // Before hydration there is a single copy: nothing to loop yet.
+      if (width > 0 && (rowRef.current?.childElementCount ?? 0) >= 3) {
         const still = hovering || holding || focused || now < pausedUntil || document.hidden || reduce.matches
         if (still) {
           position = scroller.scrollLeft
@@ -205,10 +212,15 @@ export default function FeaturedCarousel({ items, className = '' }: {
       className="scrollbar-hide cursor-grab overflow-x-auto overscroll-x-contain select-none data-[dragging=true]:cursor-grabbing [mask-image:linear-gradient(to_right,#0006,#000_16px,#000_calc(100%-16px),#0006)] sm:[mask-image:linear-gradient(to_right,#0006,#000_28px,#000_calc(100%-28px),#0006)]"
     >
       <div ref={rowRef} className={`flex w-max gap-3 sm:gap-4 ${className}`}>
-        {Array.from({ length: copies }, (_, copy) => (
+        {Array.from({ length: copies }, (_, copy) => (copy === 1 || hydrated) && (
           // The second copy is the one on screen first: it is the real one for
-          // screen readers, the keyboard and analytics.
-          <div key={copy} aria-hidden={copy === 1 ? undefined : true} className="flex shrink-0 gap-3 sm:gap-4">
+          // screen readers, the keyboard and analytics. The others are inert.
+          <div
+            key={copy}
+            aria-hidden={copy === 1 ? undefined : true}
+            inert={copy === 1 ? undefined : true}
+            className="flex shrink-0 gap-3 sm:gap-4"
+          >
             {items(copy !== 1)}
           </div>
         ))}
