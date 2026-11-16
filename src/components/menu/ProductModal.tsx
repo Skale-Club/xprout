@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import DishPhoto from './DishPhoto'
-import { Box, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, MessageCircle, Minus, Phone, Plus, ShoppingBag, X } from 'lucide-react'
+import { Box, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Minus, Plus, ShoppingBag, X } from 'lucide-react'
 import ArButton, { useIsComputer, type ArCart, type ArSequenceItem } from '@/components/ar/ArButton'
 import ModelViewer from '@/components/ar/ModelViewer'
 import { getArCopy } from '@/components/ar/ar-copy'
@@ -18,7 +18,7 @@ import { ctaStyle, ui } from './menu-ui'
 import { readableTextColor, computePrimaryForeground } from '@/lib/color-utils'
 import { baseName } from '@/lib/menu-translations'
 import { getGuestCopy } from './guest-copy'
-import { contactLinks, displayPrice, optionPriceList, orderedItemText, showcaseItemText } from './showcase'
+import { displayPrice, optionPriceList, orderedItemText, showcaseItemText } from './showcase'
 import ModalPortal from '@/components/ui/ModalPortal'
 import { keepFieldVisible, useVisibleBox } from '@/components/ui/keyboard-fields'
 import { useDragToDismiss } from '@/components/ui/use-drag-to-dismiss'
@@ -78,7 +78,7 @@ function VideoSlide({ url }: { url: string }) {
   )
 }
 
-export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, contact = null, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart }: {
+export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart }: {
   /** Adds one of this dish from the AR camera without closing the sheet (no upsell). */
   onAddToCartFromAr?: (selectedOptions: Record<string, unknown>, unitPrice: number, note?: string, ingredientModifications?: IngredientModifications | null, editorState?: CartEditorState | null) => void
   /** Items in the order, for the confirmation inside the camera. */
@@ -112,8 +112,6 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
   onAddToCart?: (selectedOptions: Record<string, unknown>, unitPrice: number, note?: string, ingredientModifications?: IngredientModifications | null, editorState?: CartEditorState | null, quantity?: number) => void;
   /** View-only menu: options as a price list, no choices, no cart (defaults to !onAddToCart). */
   showcase?: boolean
-  /** The restaurant's contact details (tenant_settings), shown as links in showcase. */
-  contact?: { whatsapp?: string | null; phone?: string | null; instagram?: string | null } | null
   onCustomizationStarted?: () => void
   optionGroups?: GroupWithOptions[]
   itemNotesEnabled?: boolean
@@ -466,12 +464,6 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
     }
     onAddToCart(opts, finalUnitPrice, itemNote || undefined, mods, editorState, 1)
   }
-
-  // Showcase footer: how to reach the restaurant about this dish. WhatsApp is
-  // left out when the green "Order on WhatsApp" button already covers it.
-  const contactDetails = contactLinks(contact, fill(guestCopy.whatsappAsk, { item: baseName(product) }))
-  const contactRow = { ...contactDetails, whatsapp: whatsapp && onWhatsApp ? null : contactDetails.whatsapp }
-  const hasContactRow = !!(contactRow.whatsapp || contactRow.phone || contactRow.instagram)
 
   const closeButton = (
     <button
@@ -925,7 +917,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
           </div>
         </div>
 
-        {((!showcase && onAddToCart) || (whatsapp && onWhatsApp) || (showcase && hasContactRow)) && (
+        {((!showcase && onAddToCart) || (whatsapp && onWhatsApp)) && (
           <div className="shrink-0 space-y-2 border-t border-zinc-100 bg-white px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {!showcase && onAddToCart && (
               <>
@@ -999,28 +991,6 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
               >
                 {copy.orderWhatsApp}
               </button>
-            )}
-            {showcase && hasContactRow && (
-              <div>
-                <p className="text-[12px] font-medium text-zinc-500">{guestCopy.contactTitle}</p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  {contactRow.whatsapp && (
-                    <a href={contactRow.whatsapp} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-full border border-zinc-200 px-3.5 text-[14px] font-medium text-zinc-800 transition-colors hover:bg-zinc-50">
-                      <MessageCircle className="size-4 text-emerald-600" aria-hidden="true" /> WhatsApp
-                    </a>
-                  )}
-                  {contactRow.phone && (
-                    <a href={contactRow.phone.url} className="inline-flex h-10 items-center gap-1.5 rounded-full border border-zinc-200 px-3.5 text-[14px] font-medium text-zinc-800 transition-colors hover:bg-zinc-50">
-                      <Phone className="size-4 text-zinc-500" aria-hidden="true" /> {guestCopy.callRestaurant}
-                    </a>
-                  )}
-                  {contactRow.instagram && (
-                    <a href={contactRow.instagram.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 min-w-0 items-center gap-1.5 rounded-full border border-zinc-200 px-3.5 text-[14px] font-medium text-zinc-800 transition-colors hover:bg-zinc-50">
-                      <Camera className="size-4 shrink-0 text-zinc-500" aria-hidden="true" /> <span className="truncate">{contactRow.instagram.handle}</span>
-                    </a>
-                  )}
-                </div>
-              </div>
             )}
           </div>
         )}

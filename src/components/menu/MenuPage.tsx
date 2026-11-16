@@ -1266,8 +1266,15 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
               </>
             )}
             {footerBrand && (
-              <p className={`text-[12px] text-zinc-500 ${hasContact ? 'mt-8' : ''}`}>
-                {copy.poweredBy} <a href="/" className="font-medium text-zinc-600 hover:text-zinc-900">{footerBrand}</a>
+              <p className={`flex items-center gap-1 text-[12px] text-zinc-500 ${hasContact ? 'mt-8' : ''}`}>
+                {copy.poweredBy}
+                <a href="/" className="inline-flex items-center gap-1 font-semibold text-zinc-600 hover:text-zinc-900">
+                  {/* The platform symbol only sits beside the platform's own name. */}
+                  {footerBrand === BRAND_NAME && (
+                    <Image src="/brand/xprout/v1/icon-192.png" alt="" width={15} height={15} className="size-[15px] shrink-0 rounded-[4px]" />
+                  )}
+                  {footerBrand}
+                </a>
               </p>
             )}
           </div>
@@ -1312,7 +1319,6 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           onClose={closeProductModal}
           onWhatsApp={openWhatsApp}
           showcase={!directOrdersEnabled}
-          contact={settings}
           optionGroups={optionGroupsByProductId[selectedProduct.id] ?? []}
           itemNotesEnabled={capabilities.itemNotes}
           ingredientCustomizationEnabled={ingredientCustomizationEnabled}
