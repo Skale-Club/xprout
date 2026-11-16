@@ -568,6 +568,7 @@ export interface ProductOption {
   price_modifier: number
   is_available: boolean
   position: number
+  image_url?: string | null // Optional photo; absent until docs/owned-schema/20261116160000 ran
   translations: Record<string, { name?: string }>
   created_at: string
   updated_at: string

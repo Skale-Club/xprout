@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/utils'
@@ -14,6 +15,8 @@ import ProductTranslationsTab from './ProductTranslationsTab'
 import ProductUpsellCard, { type UpsellCandidate } from './ProductUpsellCard'
 import { notifyPublicMenuChanged } from '@/lib/menu/revalidate-client'
 import { normalizeTags } from '@/lib/menu/dish-tags'
+import { compressImageForUpload } from '@/lib/media/client-compress'
+import { optionPhotoUrl } from '@/lib/menu/option-images'
 
 const TYPE_BADGE: Record<OptionGroupType, string> = {
   single:        'bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full',
@@ -44,6 +47,8 @@ interface Props {
   showcase?: boolean
   /** The plan includes guest ordering, the only place "Complete your order" works. */
   upsellAvailable?: boolean
+  /** Option photos can be saved (the schema step ran). */
+  optionImagesReady?: boolean
   ownedSource?: boolean
 }
 
@@ -181,13 +186,16 @@ function OptionForm({
   parentGroupType,
   currency,
   initial,
+  imageEnabled = false,
   onSave,
   onDiscard,
 }: {
   parentGroupType: OptionGroupType
   currency: string
-  initial?: { name: string; base_price: number | null; price_modifier: number; is_available: boolean }
-  onSave: (data: { name: string; base_price: number | null; price_modifier: number; is_available: boolean }) => Promise<void>
+  initial?: { name: string; base_price: number | null; price_modifier: number; is_available: boolean; image_url?: string | null }
+  /** Offer the optional photo (the schema step ran). */
+  imageEnabled?: boolean
+  onSave: (data: { name: string; base_price: number | null; price_modifier: number; is_available: boolean; image_url?: string | null }) => Promise<void>
   onDiscard: () => void
 }) {
   const isAbsolutePrice = parentGroupType === 'single' || parentGroupType === 'half_and_half'
@@ -201,6 +209,8 @@ function OptionForm({
       : ''
   )
   const [isAvailable, setIsAvailable] = useState(initial?.is_available ?? true)
+  const [imageUrl, setImageUrl] = useState<string | null>(initial?.image_url ?? null)
+  const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -213,14 +223,34 @@ function OptionForm({
     USD: '$', BRL: 'R$', EUR: '€', GBP: '£',
   }
 
+  // Same pipeline and budgets as dish photos: the browser shrinks it, the server converts to WebP within the byte cap.
+  async function handlePhoto(files: FileList | null) {
+    const file = files?.[0]
+    if (!file) return
+    setUploading(true)
+    setError(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', await compressImageForUpload(file))
+      const res = await fetch('/api/admin/products/upload', { method: 'POST', body: fd })
+      const body = await res.json().catch(() => null) as { url?: string; error?: string } | null
+      if (!res.ok || !body?.url) setError(body?.error ?? 'Photo upload failed')
+      else setImageUrl(body.url)
+    } catch {
+      setError('Photo upload failed')
+    }
+    setUploading(false)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     setError(null)
     const parsed = parseFloat(priceValue) || 0
+    const photo = imageEnabled ? { image_url: imageUrl } : {}
     const payload = isAbsolutePrice
-      ? { name, base_price: parsed, price_modifier: 0, is_available: isAvailable }
-      : { name, base_price: null, price_modifier: parsed, is_available: isAvailable }
+      ? { name, base_price: parsed, price_modifier: 0, is_available: isAvailable, ...photo }
+      : { name, base_price: null, price_modifier: parsed, is_available: isAvailable, ...photo }
     await onSave(payload).catch((err: Error) => setError(err.message))
     setSaving(false)
   }
@@ -257,6 +287,23 @@ function OptionForm({
           <p className="text-[13px] text-zinc-600 mt-0.5">{priceHint}</p>
         </div>
       </div>
+      {imageEnabled && (
+        <div className="flex items-center gap-3">
+          {imageUrl ? (
+            <Image src={imageUrl} alt="" width={48} height={48} unoptimized className="size-12 rounded-lg object-cover border border-zinc-200" />
+          ) : (
+            <div className="size-12 rounded-lg border border-dashed border-zinc-300 bg-zinc-50" />
+          )}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-zinc-700">
+              Photo (optional)
+              <input type="file" accept="image/*" disabled={uploading} onChange={e => { void handlePhoto(e.target.files); e.target.value = '' }} className="mt-1 block text-[13px] text-zinc-600" />
+            </label>
+            {imageUrl && <button type="button" onClick={() => setImageUrl(null)} className="self-start text-[13px] font-medium text-red-600 hover:underline">Remove photo</button>}
+            {uploading && <span className="text-[13px] text-zinc-600">Uploading...</span>}
+          </div>
+        </div>
+      )}
       <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
@@ -305,6 +352,7 @@ export default function ProductDetailClient({
   upsellCandidates = [],
   showcase = false,
   upsellAvailable = true,
+  optionImagesReady = false,
   ownedSource = false,
 }: Props) {
   // Product fields form state
@@ -552,6 +600,7 @@ export default function ProductDetailClient({
       base_price: number | null
       price_modifier: number
       is_available: boolean
+      image_url?: string | null
     },
     editingId: string | null,
     onSuccess: () => void,
@@ -571,7 +620,7 @@ export default function ProductDetailClient({
     if (editingId) {
       const { error } = await legacyClient()
         .from('product_options')
-        .update({ name: data.name, base_price: data.base_price, price_modifier: data.price_modifier, is_available: data.is_available })
+        .update({ name: data.name, base_price: data.base_price, price_modifier: data.price_modifier, is_available: data.is_available, ...('image_url' in data ? { image_url: data.image_url } : {}) })
         .eq('id', editingId)
       if (error) { onError(error.message); return }
       notifyPublicMenuChanged()
@@ -589,6 +638,7 @@ export default function ProductDetailClient({
           base_price: data.base_price,
           price_modifier: data.price_modifier,
           is_available: data.is_available,
+          ...('image_url' in data ? { image_url: data.image_url } : {}),
           position: group?.options.length ?? 0,
         })
         .select()
@@ -1052,6 +1102,7 @@ export default function ProductDetailClient({
                     <OptionForm
                       parentGroupType={group.type}
                       currency={currency}
+                      imageEnabled={optionImagesReady}
                       onSave={async (data) => {
                         await handleSaveOption(group.id, data, null,
                           () => setExpandedOption(prev => ({ ...prev, [group.id]: null })),
@@ -1070,7 +1121,8 @@ export default function ProductDetailClient({
                         <OptionForm
                           parentGroupType={group.type}
                           currency={currency}
-                          initial={{ name: option.name, base_price: option.base_price, price_modifier: option.price_modifier, is_available: option.is_available }}
+                          imageEnabled={optionImagesReady}
+                          initial={{ name: option.name, base_price: option.base_price, price_modifier: option.price_modifier, is_available: option.is_available, image_url: option.image_url ?? null }}
                           onSave={async (data) => {
                             await handleSaveOption(group.id, data, option.id,
                               () => setExpandedOption(prev => ({ ...prev, [group.id]: null })),
@@ -1105,6 +1157,7 @@ export default function ProductDetailClient({
                         )}
                         {/* Option name + price */}
                         <div className="flex-1 flex items-center gap-2">
+                          {optionPhotoUrl(option) && <Image src={optionPhotoUrl(option)!} alt="" width={28} height={28} unoptimized loading="lazy" className="size-7 rounded-md object-cover" />}
                           <span className="text-sm text-zinc-900">{option.name}</span>
                           <span className="text-sm text-zinc-500">
                             {option.base_price != null

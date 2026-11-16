@@ -1,3 +1,4 @@
+import { OPTION_IMAGE_READY_SQL, optionColumns } from '../menu/option-images'
 import { DELIVERY_RULES_READY_SQL } from '../orders/delivery-rules'
 import { BRAND_NAME } from '@/lib/brand'
 import { ACTION_LINK_COLUMNS } from '../menu-action-links'
@@ -168,7 +169,9 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       const ids = products.map(product => product.id)
       const groupRows = await rows<Row>(query, publicSelect('product_option_groups', 'g', PUBLIC_MENU_COLUMNS.group,
         'JOIN public.products p ON p.id=g.product_id AND p.tenant_id=g.tenant_id WHERE g.tenant_id=$1 AND p.menu_id=$2 AND p.is_available=true AND g.product_id=ANY($3::uuid[])', 'g.position, g.id', 5000), [tenantId, menu.id, ids], 5000)
-      const optionRows = await rows<Row & { group_id: string }>(query, publicSelect('product_options', 'o', PUBLIC_MENU_COLUMNS.option,
+      // Option photos once the schema step added the column (a named column, so a column-level grant suffices).
+      const optionImagesReady = one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${OPTION_IMAGE_READY_SQL}) r`, [], 1))?.ready === true
+      const optionRows = await rows<Row & { group_id: string }>(query, publicSelect('product_options', 'o', optionColumns(PUBLIC_MENU_COLUMNS.option, optionImagesReady),
         'JOIN public.product_option_groups g ON g.id=o.group_id AND g.tenant_id=o.tenant_id JOIN public.products p ON p.id=g.product_id AND p.tenant_id=g.tenant_id WHERE o.tenant_id=$1 AND p.menu_id=$2 AND p.is_available=true AND o.is_available=true AND g.product_id=ANY($3::uuid[])', 'o.position, o.id', 20000), [tenantId, menu.id, ids], 20000)
       groups = groupRows.map(group => ({ ...group, options: optionRows.filter(option => option.group_id === group.id) })) as unknown as GroupWithOptions[]
       if (capabilities.ingredientCustomization) {
