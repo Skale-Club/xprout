@@ -998,7 +998,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
             </div>
           )}
 
-          {/* Loyalty — one reward, earned by signed-in customers when an order is completed */}
+          {/* Loyalty â€” one reward, earned by signed-in customers when an order is completed */}
           {loyaltyAvailable && (
             <div className="bg-white border border-zinc-100 rounded-[1.25rem] p-10 space-y-4 shadow-sm">
               <div className="flex items-center gap-3 mb-6">

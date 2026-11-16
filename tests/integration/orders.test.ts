@@ -34,11 +34,11 @@ before(async () => {
       public.product_options,public.product_option_groups,public.product_ingredients,public.ingredients,
       public.products,public.restaurant_tables,public.delivery_zones,public.locations,public.menus,
       public.tenant_subscriptions,public.plans,public.stripe_connections,public.tenant_settings,public.tenants CASCADE;
-    CREATE TABLE public.tenants(id uuid PRIMARY KEY,is_active boolean NOT NULL DEFAULT true);
+    CREATE TABLE public.tenants(id uuid PRIMARY KEY,is_active boolean NOT NULL DEFAULT true,name text);
     CREATE TABLE public.tenant_settings(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),
       orders_enabled boolean,direct_orders_enabled boolean,table_management_enabled boolean,whatsapp_orders_enabled boolean,whatsapp text,
       tips_enabled boolean,item_notes_enabled boolean,ingredient_customization_enabled boolean,dine_in_enabled boolean,pickup_enabled boolean,
-      delivery_enabled boolean,upsell_enabled boolean,delivery_fee_cents integer,currency text,country text,
+      delivery_enabled boolean,upsell_enabled boolean,delivery_fee_cents integer,currency text,country text,region text,
       amber_threshold_minutes integer,red_threshold_minutes integer);
     CREATE TABLE public.plans(id uuid PRIMARY KEY,features jsonb NOT NULL);
     CREATE TABLE public.tenant_subscriptions(tenant_id uuid PRIMARY KEY,plan_id uuid REFERENCES public.plans(id),status text);
