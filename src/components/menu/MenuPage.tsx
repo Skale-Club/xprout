@@ -1019,7 +1019,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   }, [hours, settings?.country, settings?.region, currency])
   const openLabel: OpenLabel | null = openInfo ? describeOpenState(openInfo.state, copy, guestCopy, selectedLanguage) : null
 
-  const contextParts = [menuTitle !== tenant.name ? menuTitle : null, settings?.business_type, settings?.price_range]
+  // The price range ($$) stays in settings for SEO and the chat, but is not shown to guests.
+  const contextParts = [menuTitle !== tenant.name ? menuTitle : null, settings?.business_type]
     .filter((part): part is string => !!part && !!part.trim())
 
   const tabs: Array<{ id: string; label: string }> = [
@@ -1401,8 +1402,15 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
               </nav>
             )}
             {shownFooterBrand && (
-              <p className={`text-[12px] text-zinc-500 ${hasContact || pageLinks.length > 0 ? 'mt-8' : ''}`}>
-                {copy.poweredBy} <a href="/" className="font-medium text-zinc-600 hover:text-zinc-900">{shownFooterBrand}</a>
+              <p className={`flex items-center gap-1 text-[12px] text-zinc-500 ${hasContact || pageLinks.length > 0 ? 'mt-8' : ''}`}>
+                {copy.poweredBy}
+                <a href="/" className="inline-flex items-center gap-1 font-semibold text-zinc-600 hover:text-zinc-900">
+                  {/* The platform symbol only sits beside the platform's own name. */}
+                  {shownFooterBrand === BRAND_NAME && (
+                    <Image src="/brand/xprout/v1/icon-192.png" alt="" width={15} height={15} className="size-[15px] shrink-0 rounded-[4px]" />
+                  )}
+                  {shownFooterBrand}
+                </a>
               </p>
             )}
           </div>
@@ -1447,7 +1455,6 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           onClose={closeProductModal}
           onWhatsApp={openWhatsApp}
           showcase={!directOrdersEnabled}
-          contact={settings}
           optionGroups={optionGroupsByProductId[selectedProduct.id] ?? []}
           itemNotesEnabled={capabilities.itemNotes}
           ingredientCustomizationEnabled={ingredientCustomizationEnabled}
