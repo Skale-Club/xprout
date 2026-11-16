@@ -19,6 +19,7 @@ import { fill, formatMoney, formatWeekday, getMenuCopy, localeFor, matchDeviceLa
 import { computeOpenState, resolveTimeZone } from '@/lib/chat-context'
 import { NO_CAPABILITIES, type TenantCapabilities } from '@/lib/service-modes'
 import { contactLinks, displayPrice, whatsappUrl } from './showcase'
+import { resolveMenuActionLinks, visibleFooterBrand } from '@/lib/menu-action-links'
 import FeaturedCarousel from './FeaturedCarousel'
 import { GuestAccountButton } from './GuestSignIn'
 import { feedSizes } from './feed-sizes'
@@ -68,6 +69,8 @@ import {
   Minus,
   UtensilsCrossed,
   Clapperboard,
+  ShoppingBag,
+  CalendarCheck,
 } from 'lucide-react'
 
 const ProductModal = dynamic(() => import('./ProductModal'), { ssr: false })
@@ -538,7 +541,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const email = contactEmailFor(tenant.slug)
   // Contact links normalized: "(555) 123-4567" → wa.me/5551234567, "@handle" or a URL → one Instagram link.
   const contacts = contactLinks(settings)
-  const hasContact = !!(contacts.phone || contacts.instagram || contacts.whatsapp || settings?.address || email)
+  const { orderOnlineUrl, reservationUrl } = resolveMenuActionLinks(settings, capabilities)
+  const shownFooterBrand = visibleFooterBrand(footerBrand, settings)
+  const hasContact = !!(contacts.phone || contacts.instagram || contacts.whatsapp || settings?.address || email || orderOnlineUrl || reservationUrl)
 
   useEffect(() => {
     if (!menu?.id || !analyticsEnabled) return
@@ -935,7 +940,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   ]
   const activeTab = visibleCategory ?? tabs[0]?.id ?? null
   const showOrderBar = directOrdersEnabled && cart.length > 0 && !cartOpen && !checkoutOpen && activeMenuView === 'list'
-  const showContactFooter = activeMenuView === 'list' && !!(hasContact || footerBrand)
+  const showContactFooter = activeMenuView === 'list' && !!(hasContact || shownFooterBrand)
 
   return (
     <div className="menu-root min-h-screen bg-menu text-zinc-900" lang={localeFor(selectedLanguage)}>
@@ -1247,6 +1252,12 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
               <>
                 <h2 className={`text-zinc-900 ${ui.sectionTitle}`}>{copy.contactTitle}</h2>
                 <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {orderOnlineUrl && (
+                    <ContactCard href={orderOnlineUrl} external icon={<ShoppingBag className="size-[18px]" />} caption={copy.contactOrderOnline} value={linkHost(orderOnlineUrl)} color={primaryColor} />
+                  )}
+                  {reservationUrl && (
+                    <ContactCard href={reservationUrl} external icon={<CalendarCheck className="size-[18px]" />} caption={copy.contactReserve} value={linkHost(reservationUrl)} color={primaryColor} />
+                  )}
                   {contacts.phone && (
                     <ContactCard href={contacts.phone.url} icon={<Phone className="size-[18px]" />} caption={copy.contactPhone} value={contacts.phone.label} color={primaryColor} numeric />
                   )}
@@ -1265,9 +1276,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                 </ul>
               </>
             )}
-            {footerBrand && (
+            {shownFooterBrand && (
               <p className={`text-[12px] text-zinc-500 ${hasContact ? 'mt-8' : ''}`}>
-                {copy.poweredBy} <a href="/" className="font-medium text-zinc-600 hover:text-zinc-900">{footerBrand}</a>
+                {copy.poweredBy} <a href="/" className="font-medium text-zinc-600 hover:text-zinc-900">{shownFooterBrand}</a>
               </p>
             )}
           </div>
@@ -1519,6 +1530,11 @@ function DishPlaceholder() {
       <UtensilsCrossed className="size-6 text-zinc-300" aria-hidden="true" />
     </div>
   )
+}
+
+/** The address a link goes to, shown under its caption ("www." dropped). */
+function linkHost(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
 }
 
 /** One way to reach the restaurant: the whole card is the link (call, chat, open the map). */

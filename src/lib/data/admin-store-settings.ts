@@ -2,6 +2,7 @@ import type { TenantSettings, Tenant, UserRole, StripeConnection } from '@/types
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import { planCeiling, resolveTenantCapabilities, type ServiceSettings } from '../service-modes'
 import { SERVICE_SETTINGS_KEYS, validateServiceSettingsPatch } from '../service-settings'
+import { ACTION_LINK_COLUMNS, normalizeActionUrl } from '../menu-action-links'
 
 export type AdminStoreContext = { tenantId: string; role: UserRole }
 export class LockedServiceSettingsError extends AdminMenuError {
@@ -14,6 +15,14 @@ const STORE_COLUMNS = [
   'latitude', 'longitude', 'price_range', 'tip_percentage_1', 'tip_percentage_2', 'tip_percentage_3', 'business_hours',
   ...SERVICE_SETTINGS_KEYS,
 ].join(', ')
+const STORE_COLUMNS_WITH_LINKS = `${STORE_COLUMNS}, ${ACTION_LINK_COLUMNS.join(', ')}`
+
+/** Whether the menu action link columns exist yet (docs/owned-schema/20261116120000_menu_action_links.sql). */
+export async function actionLinkColumnsReady(query: AdminMenuQuery): Promise<boolean> {
+  const { rows } = await query(`SELECT count(*) = ${ACTION_LINK_COLUMNS.length} AS ready FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='tenant_settings' AND column_name = ANY($1::text[])`, [ACTION_LINK_COLUMNS])
+  return rows[0]?.ready === true
+}
 
 function assertContext(context: AdminStoreContext, write = false) {
   if (!UUID.test(context.tenantId) || !['superadmin', 'store-admin', 'store-staff'].includes(context.role)) throw new AdminMenuError(403, 'Forbidden')
@@ -37,8 +46,9 @@ async function loadPlan(query: AdminMenuQuery, tenantId: string, lock = false) {
 
 export async function readAdminStorePage(query: AdminMenuQuery, context: AdminStoreContext) {
   assertContext(context)
+  const linksReady = await actionLinkColumnsReady(query)
   const [settingsResult, tenantResult, stripeResult, features] = await Promise.all([
-    query(`SELECT ${STORE_COLUMNS} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
+    query(`SELECT ${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
     query('SELECT custom_domain,custom_domain_verified FROM public.tenants WHERE id=$1 LIMIT 1', [context.tenantId]),
     query(`SELECT id,tenant_id,stripe_account_id,scope,connected_at,is_active,disconnected_at,created_at,updated_at
       FROM public.stripe_connections WHERE tenant_id=$1 AND is_active=true ORDER BY connected_at DESC LIMIT 2`, [context.tenantId]),
@@ -61,12 +71,29 @@ const REGIONAL_COLUMNS = [
   'price_range', 'tip_percentage_1', 'tip_percentage_2', 'tip_percentage_3', 'business_hours',
 ] as const
 
-function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null) {
+function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AdminMenuError(400, 'Invalid settings')
   const body = input as Record<string, unknown>
-  const allowed = new Set(REGIONAL_COLUMNS)
-  if (Object.keys(body).length === 0 || Object.keys(body).some(key => !allowed.has(key as typeof REGIONAL_COLUMNS[number]))) throw new AdminMenuError(400, 'Invalid settings')
+  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS])
+  if (Object.keys(body).length === 0 || Object.keys(body).some(key => !allowed.has(key))) throw new AdminMenuError(400, 'Invalid settings')
   const patch: Record<string, unknown> = {}
+  // Menu links and the "Powered by" switch: https URLs or empty, and a boolean.
+  if ('hide_platform_brand' in body && typeof body.hide_platform_brand !== 'boolean') throw new AdminMenuError(400, 'Invalid hide_platform_brand')
+  for (const key of ['order_online_url', 'reservation_url'] as const) {
+    if (!(key in body)) continue
+    const link = normalizeActionUrl(body[key])
+    if (!link.ok) throw new AdminMenuError(400, `${key === 'order_online_url' ? 'Order online' : 'Reservation'} link must be a valid https:// address of at most 500 characters`)
+    patch[key] = link.value
+  }
+  if ('hide_platform_brand' in body) patch.hide_platform_brand = body.hide_platform_brand
+  // The schema step may not have run yet: an untouched default is ignored, a real change is refused.
+  if (!linksReady) {
+    for (const key of ACTION_LINK_COLUMNS) {
+      if (!(key in patch)) continue
+      if (patch[key] !== null && patch[key] !== false) throw new AdminMenuError(503, 'Menu links are not available yet')
+      delete patch[key]
+    }
+  }
   for (const key of REGIONAL_COLUMNS) {
     if (!(key in body)) continue
     const value = body[key]
@@ -105,14 +132,17 @@ export async function mutateAdminStoreSettings(query: AdminMenuQuery, context: A
   assertContext(context, true)
   await query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`xmartmenu-store-settings:${context.tenantId}`])
   const features = await loadPlan(query, context.tenantId, true)
-  const currentResult = await query(`SELECT ${STORE_COLUMNS} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1 FOR UPDATE`, [context.tenantId])
+  const linksReady = await actionLinkColumnsReady(query)
+  const columns = linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS
+  const currentResult = await query(`SELECT ${columns} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1 FOR UPDATE`, [context.tenantId])
   const current = currentResult.rows[0] ?? null
-  const patch = validateRegionalPatch(input, planCeiling(features).payments, current)
+  const patch = validateRegionalPatch(input, planCeiling(features).payments, current, linksReady)
   const fields = Object.keys(patch)
+  if (!fields.length) return { settings: current as unknown as TenantSettings, capabilities: resolveTenantCapabilities(features, current as ServiceSettings | null) }
   const result = await query(`INSERT INTO public.tenant_settings AS s (tenant_id,${fields.join(',')},updated_at)
     VALUES ($1,${fields.map((_, index) => `$${index + 2}`).join(',')},now())
     ON CONFLICT (tenant_id) DO UPDATE SET ${fields.map(field => `${field}=EXCLUDED.${field}`).join(',')},updated_at=now()
-    RETURNING ${STORE_COLUMNS}`, [context.tenantId, ...fields.map(field => patch[field])])
+    RETURNING ${columns}`, [context.tenantId, ...fields.map(field => patch[field])])
   if (!result.rows[0]) throw new AdminMenuError(503, 'Settings could not be saved')
   const settings = result.rows[0] as unknown as TenantSettings
   return { settings, capabilities: resolveTenantCapabilities(features, settings as ServiceSettings) }

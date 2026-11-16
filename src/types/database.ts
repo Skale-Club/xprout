@@ -140,6 +140,9 @@ export interface TenantSettings {
   menu_default_view: 'list' | 'feed' // Initial public-menu presentation
   feed_autoplay_videos: boolean     // Muted viewport-aware direct video autoplay
   upsell_enabled?: boolean          // "Complete your order" after adding a dish (Settings › Menu display)
+  hide_platform_brand?: boolean     // true hides "Powered by Xprout" on the public menu (docs/owned-schema/20261116120000)
+  order_online_url?: string | null  // "Order online" button for menus without guest checkout (https, max 500)
+  reservation_url?: string | null   // "Reserve a table" button (https, max 500)
   updated_at: string
   // AI-04: New fields added in migration 022
   business_type: string | null
