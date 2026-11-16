@@ -1,90 +1,69 @@
 # SEO release evidence checklist
 
-This checklist records the evidence required before releasing site resolution,
-local SEO, dish discovery, white-label identity and public HTML caching. An
-unchecked item is outstanding work, not an implied pass. Tests in this change
-were authored on the memory-constrained Surface; authoring them does not prove
-they have run.
+Core release acceptance is complete on runtime
+`5ad1e9466916e788d3eb9699611cfa55638ac007`. Evidence is recorded in
+`output/seo/2026-11-16/release-final.json` and the
+[completion checkpoint](../plans/2026-11-16-seo-completion.md).
+Checked items describe observed results, not test authoring or assumed behavior.
 
 ## CI and isolated fixtures
 
-- [ ] Focused unit tests pass, including site identity/request context,
-  `site-middleware`, metadata, local SEO/discovery, discovery extras and existing
-  public menu/private-menu/pricing tests.
-- [ ] The owned schema PostgreSQL 17 job applies identity 20, local SEO 21 and
-  brand apex 22 twice. A deliberately unpublished restaurant remains a draft;
-  no partner/apex assignment is seeded automatically.
-- [ ] Schema fixtures verify URL/token/JSON shape and size checks, brand apex
-  foreign keys/business kinds and runtime column grants. Full special-date,
-  clock-time and duplicate-date validation is enforced by the API parser;
-  the database's special-hours constraint validates array shape/count.
-- [ ] `tests/e2e/api/seo-site.spec.ts` passes against the local Supabase and app
-  only. `assertLocalSupabase` must remain enabled; never substitute production
-  connection details to make this suite run.
-- [ ] Existing custom-domain, public-menu cache and private-menu API tests still
-  pass, with any deliberate preview-host fixture changes reviewed.
+- [x] [Dev CI 43958112288](https://github.com/Skale-Club/xprout/actions/runs/43958112288) and [main CI/deploy 43960325122](https://github.com/Skale-Club/xprout/actions/runs/43960325122) passed.
+- [x] Unit tests: 2,110 passed/6 environment-dependent skips. Browser/API: 129 passed/0 failed/0 skipped. Preview verifier: 36/0.
+- [x] Owned PostgreSQL fixtures apply identity20/localSEO21/apex22 twice, preserve drafts, validate constraints/grants and seed no partner assignment.
+- [x] Public/private menu, pricing, identity, metadata, discovery, cache and canonical non-rewrite root Flight regression tests passed.
+- [x] Synthetic SEO fixtures use local Supabase with `assertLocalSupabase`; no production credentials or external DNS.
+- [x] Actual home/branch/dish SSR, partner PNG byte/dimension evidence and 375/1440px menu/branch/dish screenshots were retained/reviewed. Read-only menus gained no cart actions.
+- [x] Dev mobile Lighthouse medians: home/self/menu 97/97/97.
 
-Commands for a sufficiently resourced development computer or CI runner:
+Independent fixtures include public/private menus, branch NAP/hours/geo, demo,
+partner tenant and company apex. Assertions inspect real canonical/language and
+JSON-LD, crawlable links, private exclusion, partner identity and spoofed-context
+rejection rather than framework chunk snapshots. Audit tests scope their tenant
+through the actual UI filter so unrelated recent fixtures cannot hide its rows.
 
-```sh
-npm test -- --run tests/unit/site-middleware.test.ts tests/unit/site-request-context.test.ts tests/unit/site-metadata.test.ts tests/unit/local-seo.test.ts tests/unit/local-discovery.test.ts tests/unit/seo-discovery-extras.test.ts
-python3 -B scripts/ops/test_xprout_owned_schema.py
-npm run test:e2e -- --project=api tests/e2e/api/seo-site.spec.ts
-node --check scripts/seo/live-check.mjs
-```
+## Production release and schema
 
-The Python PostgreSQL cases require `XM_TEST_PG_CONTAINER` pointing to the
-disposable CI container. Without it only the offline operator cases run; that
-is not a substitute for schema execution evidence.
+- [x] Owner-authorized reviewed release deployed; concurrent galleries `822de33` and `9977ac4` were preserved.
+- [x] Public readiness verified final runtime at 21:43:52 UTC November 16.
+- [x] Main pipeline 21:27:46→21:43:11 UTC (15m25s); deploy job 21:39:38→21:43:11 (3m33s).
+- [x] Healthy rollback image `9977ac4cbbb9f92897051d6f0bd9d44fff7af728` preserves 67 dishes.
+- [x] Schema plan [43949009317](https://github.com/Skale-Club/xprout/actions/runs/43949009317) showed exactly 3 pending/0 changed; compatible code preceded optional fields.
+- [x] Apply [43952028079](https://github.com/Skale-Club/xprout/actions/runs/43952028079) completed 20→21→22 at 20:39:37 UTC after a 361,166-byte schema-only backup.
+- [x] Backup SHA-256: `d77bd99fbbbdda7fab234b7788a8d932f781b102a6c4e2c491d5cca90f539738`.
+- [x] Replan [43952110264](https://github.com/Skale-Club/xprout/actions/runs/43952110264): 16 files/0 pending/0 changed/ready true. Applied hashes match Git LF blobs; Windows CRLF differences are line endings. No later SQL changes.
 
-## What the API fixture proves
+## Origin, edge and media
 
-The fixture creates an isolated public restaurant, private menu, unpublished
-demo and independent partner brand, then removes its rows. Requests still go
-to the local app base URL: a synthetic `*.example.org` Host header exercises
-tenant authority without external DNS. It checks raw SSR canonical/language,
-Restaurant and MenuItem markup, real dish URLs, private content exclusion,
-demo sitemap exclusion, partner metadata/robots/sitemap/manifest identity,
-spoofed context rejection and the public/proxied internal-endpoint boundary.
+- [x] Final origin verifier: 61 passed/0 failed.
+- [x] Canonical-root Flight privacy defect fixed using documented `skipProxyUrlNormalize=true`; signals reach middleware before rendering.
+- [x] Three reviewed dashboard rules compiled/read back, enabled in order and verified active at 21:48 UTC; exact scope/rules/rollback in the [cache runbook](cloudflare-cache.md).
+- [x] Final edge verifier: 65 passed/0 failed. Anonymous HTML HIT at root, Celes, Aurora and Bella Vista.
+- [x] Two cookies, authorization, table/lang/view queries and all Flight variants are DYNAMIC plus private/no-store; no cross-visitor markers leaked.
+- [x] Media verifier: 4/0; separate 256px WebP/PNG and 640px WebP variants MISS→HIT with correct MIME/width, plus immutable JS MISS→HIT.
+- [x] Eight negative public webhook probes returned 400/401. This proves rejection only; genuine provider delivery is not established.
 
-Two different cookie markers plus table/language/view query parameters and
-RSC requests must be private/no-store. Marker values must not appear in HTML
-or RSC bodies. Anonymous HTML without a session refresh may carry the short
-shared cache policy. Framework chunk IDs and complete serialized HTML are
-intentionally not snapshot assertions.
+The API token remains DNS-only/403 for rulesets; dashboard activation is not an
+API version claim. The final receipt records three active rules and successful
+traffic acceptance, with the earlier expression review named separately.
 
-## Preview and production evidence
+## Google and closure
 
-- [ ] Run the live verifier against the CI preview with the expected canonical
-  production origin and retain its JSON report.
-- [ ] Review branch and dish pages on mobile/desktop: typography, from-price
-  semantics, tenant colors, readable labels and links back to the menu.
-- [ ] Confirm read-only menus gained no cart actions and private products are
-  absent from raw HTML, RSC, metadata, JSON-LD, maps and discovery text.
-- [ ] Exercise the platform, slug tenant, custom domain, subdomain, partner
-  brand, partner tenant and company-as-tenant apex with correct host authority.
-- [ ] Verify customer login, order/payment/auth callbacks and legal routes
-  retain their global paths on tenant and partner hosts.
-- [ ] Confirm cookie/authorization/query/RSC responses bypass the configured
-  Cloudflare cache, with two visitors receiving isolated responses.
+- [x] Actual CI code-input tests: [home 4 valid](https://search.google.com/test/rich-results/result?id=nRqz3oGshB4ZQQTzDGZVGA), [branch 3 valid/0 critical](https://search.google.com/test/rich-results/result?id=bQf5aOBctH9TOCRnwa2piA), [dish 1 valid Breadcrumb](https://search.google.com/test/rich-results/result?id=FyNG-PjiVa6b0GrBdMV9Tg).
+- [x] [Final live Celes](https://search.google.com/test/rich-results/result?id=j1Tz_XQXr8c8ScWQS4mCFw), crawled Nov16 16:44:40 EST: 2 valid items/0 critical errors on the final runtime.
+- [x] Celes graph SHA-256 unchanged: `e97435b464487493b3dda9212bafa0d480ee2be04ad7e944a4965f0462fc9dad`.
+- [x] Sitemap resubmission accepted Nov16; indexed root Request indexing accepted into the priority queue.
+- [x] [XMM-151](https://app.notion.com/p/41ab7a686121815e8753c42f20e9f60f) marked Done and read back with final evidence and limits.
 
-## Release gates
+Google last-read/discovery counters remain Nov14/prior 6 URLs; successful
+submission does not mean instant recrawl or rankings. MenuItem is semantic
+markup, not Google Product/review enhancement eligibility. Optional fields
+remain factual; no fabricated ratings, ownership or merchant facts.
 
-- [ ] Owner authorizes the production release, schema application and any
-  production DNS/Cloudflare configuration separately where required.
-- [ ] Owned schema workflow plan shows only expected pending immutable files;
-  retain the workflow's schema-only backup and rollback evidence.
-- [ ] Code is deployed before optional schema fields are applied; legacy reads
-  and old SEO saves remain available during that interval.
-- [ ] Apply schema 20→21→22 using the existing owned operator after green CI;
-  confirm sentinels and repeat plan show no unexpected changes.
-- [ ] Run the production live verifier, record actual statuses and inspect
-  Search Console/Rich Results Test results without claiming indexing is instant.
-- [ ] Leave IndexNow/Cloudflare publish-effect flags off unless the owner
-  explicitly authorizes activation. Prove key-host ownership and scoped cache
-  credentials before enabling them; development must never send notifications.
-- [ ] Write and read back one English Journal entry with commits, CI/preview/
-  production evidence, actual remaining gaps and release timing.
-
-Sibling repositories need their own tests and release records before adopting
-the shared conventions. This checklist does not certify Xkedule or X-Sites.
+IndexNow and publish-effect purge stay off/unconfigured. Hreflang depends on a
+real multilingual tenant. Partner DNS/email remains onboarding work; no real
+partner was activated. Existing media-policy gaps and historical dish-slug
+redirects are not resolved here. Stripe's pre-existing absent secret stays
+fail-closed; genuine provider delivery remains a separate readiness check.
+Shared conventions `c96f258` and their SKA Journal record are separately complete;
+sibling applications require their own tests and releases.

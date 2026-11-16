@@ -6,10 +6,48 @@ library. It has no DNS, SSL, billing, account-wide ruleset or purge endpoints.
 Unrelated rules in the cache phase are preserved; three stable managed refs
 are appended in order so the final bypass wins over the two eligibility rules.
 
-The currently available token returned HTTP 403 for ruleset access. No rule
-expressions have been accepted by Cloudflare's API in this session. Generated
-templates explicitly carry `server_validated: false`; fake-HTTP tests are not
-server validation or production evidence.
+The available DNS-only token returned HTTP 403 for ruleset access, so the CLI
+operator has no authenticated API validation evidence. Separately, the owner's
+dashboard session submitted expressions accepted by the UI compiler and saved
+three initially disabled drafts. They were subsequently enabled and verified
+through live acceptance below. API operator validation remains unestablished. Generated offline
+templates retain `server_validated: false`; fake-HTTP tests prove neither.
+
+## Activation checkpoint (2026-11-16)
+
+Three reviewed dashboard rules are **active**, verified at 21:48 UTC after
+activation during 21:45–21:48 UTC, in order:
+HTML `4086f4a40e894f59bcc37da9e8a6167f`, image
+`135c9aeb7f55404bb871294a13d47ff8`, final bypass
+`5be78f128a2544049639eb582ce71fe7`. Dashboard preparation is distinct from API
+operator acceptance. Expression compilation/readback matched before activation.
+Do not create duplicate managed rules
+or assume the previously empty ruleset still exists unchanged.
+
+Final runtime `5ad1e9466916e788d3eb9699611cfa55638ac007` passed dev CI
+`43958112288` and main CI/deploy `43960325122` and is healthy. Schemas 20–22
+are applied/replanned clean. Both concurrent galleries were preserved; rollback
+`9977ac4cbbb9f92897051d6f0bd9d44fff7af728` retains 67 dishes. Earlier origin
+50/51 exposed canonical-root RSC public headers because Next removed Flight
+signals before middleware. Documented `skipProxyUrlNormalize=true` and a
+canonical non-rewrite root regression fix are deployed. Final origin61/0,
+edge65/0 and media4/0 passed. Optional
+application IndexNow/purge flags remain off; they are not required for TTL expiry.
+
+| Activation evidence | Observed result / timestamp |
+| --- | --- |
+| Healthy production / origin | `5ad1e946…`; origin61/0, readiness 21:43:52 UTC |
+| Main pipeline / deploy job | 21:27:46→21:43:11 (15m25s) / 21:39:38→21:43:11 (3m33s) UTC |
+| Exact enabled rules | Three IDs above; authenticated dashboard readback, no API version claim |
+| Activation / final state | 21:45–21:48 UTC; 3 active, 0 response rules |
+| HTML HIT / private bypass | Root/Celes/Aurora/Bella HIT; cookies/auth/query/all Flight DYNAMIC plus private/no-store |
+| Media | 256px WebP2056B/PNG2518B; 640px WebP5088B; immutable JS28140B, all MISS→HIT |
+| Rollback | Disable exactly the three rules; restore validated `9977ac4` image if needed; additive schemas can remain |
+
+Evidence: `output/seo/2026-11-16/live-origin-final.json`, `live-after.json`,
+`edge-media-after.json` and `release-final.json`. The final receipt records three
+active rules and successful traffic acceptance; the separately named
+preactivation readback preserves the expression/settings review.
 
 ## Reviewable rules
 
@@ -29,7 +67,7 @@ server validation or production evidence.
 Eligibility respects origin Cache-Control for both edge and browser TTL. The
 edge API mode is `bypass_by_default`: absent origin freshness must not silently
 fall back to a Cloudflare status-code TTL. Browser TTL uses `respect_origin`.
-operator does not override private/no-store, Set-Cookie behavior or freshness
+The operator does not override private/no-store, Set-Cookie behavior or freshness
 with an unconditional TTL. Anonymous HTML's application policy is 60 seconds
 plus 60 seconds stale-while-revalidate; private responses are no-store. Media
 uses versioned/immutable asset identities and its own origin policy. These rules
@@ -96,8 +134,10 @@ runner, inspect the candidate expressions and obtain actual API acceptance.
 Then run the application live SEO verifier and confirm two independent cookie
 requests plus query/RSC requests bypass cache, anonymous HTML can hit cache,
 and different image query parameters return their own assets. Retain the API
-readback, version fingerprints and verifier JSON. This operator was prepared
-without performing any Cloudflare mutation.
+readback, version fingerprints and verifier JSON. The CLI operator performed no
+Cloudflare mutations; the separate authenticated dashboard preparation created
+the three rules above, then enabled them with matching dashboard readback and
+live acceptance. This does not establish authenticated API operator validation.
 
 Primary references: [Cache Rules settings](https://developers.cloudflare.com/cache/how-to/cache-rules/settings/),
 [view rulesets](https://developers.cloudflare.com/ruleset-engine/rulesets-api/view/),
