@@ -8,6 +8,14 @@ import { useElapsedTime } from './useElapsedTime'
 import { Bell, BellOff, LayoutGrid, List, MessageSquare, Package, Clock, CheckCircle2, XCircle, AlertCircle, Play, Check, X, Info, ChevronRight, Plus, UtensilsCrossed, Truck, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import ModalPortal from '@/components/ui/ModalPortal'
+import { formatScheduled } from '@/components/menu/schedule-format'
+
+/** "Scheduled · Tue 9:00 AM" for an order a guest booked for later, in the restaurant's time zone (the device's when unknown). */
+function scheduledBadge(order: { scheduled_for?: string | null }, timeZone: string | null | undefined): string | null {
+  const ms = order.scheduled_for ? Date.parse(order.scheduled_for) : NaN
+  if (!Number.isFinite(ms)) return null
+  return `Scheduled · ${formatScheduled(ms, timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone, 'en')}`
+}
 
 type OrderWithItems = Order & { order_items: OrderItem[] }
 
@@ -92,6 +100,8 @@ interface OrdersClientProps {
   redThreshold: number
   locations?: LocationOption[]
   currency?: string
+  /** The restaurant's time zone, for scheduled orders. */
+  timeZone?: string | null
 }
 
 function OrderCard({
@@ -103,6 +113,7 @@ function OrderCard({
   redMinutes,
   onClick,
   formatMoney,
+  timeZone,
 }: {
   order: OrderWithItems
   loadingId: string | null
@@ -112,7 +123,9 @@ function OrderCard({
   redMinutes: number
   onClick: () => void
   formatMoney: (value: number) => string
+  timeZone?: string | null
 }) {
+  const scheduledLabel = scheduledBadge(order, timeZone)
   const { minutes, chipClass } = useElapsedTime(order.created_at, amberMinutes, redMinutes)
   const colors = STATUS_COLORS[order.status] ?? STATUS_COLORS['pending']
   const nextStatus = getNextStatus(order)
@@ -168,6 +181,15 @@ function OrderCard({
           </div>
         )
       })()}
+
+      {scheduledLabel && (
+        <div className="-mt-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide bg-amber-100 text-amber-900">
+            <Clock className="w-3.5 h-3.5" />
+            {scheduledLabel}
+          </span>
+        </div>
+      )}
 
       {/* Customer */}
       <div onClick={onClick} className="cursor-pointer space-y-1">
@@ -241,7 +263,7 @@ function OrderCard({
   )
 }
 
-export default function OrdersClient({ initialOrders, tenantId, amberThreshold, redThreshold, locations = [], currency = 'USD' }: OrdersClientProps) {
+export default function OrdersClient({ initialOrders, tenantId, amberThreshold, redThreshold, locations = [], currency = 'USD', timeZone = null }: OrdersClientProps) {
   // Render money in the tenant's configured currency (the KDS previously
   // hardcoded "R$" regardless of currency).
   const fmtMoney = (value: number) => {
@@ -530,6 +552,7 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
               redMinutes={redThreshold}
               onClick={() => setSelectedOrder(order)}
               formatMoney={fmtMoney}
+              timeZone={timeZone}
             />
           ))}
         </div>
@@ -625,6 +648,12 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
                       {new Date(selectedOrder.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
+                  {scheduledBadge(selectedOrder, timeZone) && (
+                    <div>
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Scheduled for</label>
+                      <p className="text-sm font-black text-amber-900">{scheduledBadge(selectedOrder, timeZone)}</p>
+                    </div>
+                  )}
                   {(selectedOrder as any).table_name && (
                     <div>
                       <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Table</label>

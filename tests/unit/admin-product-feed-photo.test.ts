@@ -10,6 +10,7 @@ describe('owned feed photo persistence', () => {
     const updates: Array<{ sql: string; values: unknown[] }> = []
     const query: AdminMenuQuery = async (sql, values = []) => {
       if (sql.startsWith('SELECT pg_advisory')) return { rows: [] }
+      if (sql.includes('information_schema.columns')) return { rows: [{ ready: false }] }
       if (sql.startsWith('UPDATE public.products SET ')) {
         updates.push({ sql, values })
         if (sql.includes('feed_image_url=$3')) row.feed_image_url = values[2] as string | null

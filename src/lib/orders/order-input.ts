@@ -58,6 +58,8 @@ export const createOrderSchema = z.object({
   tip_cents: z.number().int().min(0).max(1_000_000).nullish(),
   // One optional promo code; checked against the restaurant's codes on the server, never trusted for amounts.
   promo_code: text(64).nullish(),
+  // ISO time for a scheduled order; the server re-checks hours, notice and the 7-day window.
+  scheduled_for: text(40).nullish(),
   menu_id: uuid.nullish(),
   table_name: optionalText(80),
   table_id: z.string().max(64).nullish(),

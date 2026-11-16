@@ -3,13 +3,14 @@ import { canKitchenMove, isOrderStatus, type OrderStatus } from '../orders/statu
 import { resolveTenantCapabilities, type ServiceSettings } from '../service-modes'
 import { resolveOptionSelection, type OptionSelectionState, type ServerOptionGroup } from '../menu/option-pricing'
 import { TAX_PROMO_NOT_READY, TAX_PROMO_READY_SQL, type PromoCodeRow, type TaxPromoState } from '../orders/tax-promo'
+import { SCHEDULING_NOT_READY, SCHEDULING_READY_SQL, schedulingTimeZone, type Hours, type SchedulingState } from '../orders/scheduled-orders'
 import type { Order, OrderItem, UserRole } from '@/types/database'
 
 export type OrderQuery = (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>
 export type OrderContext = { tenantId: string; role: UserRole }
 type Result<T> = { data: T; error: { code?: string } | null }
 type Settings = ServiceSettings & { delivery_fee_cents?: number | null; currency?: string | null; country?: string | null;
-  amber_threshold_minutes?: number | null; red_threshold_minutes?: number | null }
+  amber_threshold_minutes?: number | null; red_threshold_minutes?: number | null; region?: string | null }
 type Product = { id: string; tenant_id: string; name: string; price: number; is_available: boolean | null; menu_id: string;
   menus: { id: string; is_active: boolean | null; is_private: boolean | null; price_multiplier: number | null } }
 export type CreatedOrder = { id: string; status: string; total: number | string; order_type: string; replayed: boolean }
@@ -22,6 +23,8 @@ export type KdsBootstrap = {
   amberThreshold: number
   redThreshold: number
   currency: string
+  /** The restaurant's time zone (from its profile), for scheduled orders; null when unknown. */
+  timeZone: string | null
 }
 export class OrderDataError extends Error {
   constructor(public status: number, message: string) { super(message) }
@@ -72,8 +75,10 @@ export function assertUnambiguousOrderOptionPricing(basePrice: number, editor: O
 export const ORDER_COLUMNS = 'id tenant_id customer_name customer_phone customer_phone_key customer_id customer_phone_e164 customer_linked_at customer_link_method status total subtotal currency delivery_fee_cents payment_intent_id order_type delivery_address delivery_street delivery_complement delivery_zipcode delivery_city delivery_notes delivery_zone_id location_id tip_cents table_name table_id analytics_session_id notes created_at updated_at'
 /** Order columns that exist once docs/owned-schema/20261116130000_tax_and_promo_codes.sql ran. */
 export const TAX_PROMO_ORDER_COLUMNS = ' discount_cents tax_cents promo_code'
+/** Order column that exists once docs/owned-schema/20261116140000_scheduled_orders.sql ran. */
+export const SCHEDULED_ORDER_COLUMNS = ' scheduled_for'
 export const ITEM_COLUMNS = 'id order_id product_id product_name quantity unit_price selected_options notes ingredient_modifications added_via'
-const SETTINGS_COLUMNS = 'orders_enabled direct_orders_enabled table_management_enabled whatsapp_orders_enabled whatsapp tips_enabled item_notes_enabled ingredient_customization_enabled dine_in_enabled pickup_enabled delivery_enabled upsell_enabled delivery_fee_cents currency country amber_threshold_minutes red_threshold_minutes'
+const SETTINGS_COLUMNS = 'orders_enabled direct_orders_enabled table_management_enabled whatsapp_orders_enabled whatsapp tips_enabled item_notes_enabled ingredient_customization_enabled dine_in_enabled pickup_enabled delivery_enabled upsell_enabled delivery_fee_cents currency country amber_threshold_minutes red_threshold_minutes region'
 const orderFields = new Set(('tenant_id customer_name customer_phone customer_phone_key customer_id customer_phone_e164 status total subtotal currency delivery_fee_cents order_type delivery_address delivery_street delivery_complement delivery_zipcode delivery_city delivery_notes delivery_zone_id location_id tip_cents table_name table_id analytics_session_id idempotency_key request_fingerprint').split(' '))
 const itemFields = new Set('product_id product_name quantity unit_price notes selected_options ingredient_modifications added_via'.split(' '))
 const projected = (columns: string, alias: string) => `to_jsonb((SELECT projected FROM (SELECT ${columns.split(' ').map(c => `${alias}.${c}`).join(', ')}) projected))`
@@ -142,6 +147,7 @@ export class OwnedOrderRepository {
       amberThreshold: threshold(settings?.amber_threshold_minutes, 10),
       redThreshold: threshold(settings?.red_threshold_minutes, 20),
       currency: typeof settings?.currency === 'string' ? settings.currency : 'USD',
+      timeZone: schedulingTimeZone({ country: settings?.country, region: settings?.region, currency: settings?.currency }),
     }
   }
   async capabilities(settings?: Settings | null) {
@@ -257,10 +263,37 @@ export class OwnedOrderRepository {
       [this.tenantId, orderId, values.discountCents, values.taxCents, values.promoCode])
     if (updated.rows.length !== 1) throw new OrderDataError(503, 'Order creation result is unavailable')
   }
+  /** Whether the scheduled-orders schema step ran; until it did, orders behave as before. */
+  async schedulingReady() {
+    return (await this.query(SCHEDULING_READY_SQL)).rows[0]?.ready === true
+  }
+  /** Scheduling switch, hours, time zone, prep time and the longest notice among these products. */
+  async scheduling(productIds: string[]): Promise<SchedulingState> {
+    this.productIds(productIds)
+    if (!(await this.schedulingReady())) return SCHEDULING_NOT_READY
+    const settings = rows<{ scheduled_orders_enabled: boolean; business_hours: Hours; country: string | null; region: string | null; currency: string | null; pickup_eta_minutes: number | null }>(
+      await this.query(`SELECT ${projected('scheduled_orders_enabled business_hours country region currency pickup_eta_minutes', 's')} AS row
+      FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2`, [this.tenantId]), 1)[0]
+    const notice = (await this.query('SELECT coalesce(max(min_notice_minutes),0)::int AS notice FROM public.products WHERE tenant_id=$1 AND id=ANY($2::uuid[])', [this.tenantId, productIds])).rows[0]?.notice
+    return {
+      ready: true,
+      enabled: settings?.scheduled_orders_enabled === true,
+      hours: settings?.business_hours ?? null,
+      timeZone: schedulingTimeZone({ country: settings?.country, region: settings?.region, currency: settings?.currency }),
+      prepMinutes: Number(settings?.pickup_eta_minutes ?? 0) || 0,
+      maxNoticeMinutes: Number.isInteger(notice) ? Number(notice) : 0,
+    }
+  }
+  /** Stores the requested time on the order just created, in the same transaction (the order function predates this column). */
+  async recordScheduledFor(orderId: string, scheduledFor: string) {
+    if (!UUID.test(orderId) || !Number.isFinite(Date.parse(scheduledFor))) throw new OrderDataError(400, 'Invalid order')
+    const updated = await this.query('UPDATE public.orders SET scheduled_for=$3::timestamptz WHERE tenant_id=$1 AND id=$2 RETURNING id', [this.tenantId, orderId, scheduledFor])
+    if (updated.rows.length !== 1) throw new OrderDataError(503, 'Order creation result is unavailable')
+  }
   async list(context: OrderContext, cutoff: string) {
     staff(context, this.tenantId)
     if (!Number.isFinite(Date.parse(cutoff)) || Date.parse(cutoff) < Date.now() - 49 * 3600000) throw new OrderDataError(400, 'Invalid order window')
-    const columns = (await this.taxPromoReady()) ? ORDER_COLUMNS + TAX_PROMO_ORDER_COLUMNS : ORDER_COLUMNS
+    const columns = ORDER_COLUMNS + ((await this.taxPromoReady()) ? TAX_PROMO_ORDER_COLUMNS : '') + ((await this.schedulingReady()) ? SCHEDULED_ORDER_COLUMNS : '')
     const found = rows<KdsOrder>(await this.query(`SELECT ${projected(columns, 'o')}
       || jsonb_build_object('order_items',COALESCE((SELECT jsonb_agg(items.row ORDER BY items.id) FROM
         (SELECT oi.id,${projected(ITEM_COLUMNS, 'oi')} AS row FROM public.order_items oi WHERE oi.order_id=o.id ORDER BY oi.id LIMIT 1001) items),'[]'::jsonb)) AS row

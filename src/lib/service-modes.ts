@@ -55,6 +55,7 @@ export interface ServiceSettings {
   pickup_enabled?: boolean | null
   delivery_enabled?: boolean | null
   upsell_enabled?: boolean | null
+  scheduled_orders_enabled?: boolean | null
 }
 
 export interface ServiceCapabilities extends PlanServiceAccess {
@@ -136,6 +137,8 @@ export interface TenantCapabilities extends ServiceCapabilities {
   dineIn: boolean
   pickup: boolean
   delivery: boolean
+  /** Guests may schedule an order for later (needs the scheduled-orders schema step). */
+  scheduledOrders: boolean
   /** "Complete your order" suggestions after a dish is added. */
   upsell: boolean
   /** Per-item notes (guest checkout and waiter app). */
@@ -166,6 +169,7 @@ export function resolveTenantCapabilities(
     dineIn: service.guestOrdering && (settings?.dine_in_enabled ?? true) === true,
     pickup: service.guestOrdering && settings?.pickup_enabled === true,
     delivery: service.guestOrdering && settings?.delivery_enabled === true,
+    scheduledOrders: service.guestOrdering && settings?.scheduled_orders_enabled === true,
     upsell: service.guestOrdering && (settings?.upsell_enabled ?? true) === true,
     itemNotes: anyOrdering && settings?.item_notes_enabled === true,
     ingredientCustomization: anyOrdering && settings?.ingredient_customization_enabled === true,

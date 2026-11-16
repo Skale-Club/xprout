@@ -6,6 +6,7 @@ import { getTenantCapabilities } from '@/lib/tenant-plan'
 import OrdersClient from './OrdersClient'
 import { ordersDataOwned } from '@/lib/data/orders'
 import { readOwnedOrdersKdsPage } from '@/lib/data/orders-runtime'
+import { schedulingTimeZone } from '@/lib/orders/scheduled-orders'
 
 export default async function OrdersPage() {
   const effective = (await getEffectiveTenant())!
@@ -15,7 +16,7 @@ export default async function OrdersPage() {
     const data = await readOwnedOrdersKdsPage({ tenantId, role: effective.role })
     if (!data.capabilities.kds) redirect('/dashboard')
     return <OrdersClient initialOrders={data.orders} tenantId={tenantId} amberThreshold={data.amberThreshold}
-      redThreshold={data.redThreshold} locations={data.locations} currency={data.currency} />
+      redThreshold={data.redThreshold} locations={data.locations} currency={data.currency} timeZone={data.timeZone} />
   }
 
   const supabase = await createClient()
@@ -37,7 +38,7 @@ export default async function OrdersPage() {
       .limit(500),
     supabase
       .from('tenant_settings')
-      .select('amber_threshold_minutes, red_threshold_minutes, currency')
+      .select('amber_threshold_minutes, red_threshold_minutes, currency, country, region')
       .eq('tenant_id', tenantId)
       .single(),
     supabase
@@ -56,6 +57,7 @@ export default async function OrdersPage() {
       redThreshold={settings?.red_threshold_minutes ?? 20}
       locations={locations ?? []}
       currency={settings?.currency ?? 'USD'}
+      timeZone={schedulingTimeZone({ country: settings?.country, region: settings?.region, currency: settings?.currency })}
     />
   )
 }

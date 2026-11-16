@@ -75,7 +75,10 @@ export default function ProductsClient({ products: initial, categories, tenantId
     is_featured: false,
     show_in_feed: true,
     tags: [] as string[],
+    min_notice_minutes: '',
   })
+  // Per-dish notice exists once the scheduled-orders schema step ran (rows then carry the number).
+  const noticeEnabled = products.some(p => typeof p.min_notice_minutes === 'number')
 
   const router = useRouter()
 
@@ -114,6 +117,7 @@ export default function ProductsClient({ products: initial, categories, tenantId
       is_featured: false,
       show_in_feed: true,
       tags: [],
+      min_notice_minutes: '',
     })
     setEditingId(null)
     setShowForm(false)
@@ -135,6 +139,7 @@ export default function ProductsClient({ products: initial, categories, tenantId
       is_featured: p.is_featured,
       show_in_feed: p.show_in_feed ?? true,
       tags: normalizeTags(p.tags),
+      min_notice_minutes: p.min_notice_minutes ? String(p.min_notice_minutes) : '',
     })
     setEditingId(p.id)
     setFormError(null)
@@ -210,6 +215,7 @@ export default function ProductsClient({ products: initial, categories, tenantId
       is_featured: form.is_featured,
       show_in_feed: form.show_in_feed,
       tags: form.tags,
+      ...(noticeEnabled ? { min_notice_minutes: Math.max(0, Math.min(10080, Math.round(Number(form.min_notice_minutes) || 0))) } : {}),
       position: editingId ? undefined : products.length,
     }
     const payloadWithoutImageUrls = (() => {
@@ -230,6 +236,7 @@ export default function ProductsClient({ products: initial, categories, tenantId
         is_featured: payload.is_featured,
         show_in_feed: payload.show_in_feed,
         tags: payload.tags,
+        ...(noticeEnabled ? { min_notice_minutes: payload.min_notice_minutes } : {}),
       }
       try {
         const saved = await ownedProductRequest<ProductWithCategory>(
@@ -485,6 +492,23 @@ export default function ProductsClient({ products: initial, categories, tenantId
                   />
                 </div>
               </div>
+
+              {noticeEnabled && (
+                <div>
+                  <label className="block text-[14px] font-semibold text-zinc-700 mb-2 ml-1">Minimum notice (minutes)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="10080"
+                    value={form.min_notice_minutes}
+                    onChange={e => setForm(f => ({ ...f, min_notice_minutes: e.target.value }))}
+                    placeholder="0"
+                    className={inputClassName}
+                  />
+                  <p className="text-[13px] font-medium text-zinc-600 mt-1.5 ml-1">e.g. 60 for 1 hour. Guests must schedule orders with this dish at least this far ahead (needs Scheduled Orders on).</p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[14px] font-semibold text-zinc-700 mb-2 ml-1">Category</label>

@@ -11,6 +11,8 @@ import { recordTrustedOrderAnalyticsEvent } from '@/lib/analytics/server'
 import { OptionSelectionError, resolveOptionSelection } from '@/lib/menu/option-pricing'
 import { legacyRecordTaxPromo, legacyTaxPromo } from '@/lib/orders/tax-promo-legacy'
 import { TAX_PROMO_NOT_READY, normalizePromoCode, priceOrder, promoRejection, type TaxPromoState } from '@/lib/orders/tax-promo'
+import { legacyRecordScheduledFor, legacyScheduling } from '@/lib/orders/scheduled-orders-legacy'
+import { SCHEDULING_NOT_READY, resolveScheduledFor, type SchedulingState } from '@/lib/orders/scheduled-orders'
 import { createOrderSchema, describeInputError, orderFingerprint, parseIdempotencyKey, type OrderItemInput } from '@/lib/orders/order-input'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
@@ -132,7 +134,7 @@ async function handlePOST(request: Request) {
     }
     const idempotencyKey = parseIdempotencyKey(request.headers.get('idempotency-key'))
     const checkout = async (owned?: OwnedOrderRepository) => {
-      const { tenant_id, customer_name, customer_phone, items, order_type: rawOrderType, delivery_address: rawDeliveryAddress, delivery_street: rawDeliveryStreet, delivery_complement: rawDeliveryComplement, delivery_zipcode: rawDeliveryZipcode, delivery_city: rawDeliveryCity, delivery_notes: rawDeliveryNotes, location_id: rawLocationId, tip_cents: rawTipCents, menu_id: rawMenuId, promo_code: rawPromoCode, table_name: rawTableName, table_id: rawTableId, analytics_session_id: rawAnalyticsSessionId } = parsed.data
+      const { tenant_id, customer_name, customer_phone, items, order_type: rawOrderType, delivery_address: rawDeliveryAddress, delivery_street: rawDeliveryStreet, delivery_complement: rawDeliveryComplement, delivery_zipcode: rawDeliveryZipcode, delivery_city: rawDeliveryCity, delivery_notes: rawDeliveryNotes, location_id: rawLocationId, tip_cents: rawTipCents, menu_id: rawMenuId, promo_code: rawPromoCode, scheduled_for: rawScheduledFor, table_name: rawTableName, table_id: rawTableId, analytics_session_id: rawAnalyticsSessionId } = parsed.data
 
       const service = owned ? undefined : await createServiceClient()
 
@@ -476,6 +478,15 @@ async function handlePOST(request: Request) {
       const storesBreakdown = taxPromo.ready && (priced.discountCents > 0 || priced.taxCents > 0)
       const appliedPromoCode = priced.discountCents > 0 ? taxPromo.promo!.code : null
 
+      // Scheduled orders (guest checkout only, and only once the schema step ran): the
+      // time, the opening hours and the dishes' notice are all re-checked here.
+      const scheduling: SchedulingState = !isStaffOrder && capabilities.guestOrdering
+        ? await (owned ? owned.scheduling(productIds) : legacyScheduling(service!, tenant_id, productIds))
+        : SCHEDULING_NOT_READY
+      const schedule = resolveScheduledFor({ scheduledFor: rawScheduledFor, now: new Date(), state: scheduling, guestOrdering: !isStaffOrder && capabilities.guestOrdering })
+      if ('error' in schedule) return NextResponse.json({ error: schedule.error, code: 'schedule_invalid' }, { status: schedule.status })
+      const scheduledFor = schedule.scheduledFor
+
       const orderRow = {
         tenant_id,
         customer_name: customer_name.trim(),
@@ -514,7 +525,7 @@ async function handlePOST(request: Request) {
       const trustedOrder = {
         ...orderRow,
         idempotency_key: idempotencyKey,
-        request_fingerprint: idempotencyKey ? orderFingerprint({ order: orderRow, items: itemRows, ...(storesBreakdown ? { pricing: { discount: priced.discountCents, tax: priced.taxCents, promo: appliedPromoCode } } : {}) }) : null,
+        request_fingerprint: idempotencyKey ? orderFingerprint({ order: orderRow, items: itemRows, ...(storesBreakdown ? { pricing: { discount: priced.discountCents, tax: priced.taxCents, promo: appliedPromoCode } } : {}), ...(scheduledFor ? { scheduled_for: scheduledFor } : {}) }) : null,
       }
       const { data: created, error: createError } = owned ? await owned.create(trustedOrder, itemRows, sessionCustomer?.id ?? null) : await service!.rpc('create_order_with_items', {
         p_order: trustedOrder,
@@ -538,6 +549,15 @@ async function handlePOST(request: Request) {
         else {
           const { error: breakdownError } = await legacyRecordTaxPromo(service!, tenant_id, order.id, values)
           if (breakdownError) log.error('orders.tax_promo_record_error', { err: breakdownError, order_id: order.id })
+        }
+      }
+
+      // Same for the scheduled time: written right after, rolled back with the order on failure.
+      if (scheduledFor && !order.replayed) {
+        if (owned) await owned.recordScheduledFor(order.id, scheduledFor)
+        else {
+          const { error: scheduleError } = await legacyRecordScheduledFor(service!, tenant_id, order.id, scheduledFor)
+          if (scheduleError) log.error('orders.scheduled_for_record_error', { err: scheduleError, order_id: order.id })
         }
       }
 

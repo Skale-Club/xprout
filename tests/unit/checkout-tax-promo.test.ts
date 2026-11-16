@@ -118,7 +118,7 @@ const caps = { kds: true, waiterOrdering: true, guestOrdering: true, dineIn: tru
 const result = <T>(data: T) => ({ data, error: null })
 const repository = {
   tenantSettings: vi.fn(), capabilities: vi.fn(), stripeEnabled: vi.fn(), products: vi.fn(), optionGroups: vi.fn(), ingredients: vi.fn(),
-  deliveryZones: vi.fn(), create: vi.fn(), recordAnalytics: vi.fn(), taxPromo: vi.fn(), recordTaxPromo: vi.fn(),
+  deliveryZones: vi.fn(), create: vi.fn(), recordAnalytics: vi.fn(), taxPromo: vi.fn(), recordTaxPromo: vi.fn(), scheduling: vi.fn(), recordScheduledFor: vi.fn(),
 }
 const order = (extra: Record<string, unknown> = {}) => ({
   tenant_id: tenantId, customer_name: 'Guest', customer_phone: '5550100200', tip_cents: 100,
@@ -142,6 +142,7 @@ describe('POST /api/orders with tax and a promo code', () => {
     repository.optionGroups.mockResolvedValue(result([])); repository.ingredients.mockResolvedValue(result([]))
     repository.create.mockResolvedValue(result({ id: orderId, status: 'pending', total: 0, order_type: 'dine_in', replayed: false }))
     repository.taxPromo.mockResolvedValue({ ready: true, taxBps: 625, promo: promo() })
+    repository.scheduling.mockResolvedValue({ ready: false, enabled: false, hours: null, timeZone: null, prepMinutes: 0, maxNoticeMinutes: 0 })
   })
   afterEach(() => { vi.unstubAllEnvs(); vi.resetAllMocks() })
 

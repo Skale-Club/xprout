@@ -17,6 +17,8 @@ import Link from 'next/link'
 import { formatPrice } from '@/lib/utils'
 import { embeddedCurrency } from '@/components/menu/menu-utils'
 import { checkoutTheme } from '@/lib/payments/checkout-theme'
+import { schedulingTimeZone } from '@/lib/orders/scheduled-orders'
+import { formatSlotDay, formatSlotTime } from '@/components/menu/schedule-format'
 import { ui, ctaStyle } from '@/components/menu/menu-ui'
 import { stripe,retrieveOwnedPaymentIntent } from '@/lib/stripe'
 import { applyPaymentSignal, signalForIntentStatus } from '@/lib/orders/payment-sync'
@@ -42,7 +44,7 @@ export default async function ConfirmationPage({ params }: ConfirmationPageProps
 
   const loadOrder = async () => owned?{data:await loadOwnedPaymentCheckout(orderId)}:await supabase!
     .from('orders')
-    .select('*, tenants(slug, name, tenant_settings(currency, primary_color, accent_color))')
+    .select('*, tenants(slug, name, tenant_settings(currency, country, region, primary_color, accent_color))')
     .eq('id', orderId)
     .maybeSingle()
 
@@ -89,6 +91,12 @@ export default async function ConfirmationPage({ params }: ConfirmationPageProps
   const slug = order.tenants?.slug as string | undefined
   const discountCents = Number(order.discount_cents ?? 0)
   const taxCents = Number(order.tax_cents ?? 0)
+  // An order booked for later shows that time (in the restaurant's time zone) instead of asap.
+  const scheduledMs = order.scheduled_for ? Date.parse(order.scheduled_for) : NaN
+  const tenantSettings = (Array.isArray(order.tenants?.tenant_settings) ? order.tenants?.tenant_settings[0] : order.tenants?.tenant_settings) as { currency?: string | null; country?: string | null; region?: string | null } | null | undefined
+  const scheduleZone = (order as { schedule_zone?: string | null }).schedule_zone
+    ?? schedulingTimeZone({ country: tenantSettings?.country, region: tenantSettings?.region, currency: tenantSettings?.currency })
+    ?? 'UTC'
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -126,6 +134,9 @@ export default async function ConfirmationPage({ params }: ConfirmationPageProps
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 text-left">
           <p className="text-sm text-gray-500 mb-2">Order Details</p>
           <p className="font-semibold text-gray-900">{order.tenants?.name}</p>
+          {Number.isFinite(scheduledMs) && (
+            <p className="text-sm font-semibold text-gray-700">Scheduled for {formatSlotDay(scheduledMs, scheduleZone, 'en')}, {formatSlotTime(scheduledMs, scheduleZone, 'en')}</p>
+          )}
           {discountCents > 0 && (
             <p className="text-sm tabular-nums text-gray-600">Discount{order.promo_code ? ` (${order.promo_code})` : ''}: -{formatPrice(discountCents / 100, embeddedCurrency(order.tenants))}</p>
           )}
