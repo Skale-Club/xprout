@@ -85,7 +85,7 @@ test.describe('superadmin audit trail', () => {
     await page.goto('/audit?days=1')
     await expect(page.getByRole('heading', { name: 'Audit trail' })).toBeVisible()
     // Recent audit events from independent fixtures can fill the unfiltered page.
-    await page.getByLabel('Restaurant').selectOption(TENANTS.self.id)
+    await page.getByLabel(/^Restaurant/).selectOption(TENANTS.self.id)
     await page.getByRole('button', { name: 'Filter', exact: true }).click()
     await expect(page).toHaveURL(url => url.searchParams.get('tenant') === TENANTS.self.id)
     await expect(page.getByRole('table')).toContainText(TENANTS.self.name)
