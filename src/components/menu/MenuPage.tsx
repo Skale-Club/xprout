@@ -925,7 +925,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   }, [hours, settings?.country, settings?.region, currency])
   const openLabel: OpenLabel | null = openInfo ? describeOpenState(openInfo.state, copy, guestCopy, selectedLanguage) : null
 
-  const contextParts = [menuTitle !== tenant.name ? menuTitle : null, settings?.business_type, settings?.price_range]
+  // The price range ($$) stays in settings for SEO and the chat, but is not shown to guests.
+  const contextParts = [menuTitle !== tenant.name ? menuTitle : null, settings?.business_type]
     .filter((part): part is string => !!part && !!part.trim())
 
   const tabs: Array<{ id: string; label: string }> = [
