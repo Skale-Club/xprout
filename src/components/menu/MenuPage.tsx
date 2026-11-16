@@ -1,6 +1,7 @@
 'use client'
 
 import { BRAND_NAME, BRAND_PRIMARY } from '@/lib/brand'
+import { googleReviewLink } from '@/lib/site/review-link'
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { idempotencyKeyFor, type IdempotencySlot } from '@/lib/orders/idempotency-client'
@@ -601,6 +602,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const contacts = contactLinks(settings)
   const { orderOnlineUrl, reservationUrl } = resolveMenuActionLinks(settings, capabilities)
   const shownFooterBrand = visibleFooterBrand(footerBrand, settings)
+  const review = googleReviewLink(settings?.google_review_url, selectedLanguage)
   const hasContact = !!(contacts.phone || contacts.instagram || contacts.whatsapp || settings?.address || email || orderOnlineUrl || reservationUrl)
 
   useEffect(() => {
@@ -1449,6 +1451,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
               <p>{[publicNap ? publicNap.address : settings?.address, publicNap ? publicNap.city : settings?.city].filter(Boolean).join(', ')}</p>
               {(publicNap ? publicNap.phone : settings?.phone) && <p>{publicNap ? publicNap.phone : settings?.phone}</p>}
             </address>
+            {review && <a href={review.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm font-medium text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{review.label}</a>}
             {(pageLinks.length > 0 || navigationLinks.length > 0) && (
               <nav aria-label={copy.pagesMore} className={hasContact ? 'mt-6' : ''}>
                 <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">

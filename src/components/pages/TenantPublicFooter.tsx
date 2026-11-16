@@ -1,4 +1,6 @@
-export type FooterSettings = { address?: string | null; city?: string | null; phone?: string | null }
+import { googleReviewLink } from '@/lib/site/review-link'
+
+export type FooterSettings = { address?: string | null; city?: string | null; phone?: string | null; language?: string | null; google_review_url?: string | null }
 export type FooterLink = { title: string; href: string }
 
 /** Merchant-provided facts and public links; no inferred location or business type. */
@@ -8,6 +10,7 @@ export default function TenantPublicFooter({ name, settings, links }: {
   const address = [settings?.address?.trim(), settings?.city?.trim()].filter(Boolean).join(', ')
   const phone = settings?.phone?.trim()
   const dial = phone?.replace(/[^\d+]/g, '')
+  const review = googleReviewLink(settings?.google_review_url, settings?.language)
   const unique = links.filter((link, index) => links.findIndex(other => other.href === link.href) === index).slice(0, 300)
   return <footer className="mt-8 border-t border-zinc-200/70">
     <div className="mx-auto max-w-5xl space-y-4 px-5 py-8 text-[14px] leading-6 text-zinc-600 sm:px-8">
@@ -16,6 +19,7 @@ export default function TenantPublicFooter({ name, settings, links }: {
         {address && <p>{address}</p>}
         {phone && <p>{dial ? <a href={`tel:${dial}`} className="underline-offset-2 hover:underline">{phone}</a> : phone}</p>}
       </address>
+      {review && <a href={review.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:text-zinc-900 hover:underline">{review.label}</a>}
       {unique.length > 0 && <nav aria-label={name}><ul className="flex flex-wrap gap-x-5 gap-y-2">
         {unique.map(link => <li key={link.href}><a href={link.href} className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>)}
       </ul></nav>}

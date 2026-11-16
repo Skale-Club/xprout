@@ -30,6 +30,21 @@ function fixture(patch: Record<string, unknown[]> = {}) {
 }
 
 describe('independent PostgreSQL public catalog', () => {
+  it('delivers an optional saved review destination to the public footer only after schema readiness', async () => {
+    const { query } = fixture()
+    const destination = 'https://g.page/merchant/review'
+    const enriched: PublicMenuQuery = async (text, values) => {
+      if (text.includes('information_schema.columns') && text.includes("'google_review_url'")) return { rows: [{ row: { ready: true } }] }
+      if (text.includes('FROM public.tenant_settings s') && text.includes("'google_review_url'")) return { rows: [{ row: { google_review_url: destination } }] }
+      return query(text, values)
+    }
+    const result = await readOwnedPublicMenu(enriched, 'restaurant', undefined)
+    if (result.kind !== 'menu') throw Error('Expected the public menu')
+    expect(result.tenant.tenant_settings.google_review_url).toBe(destination)
+    const oldSchema = await readOwnedPublicMenu(fixture().query, 'restaurant', undefined)
+    if (oldSchema.kind !== 'menu') throw Error('Expected schema compatibility')
+    expect(oldSchema.tenant.tenant_settings.google_review_url).toBeUndefined()
+  })
   it('preserves menu selection, original IDs, numeric DTOs, capabilities and grouped details', async () => {
     const { query, queries } = fixture()
     const result = await readOwnedPublicMenu(query, 'restaurant', undefined)
