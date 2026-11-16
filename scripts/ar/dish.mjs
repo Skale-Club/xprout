@@ -16,7 +16,7 @@
  */
 import { config } from 'dotenv'
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 config({ path: resolve(process.cwd(), '.env.local'), quiet: true })
@@ -111,16 +111,41 @@ const { Client } = require('pg');
 })().catch(e => { console.error(e.message); process.exit(1) });
 `
 
+/**
+ * The 3D gallery (manifest "publish": "gallery") has no restaurant or product:
+ * its row lives in src/lib/marketing/3d-gallery-dishes.ts. The backlog row of
+ * this dish becomes a published one, keeping its name and category.
+ */
+function publishToGalleryCatalog(row) {
+  const catalogPath = resolve('src/lib/marketing/3d-gallery-dishes.ts')
+  const source = readFileSync(catalogPath, 'utf8')
+  const pattern = new RegExp(`^(\\s*)\\{ id: '${dish}', name: ("[^"]*"), category: '([a-z-]+)', status: '(?:backlog|published)'[^\\n]*\\},?\\r?$`, 'm')
+  const match = source.match(pattern)
+  if (!match) throw new Error(`${dish} has no row in ${catalogPath}`)
+  const [, indent, name, category] = match
+  const line = `${indent}{ id: '${dish}', name: ${name}, category: '${category}', status: 'published', widthCm: ${row.model_width_cm}, photo: '${row.photo_url}', glb: '${row.glb_url}', usdz: '${row.usdz_url}', source: 'gallery' },`
+  writeFileSync(catalogPath, source.replace(pattern, line))
+  return line.trim()
+}
+
 function publish() {
   for (const ext of ['glb', 'usdz']) if (!existsSync(file('out', ext))) throw new Error(`no ${file('out', ext)}: run prepare first`)
+  const gallery = manifest.publish === 'gallery'
+  const photo = join(dir, 'photos', `${dish}.webp`)
+  if (gallery && !existsSync(photo)) throw new Error(`no ${photo}: run scripts/ar/gallery-photo.ts ${dish} first`)
   // tsx through node itself: no shell, so paths with spaces (My Drive) stay one argument.
   const uploaded = JSON.parse(run(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'scripts/ar/upload-dish-model.ts',
-    '--tenant', manifest.tenant_id, '--glb', file('out', 'glb'), '--usdz', file('out', 'usdz')]).trim().split(/\r?\n/).pop())
+    '--tenant', manifest.storage_prefix ?? manifest.tenant_id, '--glb', file('out', 'glb'), '--usdz', file('out', 'usdz'),
+    ...(gallery ? ['--photo', photo] : [])]).trim().split(/\r?\n/).pop())
   const size = JSON.parse(run(process.execPath, ['-e', `
     const b=require('fs').readFileSync(process.argv[1]);const n=b.readUInt32LE(12);const j=JSON.parse(b.subarray(20,20+n));
     const acc=j.accessors;let lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];for(const m of j.meshes)for(const p of m.primitives){const a=acc[p.attributes.POSITION];a.min.forEach((v,i)=>lo[i]=Math.min(lo[i],v));a.max.forEach((v,i)=>hi[i]=Math.max(hi[i],v))}
     console.log(JSON.stringify({width_cm:Math.round(Math.max(hi[0]-lo[0],hi[2]-lo[2])*1000)/10}))`, file('out', 'glb')]))
   const row = { ...uploaded, model_width_cm: size.width_cm }
+  if (gallery) {
+    console.log(JSON.stringify({ dish, catalog: publishToGalleryCatalog(row) }))
+    return
+  }
   const ssh = process.env.AR_PROD_SSH ?? 'root@188.245.112.3'
   const container = run('ssh', ['-o', 'BatchMode=yes', ssh, "docker ps --format '{{.Names}}' | grep '^app-gmaayluj11x1m6j7baogonfn-' | head -1"]).trim()
   if (!container) throw new Error('production app container not found')

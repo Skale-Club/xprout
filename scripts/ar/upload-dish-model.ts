@@ -25,7 +25,8 @@ async function main() {
   const argv = process.argv.slice(2)
   const arg = (name: string) => { const index = argv.indexOf(`--${name}`); return index >= 0 ? argv[index + 1] : undefined }
   const tenant = arg('tenant')
-  if (!tenant || !/^[0-9a-f-]{36}$/.test(tenant) || !arg('glb')) throw new Error('usage: --tenant <uuid> --glb <file> [--usdz <file>]')
+  // A restaurant id, or 'gallery' for the 3D gallery (src/lib/marketing/3d-gallery.ts).
+  if (!tenant || !/^([0-9a-f-]{36}|gallery)$/.test(tenant) || !arg('glb')) throw new Error('usage: --tenant <uuid|gallery> --glb <file> [--usdz <file>] [--photo <webp>]')
 
   const result: Record<string, string | number> = {}
   for (const format of ['glb', 'usdz'] as Format[]) {
@@ -37,6 +38,16 @@ async function main() {
     const path = arModelStoragePath(tenant, format)
     const url = await getStorageClient().upload('product-images', path, data, { contentType: AR_MODEL_CONTENT_TYPES[format] })
     Object.assign(result, { [`${format}_url`]: url, [`${format}_storage_path`]: path, [`${format}_bytes`]: data.length })
+  }
+  // The gallery card photo: an already optimized WebP (scripts/ar/gallery-photo.ts).
+  const photo = arg('photo')
+  if (photo) {
+    const data = new Uint8Array(await readFile(resolve(photo)))
+    const isWebp = data.length > 12 && String.fromCharCode(...data.subarray(0, 4)) === 'RIFF' && String.fromCharCode(...data.subarray(8, 12)) === 'WEBP'
+    if (!isWebp || data.length > 100 * 1024) throw new Error(`${photo}: must be an optimized WebP of at most 100 KiB`)
+    const path = `${tenant}/photos/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`
+    const url = await getStorageClient().upload('product-images', path, data, { contentType: 'image/webp' })
+    Object.assign(result, { photo_url: url, photo_storage_path: path, photo_bytes: data.length })
   }
   console.log(JSON.stringify(result))
 }

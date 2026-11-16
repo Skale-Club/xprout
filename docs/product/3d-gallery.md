@@ -35,18 +35,19 @@ Aurora Classic Mojito is left out (glass drink, first draft model).
 
 ## Adding a dish
 
-1. Pick a `backlog` row (or add one) and check the Rodin balance (free:
+1. Pick a `backlog` row (or add one, plus its sizes in
+   `scripts/ar/dishes/gallery.json`) and check the Rodin balance (free:
    `GET https://api.hyper3d.com/api/v2/check_balance`).
-2. Make the reference photo; it also becomes the card photo, so it follows
-   docs/product/media-policy.md.
-3. Generate with Rodin through the Hyper3D MCP: Gen-2.5-High, Raw, 80k faces,
-   0.5 credit. Dishes in bowls (ramen, açaí, curries) are risky: Rodin tends to
-   drop the bowl.
-4. Prepare in Blender (scripts/ar/prepare-dish-model.py: real size, plate) and
-   get the owner's approval in the Blender window. Hard rule.
-5. Upload the GLB, USDZ and photo to R2, then turn the row into `published`
-   with its URLs and width.
-
-Gallery-only dishes have no menu product, so `scripts/ar/dish.mjs publish`
-(which writes `product_ar_models`) does not fit step 5 yet; a gallery publish
-mode is the next tooling step.
+2. Put the square source photo at `$AR_MODELS_DIR/gallery/photos/<id>.png` and
+   run `npx tsx scripts/ar/gallery-photo.ts <id>`: it writes the optimized WebP
+   (media policy photo profile) used as the Rodin reference and the card photo.
+3. Generate with Rodin through the Hyper3D MCP from that WebP: Gen-2.5-High,
+   Raw, 80k faces, 0.5 credit. Save the result as `gallery/raw/<id>.glb`.
+   Rodin drops the plate or bowl even when asked to keep it, so the plate is
+   drawn in step 4 (cream, dark for pizzas). Bowl dishes still need a vessel.
+4. `node --env-file=.env.local scripts/ar/dish.mjs prepare gallery <id>`
+   (real size, drawn plate, food grade), then the owner approves it in the
+   Blender window. Hard rule.
+5. `node --env-file=.env.local scripts/ar/dish.mjs publish gallery <id>`:
+   uploads the GLB, USDZ and photo to R2 under `gallery/` and turns the row
+   into `published` with its URLs and width. No database row is written.
