@@ -12,7 +12,8 @@ import { OptionSelectionError, resolveOptionSelection } from '@/lib/menu/option-
 import { legacyRecordTaxPromo, legacyTaxPromo } from '@/lib/orders/tax-promo-legacy'
 import { DELIVERY_RULES_NOT_READY, deliveryRuleViolation, type DeliveryRulesState } from '@/lib/orders/delivery-rules'
 import { legacyDeliveryRules } from '@/lib/orders/delivery-rules-legacy'
-import { TAX_PROMO_NOT_READY, normalizePromoCode, priceOrder, promoRejection, type TaxPromoState } from '@/lib/orders/tax-promo'
+import { TAX_PROMO_NOT_READY, normalizePromoCode, priceOrder, promoRejection, type PromoCodeRow, type TaxPromoState } from '@/lib/orders/tax-promo'
+import { LOYALTY_NOT_READY, REDEEM_MESSAGES, redeemRejection, rewardDiscountCents, type LoyaltyState } from '@/lib/orders/loyalty'
 import { legacyRecordScheduledFor, legacyScheduling } from '@/lib/orders/scheduled-orders-legacy'
 import { SCHEDULING_NOT_READY, resolveScheduledFor, type SchedulingState } from '@/lib/orders/scheduled-orders'
 import { hasContactValues, resolveContact } from '@/lib/orders/order-contact'
@@ -141,7 +142,7 @@ async function handlePOST(request: Request) {
     // Set by checkout once the guest gave an email; used after the transaction commits.
     const afterCommit: { email?: { tenantId: string; orderId: string; requiresPayment: boolean } } = {}
     const checkout = async (owned?: OwnedOrderRepository) => {
-      const { tenant_id, customer_name, customer_phone, items, order_type: rawOrderType, delivery_address: rawDeliveryAddress, delivery_street: rawDeliveryStreet, delivery_complement: rawDeliveryComplement, delivery_zipcode: rawDeliveryZipcode, delivery_city: rawDeliveryCity, delivery_notes: rawDeliveryNotes, location_id: rawLocationId, tip_cents: rawTipCents, menu_id: rawMenuId, promo_code: rawPromoCode, scheduled_for: rawScheduledFor, customer_email: rawCustomerEmail, customer_language: rawCustomerLanguage, marketing_sms_opt_in: rawSmsOptIn, marketing_email_opt_in: rawEmailOptIn, table_name: rawTableName, table_id: rawTableId, analytics_session_id: rawAnalyticsSessionId } = parsed.data
+      const { tenant_id, customer_name, customer_phone, items, order_type: rawOrderType, delivery_address: rawDeliveryAddress, delivery_street: rawDeliveryStreet, delivery_complement: rawDeliveryComplement, delivery_zipcode: rawDeliveryZipcode, delivery_city: rawDeliveryCity, delivery_notes: rawDeliveryNotes, location_id: rawLocationId, tip_cents: rawTipCents, menu_id: rawMenuId, promo_code: rawPromoCode, use_loyalty_reward: rawUseLoyaltyReward, scheduled_for: rawScheduledFor, customer_email: rawCustomerEmail, customer_language: rawCustomerLanguage, marketing_sms_opt_in: rawSmsOptIn, marketing_email_opt_in: rawEmailOptIn, table_name: rawTableName, table_id: rawTableId, analytics_session_id: rawAnalyticsSessionId } = parsed.data
 
       const service = owned ? undefined : await createServiceClient()
 
@@ -485,10 +486,24 @@ async function handlePOST(request: Request) {
       if (typedPromo && (!promoCode || promoRejection(taxPromo.promo, new Date()))) {
         return NextResponse.json({ error: 'This promo code is not valid', code: 'promo_invalid' }, { status: 400 })
       }
-      const priced = priceOrder({ subtotalCents, promo: typedPromo ? taxPromo.promo : null, taxBps: taxPromo.taxBps, deliveryFeeCents, tipCents })
+      // Loyalty reward (signed-in guest checkout on the owned database, once the schema step ran).
+      // It is the order's one discount: a fixed amount capped at the items subtotal, applied before tax
+      // exactly like a promo. The balance is re-checked under a lock inside the transaction below.
+      let redeemPoints = 0
+      let rewardPromo: PromoCodeRow | null = null
+      if (rawUseLoyaltyReward === true) {
+        const loyalty: LoyaltyState = owned && !isStaffOrder && capabilities.guestOrdering && taxPromo.ready
+          ? await owned.loyaltyState(sessionCustomer?.id ?? null)
+          : LOYALTY_NOT_READY
+        const rejection = redeemRejection({ state: loyalty, signedIn: !!sessionCustomer, promoTyped: !!typedPromo })
+        if (rejection) return NextResponse.json({ error: REDEEM_MESSAGES[rejection].error, code: `loyalty_${rejection}` }, { status: REDEEM_MESSAGES[rejection].status })
+        redeemPoints = loyalty.rewardPoints
+        rewardPromo = { id: 'loyalty', code: 'LOYALTY', kind: 'fixed', value: rewardDiscountCents(subtotalCents, loyalty.rewardCents), starts_at: null, ends_at: null, is_active: true }
+      }
+      const priced = priceOrder({ subtotalCents, promo: rewardPromo ?? (typedPromo ? taxPromo.promo : null), taxBps: taxPromo.taxBps, deliveryFeeCents, tipCents })
       const totalCents = priced.totalCents
       const storesBreakdown = taxPromo.ready && (priced.discountCents > 0 || priced.taxCents > 0)
-      const appliedPromoCode = priced.discountCents > 0 ? taxPromo.promo!.code : null
+      const appliedPromoCode = priced.discountCents > 0 && !rewardPromo ? taxPromo.promo!.code : null
 
       // Scheduled orders (guest checkout only, and only once the schema step ran): the
       // time, the opening hours and the dishes' notice are all re-checked here.
@@ -537,7 +552,7 @@ async function handlePOST(request: Request) {
       const trustedOrder = {
         ...orderRow,
         idempotency_key: idempotencyKey,
-        request_fingerprint: idempotencyKey ? orderFingerprint({ order: orderRow, items: itemRows, ...(storesBreakdown ? { pricing: { discount: priced.discountCents, tax: priced.taxCents, promo: appliedPromoCode } } : {}), ...(scheduledFor ? { scheduled_for: scheduledFor } : {}) }) : null,
+        request_fingerprint: idempotencyKey ? orderFingerprint({ order: orderRow, items: itemRows, ...(storesBreakdown ? { pricing: { discount: priced.discountCents, tax: priced.taxCents, promo: appliedPromoCode, ...(redeemPoints > 0 ? { loyalty_points: redeemPoints } : {}) } } : {}), ...(scheduledFor ? { scheduled_for: scheduledFor } : {}) }) : null,
       }
       const { data: created, error: createError } = owned ? await owned.create(trustedOrder, itemRows, sessionCustomer?.id ?? null) : await service!.rpc('create_order_with_items', {
         p_order: trustedOrder,
@@ -563,6 +578,9 @@ async function handlePOST(request: Request) {
           if (breakdownError) log.error('orders.tax_promo_record_error', { err: breakdownError, order_id: order.id })
         }
       }
+
+      // Spend the points on the order just created. A short balance throws 409 and rolls the whole order back.
+      if (redeemPoints > 0 && !order.replayed) await owned!.recordLoyaltyRedeem(order.id, sessionCustomer!.id, redeemPoints)
 
       // Same for the scheduled time: written right after, rolled back with the order on failure.
       if (scheduledFor && !order.replayed) {

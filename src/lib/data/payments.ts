@@ -132,6 +132,8 @@ export class OwnedPaymentRepository {
       WHERE tenant_id=$1 AND id=$2 AND status=$6 RETURNING id,status`,[order.tenant_id,order.id,transition.next,signal==='succeeded',intent.id,order.status])
     if(updated.rows.length!==1)throw new PaymentDataError(409,'Order changed during payment synchronization')
     if(transition.next==='paid'||transition.next==='cancelled')await new OwnedOrderRepository(this.query,order.tenant_id).recordAnalytics(order.id,transition.next==='paid'?'order_completed':'order_cancelled')
+    // A payment cancelled before the kitchen saw the order gives back any loyalty points it spent.
+    if(transition.next==='cancelled')await new OwnedOrderRepository(this.query,order.tenant_id).settleLoyalty(order.id,'cancelled')
     return{ok:true,changed:true,status:transition.next}
   }
   async event(event:{id:string;type:string;data:{object:PaymentFacts}}){
