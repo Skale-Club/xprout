@@ -26,6 +26,8 @@ Step 1 (see docs/product/augmented-reality.md, "Model guidelines"):
   * puts the origin at the bottom centre, so the dish sits on the table;
   * --plate-cm adds a round dark stoneware plate of that diameter under the
     food (image-to-3D tools often drop a dark plate from the photo);
+  * --bowl-cm (+ --bowl-height-cm) draws a stoneware bowl instead and sets the
+    food in it, its top just under the rim, pulled inside the walls;
   * decimates above --max-tris triangles, shrinks textures above --max-texture.
 Step 2 exports the scene as it is (only the size limits are enforced again).
 
@@ -59,6 +61,10 @@ def parse_args():
     parser.add_argument('--width-cm', type=float)
     parser.add_argument('--height-cm', type=float)
     parser.add_argument('--plate-cm', type=float)
+    # A drawn bowl instead of a plate (Rodin drops bowls too): rim diameter and
+    # outside height. The food is placed with its top just under the rim.
+    parser.add_argument('--bowl-cm', type=float)
+    parser.add_argument('--bowl-height-cm', type=float, default=8.0)
     parser.add_argument('--fit-width-cm', type=float)
     parser.add_argument('--fit-height-cm', type=float)
     parser.add_argument('--replace-plate', action='store_true')
@@ -78,6 +84,8 @@ def parse_args():
         parser.error('use only one of --fit-width-cm or --fit-height-cm')
     if (args.fit_width_cm or args.fit_height_cm) and not args.from_blend:
         parser.error('--fit-* resizes an existing .blend: use it with --from-blend')
+    if args.plate_cm and args.bowl_cm:
+        parser.error('use only one of --plate-cm or --bowl-cm')
     return args
 
 
@@ -146,6 +154,9 @@ def import_and_normalise(args):
     size = hi - lo
     factor = (args.width_cm / 100.0) / max(size.x, size.y) if args.width_cm else (args.height_cm / 100.0) / size.z
     centre = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
+    if args.bowl_cm:
+        place_in_bowl(food, centre, factor, size, args.bowl_cm / 100.0, args.bowl_height_cm / 100.0, args.plate_glaze)
+        return
     lift = add_plate(args.plate_cm / 100.0, args.plate_glaze) if args.plate_cm else 0.0
     for obj in food:
         for vertex in obj.data.vertices:
@@ -238,8 +249,90 @@ def plate_textures(glaze='dark', size=1024, seed=7):
 
 def add_plate(diameter, glaze='dark'):
     """A round stoneware plate (lathed profile, foot ring, speckled glaze); returns the food's resting height."""
+    lathe_stoneware(plate_profile(diameter / 2), diameter, glaze)
+    return PLATE_BASE_TOP - 0.002  # food bottoms are uneven: sink them 2 mm into the plate
+
+
+BOWL_THICKNESS = 0.005
+BOWL_BASE_IN = 0.010  # height of the bowl's inside bottom
+
+
+def bowl_wall(radius, height, s):
+    """Outside wall at s in [0, 1], from the foot (s=0) up to the rim (s=1): (r, z)."""
+    foot = radius * 0.42
+    return foot + (radius - foot) * math.sin(s * math.pi / 2), height * s ** 1.35
+
+
+def bowl_profile(radius, height):
+    """(r, z) from the inside centre up the inside wall, round the lip, down the outside, under the foot."""
+    t = BOWL_THICKNESS
+    steps = 20
+    inside = [(0.0, BOWL_BASE_IN)]
+    for i in range(steps + 1):
+        r, z = bowl_wall(radius, height, i / steps)
+        inside.append((max(0.004, r - t), max(BOWL_BASE_IN, min(height, z + t * 0.6))))
+    centre = (radius - t / 2, height)
+    lip = [(centre[0] + t / 2 * math.cos(a), centre[1] + t / 2 * math.sin(a)) for a in [math.radians(d) for d in range(150, -1, -30)]]
+    outside = [bowl_wall(radius, height, i / steps) for i in range(steps, -1, -1)]
+    foot = radius * 0.42
+    under = [(foot - 0.004, 0.0), (foot - 0.0055, 0.002), (0.0, 0.0025)]
+    return inside + lip + outside + under
+
+
+def inner_radius_at(radius, height, z):
+    """The bowl's inside radius at height z (the inside wall rises monotonically)."""
+    t = BOWL_THICKNESS
+    zs, rs = [], []
+    for i in range(41):
+        r, zz = bowl_wall(radius, height, i / 40)
+        zs.append(max(BOWL_BASE_IN, zz + t * 0.6))
+        rs.append(r - t)
+    if z <= zs[0]:
+        return rs[0]
+    for i in range(1, len(zs)):
+        if z <= zs[i]:
+            f = (z - zs[i - 1]) / max(1e-9, zs[i] - zs[i - 1])
+            return rs[i - 1] + (rs[i] - rs[i - 1]) * f
+    return rs[-1]
+
+
+def place_in_bowl(food, centre, factor, size, diameter, height, glaze):
+    """Draws a bowl and sets the food in it: food top just under the rim, nothing through the walls."""
     radius = diameter / 2
-    profile = plate_profile(radius)
+    lathe_stoneware(bowl_profile(radius, height), diameter, glaze, arc_uv=True)
+    top = height - 0.008
+    food_height = size.z * factor
+    room = top - (BOWL_BASE_IN + 0.002)
+    z_factor = factor * min(1.0, room / food_height) if food_height > 0 else factor
+    bottom = top - size.z * z_factor
+    for obj in food:
+        for vertex in obj.data.vertices:
+            x = (vertex.co.x - centre.x) * factor
+            y = (vertex.co.y - centre.y) * factor
+            z = bottom + (vertex.co.z - centre.z) * z_factor
+            limit = inner_radius_at(radius, height, z) - 0.001
+            r = math.hypot(x, y)
+            if r > limit > 0:  # pull food that would show through the wall back inside
+                x, y = x * limit / r, y * limit / r
+            vertex.co = Vector((x, y, z))
+        obj.data.update()
+
+
+def arc_texture_radii(profile):
+    """Texture radius per profile point for tall shapes (bowls): the glaze circle is laid
+    along the surface, centre (0) up the inside to the lip (0.97), then back to 0.52
+    down the outside, so walls are not smeared the way a top-down projection smears them."""
+    lengths = [0.0]
+    for (r0, z0), (r1, z1) in zip(profile, profile[1:]):
+        lengths.append(lengths[-1] + math.hypot(r1 - r0, z1 - z0))
+    lip = max(range(len(profile)), key=lambda i: profile[i][1])
+    end = lengths[-1]
+    return [0.97 * lengths[i] / lengths[lip] if i <= lip else 0.97 - 0.45 * (lengths[i] - lengths[lip]) / (end - lengths[lip])
+            for i in range(len(profile))]
+
+
+def lathe_stoneware(profile, diameter, glaze='dark', arc_uv=False):
+    """Spins a (r, z) profile into a speckled stoneware object named PLATE_NAME (the food grade skips it)."""
     mesh = bpy.data.meshes.new(PLATE_NAME)
     bm = bmesh.new()
     verts = [bm.verts.new((r, 0.0, z)) for r, z in profile]
@@ -248,9 +341,21 @@ def add_plate(diameter, glaze='dark'):
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     uv = bm.loops.layers.uv.new('UVMap')
-    for face in bm.faces:  # top-down projection: the texture's circle is the plate
+    radii = arc_texture_radii(profile) if arc_uv else None
+    bm.verts.index_update()
+    tex = {}
+    for vert in bm.verts:
+        x, y, z = vert.co
+        if radii is None:  # top-down projection: the texture's circle is the plate
+            tex[vert.index] = (x / diameter + 0.5, y / diameter + 0.5)
+            continue
+        r = math.hypot(x, y)
+        nearest = min(range(len(profile)), key=lambda i: (profile[i][0] - r) ** 2 + (profile[i][1] - z) ** 2)
+        k = radii[nearest] / 2 / r if r > 1e-6 else 0.0
+        tex[vert.index] = (0.5 + x * k, 0.5 + y * k)
+    for face in bm.faces:
         for loop in face.loops:
-            loop[uv].uv = (loop.vert.co.x / diameter + 0.5, loop.vert.co.y / diameter + 0.5)
+            loop[uv].uv = tex[loop.vert.index]
     bm.to_mesh(mesh)
     bm.free()
     mesh.shade_smooth()
@@ -270,7 +375,7 @@ def add_plate(diameter, glaze='dark'):
     links.new(base.outputs['Color'], shader.inputs['Base Color'])
     links.new(rough.outputs['Color'], shader.inputs['Roughness'])
     mesh.materials.append(material)
-    return PLATE_BASE_TOP - 0.002  # food bottoms are uneven: sink them 2 mm into the plate
+    return plate
 
 
 def box_blur(channels, radius):
