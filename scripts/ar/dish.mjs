@@ -51,6 +51,7 @@ function prepare() {
     args.push('--from-blend', blend)
     if (spec.height_cm) args.push('--fit-height-cm', String(spec.height_cm))
     else if (spec.plate_cm) args.push('--fit-width-cm', String(spec.plate_cm))
+    else if (spec.bowl_cm) args.push('--fit-width-cm', String(spec.bowl_cm))
     else if (spec.food_cm) args.push('--fit-width-cm', String(spec.food_cm))
   } else {
     const raw = file('raw', 'glb')
@@ -61,10 +62,14 @@ function prepare() {
       const food = spec.food_cm ?? (spec.plate_cm && spec.food_ratio ? spec.plate_cm * spec.food_ratio : null)
       if (!food) throw new Error(`${dish}: set food_cm, plate_cm + food_ratio, or height_cm`)
       args.push('--width-cm', String(food))
+      // Manifest-wide plate glaze (dark by default), overridable per dish.
+      const glaze = spec.plate_glaze ?? manifest.plate_glaze
       if (spec.plate_cm) {
         args.push('--plate-cm', String(spec.plate_cm))
-        // Manifest-wide plate glaze (dark by default), overridable per dish.
-        const glaze = spec.plate_glaze ?? manifest.plate_glaze
+        if (glaze) args.push('--plate-glaze', glaze)
+      } else if (spec.bowl_cm) {
+        // A drawn bowl (rim diameter, outside height): Rodin drops bowls as well as plates.
+        args.push('--bowl-cm', String(spec.bowl_cm), '--bowl-height-cm', String(spec.bowl_height_cm ?? 8))
         if (glaze) args.push('--plate-glaze', glaze)
       }
     }

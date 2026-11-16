@@ -43,8 +43,13 @@ Aurora Classic Mojito is left out (glass drink, first draft model).
    (media policy photo profile) used as the Rodin reference and the card photo.
 3. Generate with Rodin through the Hyper3D MCP from that WebP: Gen-2.5-High,
    Raw, 80k faces, 0.5 credit. Save the result as `gallery/raw/<id>.glb`.
-   Rodin drops the plate or bowl even when asked to keep it, so the plate is
-   drawn in step 4 (cream, dark for pizzas). Bowl dishes still need a vessel.
+   Rodin drops flat plates even when asked to keep them, so for plated dishes
+   ask for the food only and draw the plate in step 4 (`plate_cm`; cream, dark
+   for pizzas). For bowl dishes, asking for "the food inside the bowl" made
+   Rodin keep the bowl (and the mac & cheese skillet): keep that vessel
+   (`plate_cm: null`, `food_cm` = vessel width). If a bowl is dropped, draw one
+   with `bowl_cm` (rim diameter) + `bowl_height_cm`; the food is set just under
+   the rim and kept inside the walls.
 4. `node --env-file=.env.local scripts/ar/dish.mjs prepare gallery <id>`
    (real size, drawn plate, food grade), then the owner approves it in the
    Blender window. Hard rule.
