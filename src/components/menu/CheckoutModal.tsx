@@ -13,6 +13,10 @@ import PhoneField from '@/components/ui/PhoneField'
 import { keepFieldVisible, nextFieldOnEnter, useVisibleBox } from '@/components/ui/keyboard-fields'
 import type { PhoneContext } from './showcase'
 import { ctaStyle, ui } from './menu-ui'
+import { discountCents as promoDiscountCents, taxCents as salesTaxCents, type PromoKind } from '@/lib/orders/tax-promo'
+
+/** A promo code the server accepted, kept to preview its discount; the order only carries the code. */
+export type AppliedPromo = { code: string; kind: PromoKind; value: number }
 
 function findMatchingZone(zipcode: string | undefined, zones: DeliveryZone[] | undefined): DeliveryZone | null {
   if (!zipcode || !zones || zones.length === 0) return null
@@ -30,7 +34,7 @@ function findMatchingZone(zipcode: string | undefined, zones: DeliveryZone[] | u
  * above the keys; Enter moves to the next field and, in the last one, places
  * the order.
  */
-export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, tipsEnabled, tipPercentages, tipCents, onTipChange, phoneContext = null, locale = 'en', onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
+export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, phoneContext = null, locale = 'en', onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
   cart: CartItem[]
   confirmedCart: CartItem[]
   currency: string
@@ -56,6 +60,12 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   tipPercentages?: [number, number, number]
   tipCents?: number
   onTipChange?: (cents: number) => void
+  /** Sales tax (basis points) and the promo code field: only guest checkout with the schema in place. */
+  tenantId?: string
+  taxBps?: number
+  promoEnabled?: boolean
+  promo?: AppliedPromo | null
+  onPromoChange?: (promo: AppliedPromo | null) => void
   /** The restaurant's country: the phone field starts on its calling code. */
   phoneContext?: PhoneContext | null
   /** BCP 47 locale for country names in the phone field. */
@@ -70,6 +80,8 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
 }) {
   const [selectedTipKey, setSelectedTipKey] = useState<'pct1' | 'pct2' | 'pct3' | 'custom' | null>(null)
   const [customTipValue, setCustomTipValue] = useState('')
+  const [promoInput, setPromoInput] = useState('')
+  const [promoState, setPromoState] = useState<'idle' | 'checking' | 'invalid'>('idle')
   const copy = getMenuCopy(lang)
   const money = (value: number) => formatMoney(value, currency, lang)
   const primary = primaryColor ?? '#18181b'
@@ -82,7 +94,30 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   const deliveryFeeCents = orderType === 'delivery'
     ? (matchedZone != null ? matchedZone.fee_cents : (orderTypeConfig?.deliveryFeeCents ?? 0))
     : 0
-  const grandTotal = total + deliveryFeeCents / 100 + tipAmount
+  // Preview only: POST /api/orders recomputes the discount, tax and total.
+  const subtotalCents = Math.round(total * 100)
+  const discountCents = promo ? promoDiscountCents(subtotalCents, promo) : 0
+  const taxAmountCents = salesTaxCents(subtotalCents - discountCents, taxBps)
+  const grandTotal = (subtotalCents - discountCents + taxAmountCents + deliveryFeeCents + (tipCents ?? 0)) / 100
+
+  async function applyPromo() {
+    const code = promoInput.trim()
+    if (!code || !tenantId || promoState === 'checking') return
+    setPromoState('checking')
+    try {
+      const response = await fetch('/api/promo-codes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: tenantId, code, subtotal_cents: subtotalCents }),
+      })
+      const data = await response.json().catch(() => null) as { valid?: boolean; code?: string; kind?: PromoKind; value?: number } | null
+      if (response.ok && data?.valid && data.code && data.kind && typeof data.value === 'number') {
+        onPromoChange?.({ code: data.code, kind: data.kind, value: data.value })
+        setPromoInput('')
+        setPromoState('idle')
+      } else setPromoState('invalid')
+    } catch { setPromoState('invalid') }
+  }
 
   function handleTipPct(key: 'pct1' | 'pct2' | 'pct3', pct: number) {
     if (selectedTipKey === key) {
@@ -296,6 +331,34 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                   </Card>
                 )}
 
+                {showForm && promoEnabled && (
+                  <Card title={copy.promoCode}>
+                    <div className="space-y-2 px-4 pb-4">
+                      {promo ? (
+                        <div className="flex items-center justify-between text-[15px]">
+                          <span className="font-semibold tabular-nums text-zinc-900">{promo.code}</span>
+                          <button type="button" onClick={() => onPromoChange?.(null)} aria-label={copy.close} className="flex size-9 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100"><X className="size-4" aria-hidden="true" /></button>
+                        </div>
+                      ) : (
+                        <div className="flex items-end gap-2">
+                          <div className="min-w-0 flex-1">
+                            <Field label={copy.promoCode} value={promoInput} onChange={value => { setPromoInput(value); setPromoState('idle') }} autoComplete="off" />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={applyPromo}
+                            disabled={!promoInput.trim() || promoState === 'checking'}
+                            className="h-11 rounded-xl border border-zinc-200 bg-white px-4 text-[14px] font-medium text-zinc-800 hover:border-zinc-300 disabled:opacity-50"
+                          >
+                            {copy.apply}
+                          </button>
+                        </div>
+                      )}
+                      {promoState === 'invalid' && <p role="alert" className="text-[14px] font-medium text-red-700">{copy.promoInvalid}</p>}
+                    </div>
+                  </Card>
+                )}
+
                 {showForm && (
                   <Card title={copy.yourDetails}>
                     <div className="space-y-3 px-4 pb-4">
@@ -325,6 +388,12 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                   <Card title={copy.paymentSummary}>
                     <dl className="space-y-1.5 px-4 pb-4 text-[15px]">
                       <div className="flex justify-between"><dt className="text-zinc-600">{copy.subtotal}</dt><dd className="tabular-nums text-zinc-800">{money(total)}</dd></div>
+                      {discountCents > 0 && promo && (
+                        <div className="flex justify-between"><dt className="text-zinc-600">{copy.discount} ({promo.code})</dt><dd className="tabular-nums text-zinc-800">-{money(discountCents / 100)}</dd></div>
+                      )}
+                      {taxAmountCents > 0 && (
+                        <div className="flex justify-between"><dt className="text-zinc-600">{copy.tax}</dt><dd className="tabular-nums text-zinc-800">{money(taxAmountCents / 100)}</dd></div>
+                      )}
                       {deliveryFeeCents > 0 && (
                         <div className="flex justify-between"><dt className="text-zinc-600">{copy.deliveryFee}</dt><dd className="tabular-nums text-zinc-800">{money(deliveryFeeCents / 100)}</dd></div>
                       )}

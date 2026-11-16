@@ -39,6 +39,7 @@ import {
   BarChart3,
   LayoutTemplate,
   ConciergeBell,
+  Tag,
 } from 'lucide-react'
 
 const mainItems = [
@@ -52,6 +53,7 @@ const mainItems = [
 const adminPanelItems = [
   { href: '/settings/store', label: 'Store', icon: Store },
   { href: '/settings/locations', label: 'Locations', icon: Building2 },
+  { href: '/settings/promo-codes', label: 'Promo codes', icon: Tag },
   { href: '/settings/subscription', label: 'Subscription', icon: CreditCard },
   { href: '/settings/branding', label: 'Branding', icon: Palette },
   { href: '/settings/menu-display', label: 'Menu display', icon: LayoutTemplate },

@@ -3,6 +3,7 @@ import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import { planCeiling, resolveTenantCapabilities, type ServiceSettings } from '../service-modes'
 import { SERVICE_SETTINGS_KEYS, validateServiceSettingsPatch } from '../service-settings'
 import { ACTION_LINK_COLUMNS, normalizeActionUrl } from '../menu-action-links'
+import { TAX_PROMO_READY_SQL, TAX_RATE_BPS_MAX } from '../orders/tax-promo'
 
 export type AdminStoreContext = { tenantId: string; role: UserRole }
 export class LockedServiceSettingsError extends AdminMenuError {
@@ -23,6 +24,13 @@ export async function actionLinkColumnsReady(query: AdminMenuQuery): Promise<boo
     WHERE table_schema='public' AND table_name='tenant_settings' AND column_name = ANY($1::text[])`, [ACTION_LINK_COLUMNS])
   return rows[0]?.ready === true
 }
+
+/** Whether the tax and promo schema step ran (docs/owned-schema/20261116130000_tax_and_promo_codes.sql). */
+export async function taxPromoSchemaReady(query: AdminMenuQuery): Promise<boolean> {
+  return (await query(TAX_PROMO_READY_SQL)).rows[0]?.ready === true
+}
+const storeColumns = (linksReady: boolean, taxReady: boolean) =>
+  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}`
 
 function assertContext(context: AdminStoreContext, write = false) {
   if (!UUID.test(context.tenantId) || !['superadmin', 'store-admin', 'store-staff'].includes(context.role)) throw new AdminMenuError(403, 'Forbidden')
@@ -47,8 +55,9 @@ async function loadPlan(query: AdminMenuQuery, tenantId: string, lock = false) {
 export async function readAdminStorePage(query: AdminMenuQuery, context: AdminStoreContext) {
   assertContext(context)
   const linksReady = await actionLinkColumnsReady(query)
+  const taxReady = await taxPromoSchemaReady(query)
   const [settingsResult, tenantResult, stripeResult, features] = await Promise.all([
-    query(`SELECT ${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
+    query(`SELECT ${storeColumns(linksReady, taxReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
     query('SELECT custom_domain,custom_domain_verified FROM public.tenants WHERE id=$1 LIMIT 1', [context.tenantId]),
     query(`SELECT id,tenant_id,stripe_account_id,scope,connected_at,is_active,disconnected_at,created_at,updated_at
       FROM public.stripe_connections WHERE tenant_id=$1 AND is_active=true ORDER BY connected_at DESC LIMIT 2`, [context.tenantId]),
@@ -71,10 +80,10 @@ const REGIONAL_COLUMNS = [
   'price_range', 'tip_percentage_1', 'tip_percentage_2', 'tip_percentage_3', 'business_hours',
 ] as const
 
-function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true) {
+function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AdminMenuError(400, 'Invalid settings')
   const body = input as Record<string, unknown>
-  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS])
+  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps'])
   if (Object.keys(body).length === 0 || Object.keys(body).some(key => !allowed.has(key))) throw new AdminMenuError(400, 'Invalid settings')
   const patch: Record<string, unknown> = {}
   // Menu links and the "Powered by" switch: https URLs or empty, and a boolean.
@@ -92,6 +101,18 @@ function validateRegionalPatch(input: unknown, payments: boolean, current: Recor
       if (!(key in patch)) continue
       if (patch[key] !== null && patch[key] !== false) throw new AdminMenuError(503, 'Menu links are not available yet')
       delete patch[key]
+    }
+  }
+  // Sales tax: one rate per restaurant in basis points (0-2500), part of guest ordering.
+  if ('tax_rate_bps' in body) {
+    const bps = body.tax_rate_bps
+    if (typeof bps !== 'number' || !Number.isInteger(bps) || bps < 0 || bps > TAX_RATE_BPS_MAX) throw new AdminMenuError(400, 'Sales tax must be between 0% and 25%')
+    if (!tax.ready) {
+      // The schema step may not have run yet: an untouched 0 is ignored, a real rate is refused.
+      if (bps !== 0) throw new AdminMenuError(503, 'Sales tax is not available yet')
+    } else {
+      if (bps !== Number(current?.tax_rate_bps ?? 0) && !tax.guestOrdering) throw new AdminMenuError(403, 'Sales tax is part of ordering from the menu')
+      patch.tax_rate_bps = bps
     }
   }
   for (const key of REGIONAL_COLUMNS) {
@@ -133,10 +154,12 @@ export async function mutateAdminStoreSettings(query: AdminMenuQuery, context: A
   await query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`xmartmenu-store-settings:${context.tenantId}`])
   const features = await loadPlan(query, context.tenantId, true)
   const linksReady = await actionLinkColumnsReady(query)
-  const columns = linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS
+  const taxReady = await taxPromoSchemaReady(query)
+  const columns = storeColumns(linksReady, taxReady)
   const currentResult = await query(`SELECT ${columns} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1 FOR UPDATE`, [context.tenantId])
   const current = currentResult.rows[0] ?? null
-  const patch = validateRegionalPatch(input, planCeiling(features).payments, current, linksReady)
+  const patch = validateRegionalPatch(input, planCeiling(features).payments, current, linksReady,
+    { ready: taxReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering })
   const fields = Object.keys(patch)
   if (!fields.length) return { settings: current as unknown as TenantSettings, capabilities: resolveTenantCapabilities(features, current as ServiceSettings | null) }
   const result = await query(`INSERT INTO public.tenant_settings AS s (tenant_id,${fields.join(',')},updated_at)

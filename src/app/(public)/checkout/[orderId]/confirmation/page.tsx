@@ -87,6 +87,8 @@ export default async function ConfirmationPage({ params }: ConfirmationPageProps
   const theme = checkoutTheme(order.tenants)
   const total = formatPrice(Number(order.total ?? 0), embeddedCurrency(order.tenants))
   const slug = order.tenants?.slug as string | undefined
+  const discountCents = Number(order.discount_cents ?? 0)
+  const taxCents = Number(order.tax_cents ?? 0)
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -124,6 +126,12 @@ export default async function ConfirmationPage({ params }: ConfirmationPageProps
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 text-left">
           <p className="text-sm text-gray-500 mb-2">Order Details</p>
           <p className="font-semibold text-gray-900">{order.tenants?.name}</p>
+          {discountCents > 0 && (
+            <p className="text-sm tabular-nums text-gray-600">Discount{order.promo_code ? ` (${order.promo_code})` : ''}: -{formatPrice(discountCents / 100, embeddedCurrency(order.tenants))}</p>
+          )}
+          {taxCents > 0 && (
+            <p className="text-sm tabular-nums text-gray-600">Tax: {formatPrice(taxCents / 100, embeddedCurrency(order.tenants))}</p>
+          )}
           <p className="text-sm font-semibold tabular-nums" style={{ color: theme.accentText }}>Total: {total}</p>
         </div>
 

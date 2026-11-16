@@ -15,6 +15,7 @@ import { lockedGroups, type PlanHintItem } from '@/components/admin/plan-hint'
 import type { TenantCapabilities } from '@/lib/service-modes'
 import type { ServiceNumberKey, ServiceSettingsPatch } from '@/lib/service-settings'
 import { notifyPublicMenuChanged } from '@/lib/menu/revalidate-client'
+import { bpsToPercent, percentToBps } from '@/lib/orders/tax-promo'
 
 interface Props {
   settings: TenantSettings | null
@@ -173,6 +174,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     order_online_url: settings?.order_online_url ?? '',
     reservation_url: settings?.reservation_url ?? '',
     hide_platform_brand: settings?.hide_platform_brand === true,
+    tax_rate_pct: bpsToPercent(settings?.tax_rate_bps ?? 0),
     tip_percentage_1: settings?.tip_percentage_1 ?? 15,
     tip_percentage_2: settings?.tip_percentage_2 ?? 18,
     tip_percentage_3: settings?.tip_percentage_3 ?? 20,
@@ -360,6 +362,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
   }
 
   const supabase = ownedSource ? null : createClient()
+  const taxEnabled = typeof settings?.tax_rate_bps === 'number' && caps.guestOrdering
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -378,12 +381,21 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     }
 
     // Tip presets only exist on the plan that sells guest ordering.
-    const { tip_percentage_1, tip_percentage_2, tip_percentage_3, ...regionalAndContact } = form
+    const { tip_percentage_1, tip_percentage_2, tip_percentage_3, tax_rate_pct, ...regionalAndContact } = form
     const tipPresets = caps.plan.payments ? { tip_percentage_1, tip_percentage_2, tip_percentage_3 } : {}
+
+    // Sales tax exists once the schema step ran and the restaurant takes orders from the menu.
+    const taxBps = taxEnabled ? percentToBps(tax_rate_pct) : null
+    if (taxEnabled && taxBps === null) {
+      setError('Sales tax must be a number from 0 to 25 with at most 2 decimals')
+      setLoading(false)
+      return
+    }
 
     const payload = {
         ...regionalAndContact,
         ...tipPresets,
+        ...(taxBps !== null ? { tax_rate_bps: taxBps } : {}),
         // Coerce local-SEO fields: empty strings → null, coordinates → number.
         city: form.city.trim() || null,
         region: form.region.trim() || null,
@@ -917,6 +929,30 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
                   <p className="text-[13px] font-medium text-zinc-600 ml-1">Presets are saved with Apply Settings. A &quot;Custom&quot; option is always available to customers</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Sales tax — one rate for the whole restaurant, added to guest orders */}
+          {taxEnabled && (
+            <div className="bg-white border border-zinc-100 rounded-[1.25rem] p-10 space-y-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Percent className="w-4 h-4 text-primary" />
+                </div>
+                <h2 className="text-xl font-black text-zinc-950 tracking-tight">Sales tax</h2>
+              </div>
+              <div className="max-w-xs">
+                <label className={labelClassName}>Sales tax (%)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={form.tax_rate_pct}
+                  onChange={e => setForm(f => ({ ...f, tax_rate_pct: e.target.value }))}
+                  placeholder="0"
+                  className={inputClassName}
+                />
+                <p className="text-[13px] font-medium text-zinc-600 mt-1.5 ml-1">e.g. 6.25. Added to the items (after any promo code) when guests order from the menu. Tips and delivery are not taxed. Saved with Apply Settings.</p>
+              </div>
             </div>
           )}
 

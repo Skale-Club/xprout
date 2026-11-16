@@ -203,6 +203,12 @@ function OrderCard({
           {(order as any).tip_cents > 0 && (
             <p className="text-[10px] font-bold text-zinc-400">tip {formatMoney((order as any).tip_cents / 100)}</p>
           )}
+          {(order as any).discount_cents > 0 && (
+            <p className="text-[10px] font-bold text-zinc-400">discount -{formatMoney((order as any).discount_cents / 100)}{(order as any).promo_code ? ` (${(order as any).promo_code})` : ''}</p>
+          )}
+          {(order as any).tax_cents > 0 && (
+            <p className="text-[10px] font-bold text-zinc-400">tax {formatMoney((order as any).tax_cents / 100)}</p>
+          )}
         </div>
         <div className={cn("px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm border", chipClass)}>
           <Clock className="w-3.5 h-3.5" />
@@ -663,6 +669,12 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
                     <p className="text-2xl font-black text-zinc-950 tracking-tighter">{fmtMoney(selectedOrder.total)}</p>
                     {(selectedOrder as any).tip_cents > 0 && (
                       <p className="text-xs font-bold text-zinc-500 mt-0.5">incl. tip {fmtMoney((selectedOrder as any).tip_cents / 100)}</p>
+                    )}
+                    {(selectedOrder as any).discount_cents > 0 && (
+                      <p className="text-xs font-bold text-zinc-500 mt-0.5">Discount -{fmtMoney((selectedOrder as any).discount_cents / 100)}{(selectedOrder as any).promo_code ? ` (${(selectedOrder as any).promo_code})` : ''}</p>
+                    )}
+                    {(selectedOrder as any).tax_cents > 0 && (
+                      <p className="text-xs font-bold text-zinc-500 mt-0.5">Tax {fmtMoney((selectedOrder as any).tax_cents / 100)}</p>
                     )}
                   </div>
                 </div>
