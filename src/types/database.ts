@@ -145,6 +145,10 @@ export interface TenantSettings {
   reservation_url?: string | null   // "Reserve a table" button (https, max 500)
   scheduled_orders_enabled?: boolean // Guests may schedule an order for later; absent until docs/owned-schema/20261116140000 ran
   delivery_zones_only?: boolean     // Own delivery only inside the zones; absent until docs/owned-schema/20261116160000 ran
+  loyalty_enabled?: boolean         // Loyalty program on; absent until docs/owned-schema/20261116170000 ran
+  loyalty_cents_per_point?: number  // Spend (cents) that earns 1 point (100-100000)
+  loyalty_reward_points?: number    // Points the reward costs (1-100000)
+  loyalty_reward_cents?: number     // Discount (cents) the reward gives (1-1000000)
   tax_rate_bps?: number             // Sales tax in basis points (625 = 6.25%); absent until docs/owned-schema/20261116130000 ran
   updated_at: string
   // AI-04: New fields added in migration 022
@@ -376,6 +380,7 @@ export interface Order {
   discount_cents?: number                            // Promo discount on the items subtotal (absent until the tax/promo schema ran)
   tax_cents?: number                                 // Sales tax on subtotal - discount
   promo_code?: string | null                         // Code used (snapshot)
+  loyalty_points_redeemed?: number                   // Points spent on this order's reward (the discount sits in discount_cents); absent until the loyalty schema ran
   delivery_street: string | null                     // SEED-020 (migration 041)
   delivery_complement: string | null                 // SEED-020 (migration 041)
   delivery_zipcode: string | null                    // SEED-020 (migration 041)

@@ -1,6 +1,7 @@
 import type { Order, OrderItem } from '@/types/database'
 import { UUID } from '../auth/owned-principal'
 import type { OwnedCustomer } from '../auth/owned-customer'
+import { readLoyaltyState } from './loyalty'
 import { ITEM_COLUMNS, ORDER_COLUMNS, OrderDataError, type OrderQuery } from './orders'
 
 export interface CustomerPanelTenant { id: string; name: string; slug: string; settings: {
@@ -41,6 +42,9 @@ export class CustomerPanelRepository {
     const orders = await this.query(`SELECT ${projection(ORDER_COLUMNS,'o')}||jsonb_build_object('order_items',coalesce((
       SELECT jsonb_agg(${projection(ITEM_COLUMNS,'i')} ORDER BY i.id) FROM public.order_items i WHERE i.order_id=o.id),'[]'::jsonb)) AS row
       FROM public.orders o WHERE o.tenant_id=$1 AND o.customer_id=$2 ORDER BY o.created_at DESC,o.id LIMIT 25`,[tenant.id,customer.userId])
-    return { tenant,orders: orders.rows.map(value => value.row as Order & { order_items: OrderItem[] }),linkingUnavailable }
+    // Points and progress, once the loyalty schema step ran and the restaurant switched the program on.
+    const state = await readLoyaltyState(this.query,tenant.id,customer.userId)
+    const loyalty = state.ready && state.enabled ? { balance: state.balance,rewardPoints: state.rewardPoints,rewardCents: state.rewardCents } : null
+    return { tenant,orders: orders.rows.map(value => value.row as Order & { order_items: OrderItem[] }),linkingUnavailable,loyalty }
   }
 }

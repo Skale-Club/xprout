@@ -59,6 +59,8 @@ export const createOrderSchema = z.object({
   tip_cents: z.number().int().min(0).max(1_000_000).nullish(),
   // One optional promo code; checked against the restaurant's codes on the server, never trusted for amounts.
   promo_code: text(64).nullish(),
+  // Spend the loyalty reward (signed-in customers only; never together with a promo code). The server decides the discount.
+  use_loyalty_reward: z.boolean().nullish(),
   // ISO time for a scheduled order; the server re-checks hours, notice and the 7-day window.
   scheduled_for: text(40).nullish(),
   // Optional receipt email and the two marketing opt-ins (stored only for a channel the guest gave).

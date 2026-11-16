@@ -4,6 +4,7 @@ import { planCeiling, resolveTenantCapabilities, type ServiceSettings } from '..
 import { SERVICE_SETTINGS_KEYS, validateServiceSettingsPatch } from '../service-settings'
 import { ACTION_LINK_COLUMNS, normalizeActionUrl } from '../menu-action-links'
 import { TAX_PROMO_READY_SQL, TAX_RATE_BPS_MAX } from '../orders/tax-promo'
+import { LOYALTY_READY_SQL, loyaltySettingsValid } from '../orders/loyalty'
 import { DELIVERY_RULES_READY_SQL } from '../orders/delivery-rules'
 import { SCHEDULING_READY_SQL } from '../orders/scheduled-orders'
 
@@ -39,8 +40,13 @@ export async function schedulingSchemaReady(query: AdminMenuQuery): Promise<bool
 export async function deliveryRulesSchemaReady(query: AdminMenuQuery): Promise<boolean> {
   return (await query(DELIVERY_RULES_READY_SQL)).rows[0]?.ready === true
 }
-const storeColumns = (linksReady: boolean, taxReady: boolean, schedulingReady = false, deliveryRulesReady = false) =>
-  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}${schedulingReady ? ', scheduled_orders_enabled' : ''}${deliveryRulesReady ? ', delivery_zones_only' : ''}`
+/** Whether the loyalty schema step ran (docs/owned-schema/20261116170000_loyalty.sql). */
+export async function loyaltySchemaReady(query: AdminMenuQuery): Promise<boolean> {
+  return (await query(LOYALTY_READY_SQL)).rows[0]?.ready === true
+}
+const LOYALTY_KEYS = ['loyalty_enabled', 'loyalty_cents_per_point', 'loyalty_reward_points', 'loyalty_reward_cents'] as const
+const storeColumns = (linksReady: boolean, taxReady: boolean, schedulingReady = false, deliveryRulesReady = false, loyaltyReady = false) =>
+  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}${schedulingReady ? ', scheduled_orders_enabled' : ''}${deliveryRulesReady ? ', delivery_zones_only' : ''}${loyaltyReady ? `, ${LOYALTY_KEYS.join(', ')}` : ''}`
 
 function assertContext(context: AdminStoreContext, write = false) {
   if (!UUID.test(context.tenantId) || !['superadmin', 'store-admin', 'store-staff'].includes(context.role)) throw new AdminMenuError(403, 'Forbidden')
@@ -68,8 +74,9 @@ export async function readAdminStorePage(query: AdminMenuQuery, context: AdminSt
   const taxReady = await taxPromoSchemaReady(query)
   const schedulingReady = await schedulingSchemaReady(query)
   const deliveryRulesReady = await deliveryRulesSchemaReady(query)
+  const loyaltyReady = await loyaltySchemaReady(query)
   const [settingsResult, tenantResult, stripeResult, features] = await Promise.all([
-    query(`SELECT ${storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
+    query(`SELECT ${storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady, loyaltyReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
     query('SELECT custom_domain,custom_domain_verified FROM public.tenants WHERE id=$1 LIMIT 1', [context.tenantId]),
     query(`SELECT id,tenant_id,stripe_account_id,scope,connected_at,is_active,disconnected_at,created_at,updated_at
       FROM public.stripe_connections WHERE tenant_id=$1 AND is_active=true ORDER BY connected_at DESC LIMIT 2`, [context.tenantId]),
@@ -92,10 +99,10 @@ const REGIONAL_COLUMNS = [
   'price_range', 'tip_percentage_1', 'tip_percentage_2', 'tip_percentage_3', 'business_hours',
 ] as const
 
-function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, scheduling: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, deliveryRules: { ready: boolean; delivery: boolean } = { ready: true, delivery: true }) {
+function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, scheduling: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, deliveryRules: { ready: boolean; delivery: boolean } = { ready: true, delivery: true }, loyalty: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AdminMenuError(400, 'Invalid settings')
   const body = input as Record<string, unknown>
-  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps', 'scheduled_orders_enabled', 'delivery_zones_only'])
+  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps', 'scheduled_orders_enabled', 'delivery_zones_only', ...LOYALTY_KEYS])
   if (Object.keys(body).length === 0 || Object.keys(body).some(key => !allowed.has(key))) throw new AdminMenuError(400, 'Invalid settings')
   const patch: Record<string, unknown> = {}
   // Menu links and the "Powered by" switch: https URLs or empty, and a boolean.
@@ -151,6 +158,25 @@ function validateRegionalPatch(input: unknown, payments: boolean, current: Recor
       patch.delivery_zones_only = only
     }
   }
+  // Loyalty: the switch and the three numbers, part of guest ordering. The numbers are validated together
+  // (same bounds as the schema CHECK) and are only stored once the schema step ran.
+  if (LOYALTY_KEYS.some(key => key in body)) {
+    if ('loyalty_enabled' in body && typeof body.loyalty_enabled !== 'boolean') throw new AdminMenuError(400, 'Invalid loyalty_enabled')
+    const merged = {
+      centsPerPoint: 'loyalty_cents_per_point' in body ? body.loyalty_cents_per_point : current?.loyalty_cents_per_point ?? 500,
+      rewardPoints: 'loyalty_reward_points' in body ? body.loyalty_reward_points : current?.loyalty_reward_points ?? 20,
+      rewardCents: 'loyalty_reward_cents' in body ? body.loyalty_reward_cents : current?.loyalty_reward_cents ?? 1000,
+    }
+    if (!loyaltySettingsValid(merged)) throw new AdminMenuError(400, 'Loyalty: spend per point must be $1.00 to $1,000.00, the reward 1 to 100,000 points and its value up to $10,000.00')
+    if (!loyalty.ready) {
+      // The schema step may not have run yet: an untouched off switch is ignored, switching it on is refused.
+      if (body.loyalty_enabled === true) throw new AdminMenuError(503, 'Loyalty is not available yet')
+    } else {
+      const changed = LOYALTY_KEYS.some(key => key in body && body[key] !== current?.[key])
+      if (changed && !loyalty.guestOrdering) throw new AdminMenuError(403, 'Loyalty is part of ordering from the menu')
+      for (const key of LOYALTY_KEYS) if (key in body) patch[key] = body[key]
+    }
+  }
   for (const key of REGIONAL_COLUMNS) {
     if (!(key in body)) continue
     const value = body[key]
@@ -193,13 +219,15 @@ export async function mutateAdminStoreSettings(query: AdminMenuQuery, context: A
   const taxReady = await taxPromoSchemaReady(query)
   const schedulingReady = await schedulingSchemaReady(query)
   const deliveryRulesReady = await deliveryRulesSchemaReady(query)
-  const columns = storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady)
+  const loyaltyReady = await loyaltySchemaReady(query)
+  const columns = storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady, loyaltyReady)
   const currentResult = await query(`SELECT ${columns} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1 FOR UPDATE`, [context.tenantId])
   const current = currentResult.rows[0] ?? null
   const patch = validateRegionalPatch(input, planCeiling(features).payments, current, linksReady,
     { ready: taxReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering },
     { ready: schedulingReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering },
-    { ready: deliveryRulesReady, delivery: resolveTenantCapabilities(features, current as ServiceSettings | null).delivery })
+    { ready: deliveryRulesReady, delivery: resolveTenantCapabilities(features, current as ServiceSettings | null).delivery },
+    { ready: loyaltyReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering })
   const fields = Object.keys(patch)
   if (!fields.length) return { settings: current as unknown as TenantSettings, capabilities: resolveTenantCapabilities(features, current as ServiceSettings | null) }
   const result = await query(`INSERT INTO public.tenant_settings AS s (tenant_id,${fields.join(',')},updated_at)

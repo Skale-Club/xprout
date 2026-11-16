@@ -3,6 +3,8 @@ import { canKitchenMove, isOrderStatus, type OrderStatus } from '../orders/statu
 import { resolveTenantCapabilities, type ServiceSettings } from '../service-modes'
 import { resolveOptionSelection, type OptionSelectionState, type ServerOptionGroup } from '../menu/option-pricing'
 import { TAX_PROMO_NOT_READY, TAX_PROMO_READY_SQL, type PromoCodeRow, type TaxPromoState } from '../orders/tax-promo'
+import { loyaltyReady, readLoyaltyState, redeemLoyalty, settleLoyalty } from './loyalty'
+import type { LoyaltyState } from '../orders/loyalty'
 import { DELIVERY_RULES_NOT_READY, DELIVERY_RULES_READY_SQL, type DeliveryRulesState } from '../orders/delivery-rules'
 import { SCHEDULING_NOT_READY, SCHEDULING_READY_SQL, schedulingTimeZone, type Hours, type SchedulingState } from '../orders/scheduled-orders'
 import { CONTACT_READY_SQL, buildOptedInContacts, type OptInOrderRow, type OrderContactValues } from '../orders/order-contact'
@@ -81,6 +83,8 @@ export function assertUnambiguousOrderOptionPricing(basePrice: number, editor: O
 export const ORDER_COLUMNS = 'id tenant_id customer_name customer_phone customer_phone_key customer_id customer_phone_e164 customer_linked_at customer_link_method status total subtotal currency delivery_fee_cents payment_intent_id order_type delivery_address delivery_street delivery_complement delivery_zipcode delivery_city delivery_notes delivery_zone_id location_id tip_cents table_name table_id analytics_session_id notes created_at updated_at'
 /** Order columns that exist once docs/owned-schema/20261116130000_tax_and_promo_codes.sql ran. */
 export const TAX_PROMO_ORDER_COLUMNS = ' discount_cents tax_cents promo_code'
+/** Order column that exists once docs/owned-schema/20261116170000_loyalty.sql ran. */
+export const LOYALTY_ORDER_COLUMNS = ' loyalty_points_redeemed'
 /** Order column that exists once docs/owned-schema/20261116140000_scheduled_orders.sql ran. */
 export const SCHEDULED_ORDER_COLUMNS = ' scheduled_for'
 export const ITEM_COLUMNS = 'id order_id product_id product_name quantity unit_price selected_options notes ingredient_modifications added_via'
@@ -285,6 +289,18 @@ export class OwnedOrderRepository {
       [this.tenantId, orderId, values.discountCents, values.taxCents, values.promoCode])
     if (updated.rows.length !== 1) throw new OrderDataError(503, 'Order creation result is unavailable')
   }
+  /** The loyalty program and, for a signed-in customer, their balance (not ready until the schema step ran). */
+  async loyaltyState(customerId: string | null): Promise<LoyaltyState> {
+    return readLoyaltyState(this.query, this.tenantId, customerId)
+  }
+  /** Spends the points on the order just created; throws 409 (rolling the order back) when the balance is short. */
+  async recordLoyaltyRedeem(orderId: string, customerId: string, points: number) {
+    await redeemLoyalty(this.query, this.tenantId, orderId, customerId, points)
+  }
+  /** Earn on done, refund/reverse on cancelled; idempotent per order (see data/loyalty.ts). */
+  async settleLoyalty(orderId: string, status: string) {
+    return settleLoyalty(this.query, this.tenantId, orderId, status)
+  }
   /** Whether the scheduled-orders schema step ran; until it did, orders behave as before. */
   async schedulingReady() {
     return (await this.query(SCHEDULING_READY_SQL)).rows[0]?.ready === true
@@ -366,6 +382,7 @@ export class OwnedOrderRepository {
     staff(context, this.tenantId)
     if (!Number.isFinite(Date.parse(cutoff)) || Date.parse(cutoff) < Date.now() - 49 * 3600000) throw new OrderDataError(400, 'Invalid order window')
     const columns = ORDER_COLUMNS + ((await this.taxPromoReady()) ? TAX_PROMO_ORDER_COLUMNS : '') + ((await this.schedulingReady()) ? SCHEDULED_ORDER_COLUMNS : '')
+      + ((await loyaltyReady(this.query)) ? LOYALTY_ORDER_COLUMNS : '')
     const found = rows<KdsOrder>(await this.query(`SELECT ${projected(columns, 'o')}
       || jsonb_build_object('order_items',COALESCE((SELECT jsonb_agg(items.row ORDER BY items.id) FROM
         (SELECT oi.id,${projected(ITEM_COLUMNS, 'oi')} AS row FROM public.order_items oi WHERE oi.order_id=o.id ORDER BY oi.id LIMIT 1001) items),'[]'::jsonb)) AS row
@@ -383,7 +400,10 @@ export class OwnedOrderRepository {
     if (!canKitchenMove(existing.status, status, String(existing.order_type))) throw new OrderDataError(409, `An order cannot go from ${existing.status} to ${status}`)
     const updated = (await this.query('UPDATE public.orders SET status=$3,updated_at=now() WHERE tenant_id=$1 AND id=$2 AND status=$4 RETURNING id,status', [this.tenantId, id, status, existing.status])).rows[0]
     if (!updated) throw new OrderDataError(409, 'The order changed meanwhile, refresh and try again')
-    if (status === 'done' || status === 'cancelled') await this.recordAnalytics(id, status === 'done' ? 'order_completed' : 'order_cancelled')
+    if (status === 'done' || status === 'cancelled') {
+      await this.recordAnalytics(id, status === 'done' ? 'order_completed' : 'order_cancelled')
+      await this.settleLoyalty(id, status)
+    }
     return { id: String(updated.id), status: String(updated.status) }
   }
   async recordAnalytics(id: string, event: 'order_created' | 'order_completed' | 'order_cancelled') {
