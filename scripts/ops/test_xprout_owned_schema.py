@@ -194,6 +194,16 @@ INSERT INTO public.tenant_settings(tenant_id) SELECT id FROM public.tenants WHER
         pg.sql("""UPDATE public.tenant_settings SET google_business_url='https://maps.google.com/?cid=123',
 google_site_verification='valid_token-123', special_hours='[{"date":"2026-12-25","closed":true}]'::jsonb;
 UPDATE public.tenants SET business_kind='software' WHERE slug='real-restaurant';""", role='xmartmenu_owner')
+        # PostgreSQL bounds are limited to 255, even though the application's
+        # verification-token budget is 256. Exercise real values so an invalid
+        # constraint regex cannot hide behind NULL rows at migration time.
+        for column in ('google_site_verification', 'bing_site_verification'):
+            for length in (255, 256):
+                pg.sql(f"UPDATE public.tenant_settings SET {column}=repeat('A',{length});", role='xmartmenu_owner')
+                self.assertEqual(pg.sql(f"SELECT char_length({column}) FROM public.tenant_settings;"), str(length))
+            for value in ("repeat('A',257)", "''"):
+                bad = self.psql(f"SET ROLE xmartmenu_owner; UPDATE public.tenant_settings SET {column}={value};", 'xmartmenu', check=False)
+                self.assertNotEqual(bad.returncode, 0, f'{column}: {value}')
         for assignment in ("facebook='http://facebook.com/example'", "bing_site_verification='<meta>'", "special_hours='{}'::jsonb"):
             bad = self.psql(f"SET ROLE xmartmenu_owner; UPDATE public.tenant_settings SET {assignment};", 'xmartmenu', check=False)
             self.assertNotEqual(bad.returncode, 0, assignment)

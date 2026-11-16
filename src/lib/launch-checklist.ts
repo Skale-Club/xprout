@@ -203,6 +203,14 @@ export const LAUNCH_CHECKLIST_ITEMS: readonly LaunchChecklistItemDef[] = [
 
   // Local presence
   {
+    key: 'local_hours', category: 'local', label: 'Public opening hours',
+    description: 'The public Restaurant data includes the business opening hours supplied by the owner.',
+  },
+  {
+    key: 'gbp_link', category: 'local', label: 'Google Business Profile link',
+    description: 'The public site links to the business profile. This does not verify profile ownership.',
+  },
+  {
     key: 'gbp',
     category: 'local',
     link: 'https://business.google.com',
@@ -252,6 +260,10 @@ export const LAUNCH_CHECKLIST_ITEMS: readonly LaunchChecklistItemDef[] = [
   },
 
   // Performance & quality
+  {
+    key: 'edge_cache', category: 'quality', label: 'Safe public edge cache',
+    description: 'A repeated anonymous request hits the CDN; requests with cookies bypass shared cache and use a private response policy.',
+  },
   {
     key: 'pagespeed',
     category: 'quality',

@@ -1,3 +1,4 @@
+import { siteLocale } from '@/lib/site/request-contract'
 export const revalidate = 300
 
 import { DeliveryImage } from '@/components/delivery-image'
@@ -76,7 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     robots: siteRobots(site ?? { indexable: false }),
     ...(site ? { metadataBase: new URL(site.origin), alternates: { canonical: site.canonicalUrl },
-      openGraph: { type: 'website', title, description, siteName: blog.name, url: site.canonicalUrl, locale: site.lang.replace('-', '_') },
+      openGraph: { type: 'website', title, description, siteName: blog.name, url: site.canonicalUrl, locale: siteLocale(site.lang) },
       twitter: { card: 'summary_large_image', title, description } } : {}),
   }
 }

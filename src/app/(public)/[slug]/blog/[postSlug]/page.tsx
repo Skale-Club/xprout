@@ -1,3 +1,4 @@
+import { siteLocale } from '@/lib/site/request-contract'
 export const revalidate = 300
 
 import { DeliveryImage } from '@/components/delivery-image'
@@ -95,7 +96,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: post.published_at ?? undefined,
       url: canonical,
       siteName: tenantName,
-      locale: site.lang.replace('-', '_'),
+      locale: siteLocale(site.lang),
       // Um link compartilhado sem imagem rende um card cinza em toda rede
       // social. A URL precisa ser ABSOLUTA: o crawler não tem a origem do site.
       ...(image ? { images: [image] } : {}),

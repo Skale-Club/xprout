@@ -45,7 +45,7 @@ export async function legacyRequestSite(authority: string, pathname: string): Pr
   else if (tenant && brand?.apex_tenant_id && brand.apex_tenant_id === tenant.id && !discovery.includes(first) && !global.includes(first)) rewrite = `/brand-site/${brand.primary_host}${pathname === '/' ? '' : pathname}`
   else if (!tenant && brand && brand.id !== '00000000-0000-4000-8000-000000000001' && !discovery.includes(first) && !global.includes(first)) rewrite = `/brand-site/${brand.primary_host}${pathname === '/' ? '' : pathname}`
   let privatePage = false
-  if (tenant) {
+  if (tenant && tenant.id !== brand?.apex_tenant_id) {
     const [menus, locations] = await Promise.all([
       client.from('menus').select('id,slug,is_default,is_private').eq('tenant_id',tenant.id).eq('is_active',true).order('position'),
       client.from('locations').select('slug,menu_id').eq('tenant_id',tenant.id).eq('is_active',true).order('created_at'),
@@ -57,7 +57,7 @@ export async function legacyRequestSite(authority: string, pathname: string): Pr
       || (locations.data ?? []).some(location => `/${location.slug}` === local))
       && !catalog.menus.some(menu => `/${menu.slug}` === local) && !catalog.locations.some(location => `/${location.slug}` === local)
   }
-  const site = resolveSite({ host: authority, pathname: rewrite ?? pathname, tenant, brand, privatePage })
+  const site = resolveSite({ host: authority, pathname: rewrite?.startsWith('/brand-site/') ? pathname : rewrite ?? pathname, tenant, brand, privatePage })
   if (!brand && !tenant && !isPlatformHost(host)) { site.indexable = false; site.reason = 'noncanonical-host' }
   if (foreign) { site.indexable = false; site.reason = 'brand-mismatch' }
   return { ...site, pathname, rewrite, privatePage }

@@ -1,3 +1,5 @@
+import { siteLocale } from '@/lib/site/request-contract'
+import { siteFooterBrand } from '@/lib/site/footer-brand'
 import { BRAND_PRIMARY } from '@/lib/brand'
 export const revalidate = 60
 
@@ -60,7 +62,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonicalUrl,
       siteName: tenant.name,
-      ...(site ? { locale: site.lang.replace('-', '_') } : {}),
+      ...(site ? { locale: siteLocale(site.lang) } : {}),
       // When no override is set, the branded opengraph-image.tsx route supplies the image.
       ...(ogOverride ? { images: [{ url: ogOverride, alt: tenant.name }] } : {}),
     },
@@ -137,7 +139,6 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
     if (product) permanentRedirect(`${site.baseUrl}${dishPath(resolvedMenu.slug, product)}`)
   }
   const navigation = await loadLocalNavigation(tenant.id, site?.baseUrl ?? canonicalUrl)
-  const dishLinks = !isPrivate && resolvedMenu?.slug ? products.filter(isIndexableDish).slice(0, 100).map((product: Product) => ({ title: product.name, href: `${site?.baseUrl ?? canonicalUrl}${dishPath(resolvedMenu.slug, product)}` })) : []
   const currency = (tenant.tenant_settings as any)?.currency ?? 'USD'
 
   const localBusinessLd = buildLocalBusinessJsonLd(tenant, tenant.tenant_settings as any, canonicalUrl, {
@@ -155,9 +156,10 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
       categories={categories}
       products={products}
       menu={resolvedMenu ?? null}
+      dishDiscoveryEnabled={!preview && !feed_preview}
       initialLanguage={lang}
       initialView={view === 'feed' || view === 'list' ? view : undefined}
-      footerBrand={data.footerBrand}
+      footerBrand={siteFooterBrand(site, data.footerBrand)}
       optionGroupsByProductId={priced.optionGroupsByProductId}
       productIngredientsByProductId={priced.productIngredientsByProductId}
       deliveryZones={data.deliveryZones}
@@ -168,7 +170,7 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
       chatAddonTextEnabled={data.chatAddonTextEnabled}
       capabilities={capabilities}
       pageLinks={pageLinks}
-      navigationLinks={[...navigation, ...dishLinks]}
+      navigationLinks={navigation}
       canonicalBaseUrl={site?.baseUrl ?? canonicalUrl}
       table={capabilities.guestOrdering ? table : null}
       waiterCallTable={capabilities.waiterCalls ? table : null}

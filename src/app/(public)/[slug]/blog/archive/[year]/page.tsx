@@ -1,3 +1,4 @@
+import { siteLocale } from '@/lib/site/request-contract'
 import {nativeBlogSelected} from '@/lib/blog/native/selected'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = `Arquivo de ${year} | Blog ${blog.name}`
   return { title, robots: siteRobots(site ?? { indexable: false }),
     ...(site ? { metadataBase: new URL(site.origin), alternates: { canonical: site.canonicalUrl },
-      openGraph: { type: 'website', title, siteName: blog.name, url: site.canonicalUrl, locale: site.lang.replace('-', '_') },
+      openGraph: { type: 'website', title, siteName: blog.name, url: site.canonicalUrl, locale: siteLocale(site.lang) },
       twitter: { card: 'summary_large_image', title } } : {}) }
 }
 

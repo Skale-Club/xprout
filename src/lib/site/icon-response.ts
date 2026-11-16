@@ -15,8 +15,10 @@ export async function siteIconResponse(request: Request, apple = false): Promise
   if (!tenant && site.brand.id === '00000000-0000-4000-8000-000000000001') {
     const asset = join(process.cwd(), 'public', apple ? PLATFORM_BRAND_ASSETS.apple : PLATFORM_BRAND_ASSETS.icon)
     if ((await stat(asset)).size > 40 * 1024) throw new Error('Icon exceeds logo budget')
-    const bytes = new Uint8Array(await readFile(asset))
-    if (bytes.byteLength > 40 * 1024) throw new Error('Icon exceeds logo budget')
+    const source = await readFile(asset)
+    if (source.byteLength > 40 * 1024 || source.length < 24 || source.toString('hex',0,8)!=='89504e470d0a1a0a'
+      || source.readUInt32BE(16)>512 || source.readUInt32BE(20)>512) throw new Error('Icon exceeds logo budget or has invalid PNG dimensions')
+    const bytes = new Uint8Array(source)
     return new Response(bytes, { headers: { ...headers, 'Content-Type': 'image/png' } })
   }
   if (configured) {

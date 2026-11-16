@@ -86,6 +86,8 @@ jobs:
           python3 -B scripts/ops/test_xprout_final_cutover.py
           python3 -B scripts/ops/test_xprout_offsite_backup.py
           python3 -B scripts/ops/install-xprout-offsite-backup.py --plan > /dev/null
+          python3 -B scripts/ops/test_xprout_cloudflare_cache.py
+          node --check scripts/seo/live-check.mjs
 
       - name: Xphere contract checks
         run: npm run xphere:check:all
@@ -186,6 +188,11 @@ jobs:
             sleep 1
           done
           curl -fsS "http://localhost:${PORT}/api/health"
+
+      - name: SEO live verifier against the isolated preview
+        run: |
+          mkdir -p test-results/seo
+          node scripts/seo/live-check.mjs --origin "http://localhost:${PORT}" --canonical-origin "http://localhost:${PORT}" --preview --json test-results/seo/preview-live-check.json
 
       - name: Lighthouse (mobile performance on this build)
         uses: treosh/lighthouse-ci-action@v12

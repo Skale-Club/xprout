@@ -216,3 +216,5 @@ scratch/
 
 # in-repo worktrees (RULES §6)
 .worktrees/
+__pycache__/
+*.py[cod]

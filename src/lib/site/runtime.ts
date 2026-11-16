@@ -21,6 +21,7 @@ export function legacySiteTenant(row: LegacyRow, lifecycle?: LegacyRow | null): 
     is_demo: lifecycle?.is_demo === true,
     published_at: lifecycle ? (typeof lifecycle.published_at === 'string' ? lifecycle.published_at : null) : (typeof row.created_at === 'string' ? row.created_at : null),
     brand_id: typeof lifecycle?.brand_id === 'string' ? lifecycle.brand_id : null,
+    ...(row.business_kind === 'software' || row.business_kind === 'agency' || row.business_kind === 'restaurant' ? { business_kind: row.business_kind } : {}),
     tenant_settings: settings ?? null }
 }
 
@@ -34,7 +35,8 @@ export const loadSiteBrand = cache(async (brandId: string | null = null): Promis
     return ownedAdminTransaction(false, query => readSiteBrand(query, brandId))
   }
   const { createServiceClient } = await import('@/lib/supabase/server')
-  const { data, error } = await createServiceClient().from('brands')
+  const client = createServiceClient()
+  const { data, error } = await client.from('brands')
     .select('id,name,primary_host,extra_hosts,logo,icon,social_image,gtm_id,support_email,privacy_url,terms_url,show_powered_by,default_lang')
     .eq('id', brandId ?? DEFAULT_BRAND_ID).maybeSingle()
   if (error) {
@@ -42,7 +44,9 @@ export const loadSiteBrand = cache(async (brandId: string | null = null): Promis
     throw new Error('Site brand is unavailable')
   }
   if (!data) throw new Error('Site brand is unavailable')
-  return data as SiteBrand
+  const apex = await client.from('brands').select('apex_tenant_id,apex_home_slug,tenant_marketing_routes').eq('id', data.id).maybeSingle()
+  if (apex.error && !missingSiteColumns(apex.error)) throw new Error('Site apex configuration is unavailable')
+  return { ...data, ...(apex.error ? {} : apex.data) } as SiteBrand
 })
 
 export const loadSiteIdentity = cache(async (slug: string): Promise<{ tenant: SeoTenant; brand?: SiteBrand } | null> => {
@@ -61,7 +65,17 @@ export const loadSiteIdentity = cache(async (slug: string): Promise<{ tenant: Se
   if (!data) return null
   const flags = await client.from('tenants').select('brand_id,is_demo,published_at').eq('id', data.id).single()
   if (flags.error && !missingSiteColumns(flags.error)) throw new Error('Site publication state is unavailable')
-  const tenant = legacySiteTenant(data, flags.error ? null : flags.data)
+  // Optional later fields are read separately: their absence must never turn an
+  // existing NULL published_at into the old created_at publication fallback.
+  const optional = await Promise.all(['subdomain', 'business_kind'].map(async column => {
+    const result = await client.from('tenants').select(column).eq('id', data.id).maybeSingle()
+    if (result.error && !missingSiteColumns(result.error)) throw new Error('Site optional identity is unavailable')
+    return result.error ? {} : result.data ?? {}
+  }))
+  const verification = await client.from('tenant_settings').select('google_site_verification,bing_site_verification').eq('tenant_id', data.id).maybeSingle()
+  if (verification.error && !missingSiteColumns(verification.error)) throw new Error('Site verification is unavailable')
+  const tenant = legacySiteTenant({ ...data, ...Object.assign({}, ...optional) }, flags.error ? null : flags.data)
+  if (!verification.error && verification.data) tenant.tenant_settings = { ...tenant.tenant_settings, ...verification.data }
   return { tenant, brand: await loadSiteBrand(tenant.brand_id) }
 })
 

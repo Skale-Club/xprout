@@ -1,3 +1,5 @@
+import { siteLocale } from '@/lib/site/request-contract'
+import { siteFooterBrand } from '@/lib/site/footer-brand'
 import { BRAND_PRIMARY } from '@/lib/brand'
 export const revalidate = 60
 
@@ -74,7 +76,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonicalUrl,
       siteName: tenant.name,
-      ...(site ? { locale: site.lang.replace('-', '_') } : {}),
+      ...(site ? { locale: siteLocale(site.lang) } : {}),
       ...(ogOverride ? { images: [{ url: ogOverride, alt: tenant.name }] } : {}),
     },
     twitter: {
@@ -152,7 +154,6 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
     if (product) permanentRedirect(`${site.baseUrl}${dishPath(menu.slug, product)}`)
   }
   const navigation = await loadLocalNavigation(tenant.id, parentUrl)
-  const dishLinks = !isPrivate && menu?.slug ? displayProducts.filter(isIndexableDish).slice(0, 100).map((product: Product) => ({ title: product.name, href: `${parentUrl}${dishPath(menu.slug, product)}` })) : []
   const tenantSettings = tenant.tenant_settings as any
   // SEO-08: when rendering a branch, use branch-specific LocalBusiness with branchOf.
   // Branches inherit price range and social profiles from the parent tenant.
@@ -199,9 +200,10 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
       products={displayProducts}
       menu={menu}
       location={location ? { id: location.id, name: location.name } : null}
+      dishDiscoveryEnabled={!preview && !feed_preview}
       initialLanguage={lang}
       initialView={view === 'feed' || view === 'list' ? view : undefined}
-      footerBrand={data.footerBrand}
+      footerBrand={siteFooterBrand(site, data.footerBrand)}
       optionGroupsByProductId={optionGroupsByProductId}
       productIngredientsByProductId={productIngredientsByProductId}
       deliveryZones={data.deliveryZones}
@@ -212,7 +214,7 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
       chatAddonTextEnabled={data.chatAddonTextEnabled}
       capabilities={capabilities}
       pageLinks={pageLinks}
-      navigationLinks={[...navigation, ...dishLinks]}
+      navigationLinks={navigation}
       canonicalBaseUrl={parentUrl}
       publicNap={location ? { name: `${tenant.name} – ${location.name}`, address: location.address, city: location.city, phone: location.phone } : undefined}
       table={capabilities.guestOrdering ? table : null}

@@ -12,6 +12,9 @@
 // unit-tested in launch-checklist-signals.test.ts. Same module as the
 // Websites platform's server/launchChecklistScan.ts.
 
+import { edgeCacheEvidence } from '@/lib/site/cache-evidence';
+import { deriveLocalLaunchFindings } from './local-launch-signals';
+
 export interface ScanFinding {
   /** true = verified in place; false = looked for it and it is not there. */
   ok: boolean;
@@ -39,14 +42,24 @@ export interface FetchedPage {
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_BODY_BYTES = 2_000_000;
 
-async function fetchPage(url: string): Promise<FetchedPage> {
+async function fetchPage(url: string, extraHeaders: Record<string, string> = {}): Promise<FetchedPage> {
   try {
     const res = await fetch(url, {
       redirect: "follow",
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      headers: { "user-agent": "Mozilla/5.0 (compatible; XproutLaunchChecklist/1.0)" },
+      headers: { "user-agent": "Mozilla/5.0 (compatible; XproutLaunchChecklist/1.0)", ...extraHeaders },
     });
-    const text = (await res.text()).slice(0, MAX_BODY_BYTES);
+    const reader = res.body?.getReader();
+    const decoder = new TextDecoder();
+    let text = '', bytes = 0;
+    if (reader) while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      bytes += part.value.byteLength;
+      if (bytes > MAX_BODY_BYTES) { await reader.cancel(); throw new Error('Public page exceeds scan budget'); }
+      text += decoder.decode(part.value, { stream: true });
+    }
+    text += decoder.decode();
     const headers: Record<string, string> = {};
     res.headers.forEach((value, key) => { headers[key.toLowerCase()] = value; });
     return { ok: res.ok, status: res.status, url: res.url || url, body: text, headers };
@@ -221,6 +234,7 @@ export function deriveScanFindings(input: ScanInputs): Record<string, ScanFindin
     ? { ok: true, evidence: `JSON-LD: ${ldTypes.slice(0, 6).join(", ")} (still run the Rich Results Test)` }
     : { ok: false, evidence: "no JSON-LD on the homepage" };
   const restaurant = restaurantLocalSeoCheck(html);
+  Object.assign(findings, deriveLocalLaunchFindings(html));
   if (restaurant.present) findings.structured_data = restaurant.complete
     ? { ok: true, evidence: 'Restaurant JSON-LD has stable identity, name, address and phone; still run the Rich Results Test' }
     : { ok: false, evidence: 'Restaurant JSON-LD is missing stable identity or name/address/phone' };
@@ -254,6 +268,10 @@ export async function scanLaunchChecklistSite(siteUrl: string): Promise<LaunchCh
     fetchPage(`${base}/sitemap.xml`),
   ]);
   const gtmIds = homepage.ok ? findGtmIds(homepage.body).slice(0, 3) : [];
+  const edge = homepage.ok ? await Promise.all([
+    fetchPage(`${base}/`),
+    fetchPage(`${base}/`, { cookie: 'xprout-launch-cache-probe=1' }),
+  ]) : null;
   const containers = await Promise.all(
     gtmIds.map((id) => fetchPage(`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(id)}`)),
   );
@@ -261,12 +279,12 @@ export async function scanLaunchChecklistSite(siteUrl: string): Promise<LaunchCh
     siteUrl: base,
     scannedAt: new Date().toISOString(),
     homepage: { ok: homepage.ok, status: homepage.status, ...(homepage.error ? { error: homepage.error } : {}) },
-    findings: deriveScanFindings({
+    findings: { ...deriveScanFindings({
       siteUrl: base,
       homepage,
       robots,
       sitemap,
       gtmContainers: containers.filter((c) => c.ok).map((c) => c.body).join("\n"),
-    }),
+    }), ...(edge ? { edge_cache: edgeCacheEvidence(edge[0].headers, edge[1].headers) } : {}) },
   };
 }

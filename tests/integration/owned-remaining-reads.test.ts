@@ -47,19 +47,20 @@ before(async () => {
   await admin.query(`
     CREATE TABLE public.plans (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
     CREATE TABLE public.tenants (id uuid PRIMARY KEY, name text NOT NULL, slug text NOT NULL UNIQUE, is_active boolean NOT NULL DEFAULT true,
-      custom_domain text, custom_domain_verified boolean NOT NULL DEFAULT false, updated_at timestamptz NOT NULL DEFAULT now());
-    CREATE TABLE public.tenant_settings (tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id), primary_color text, accent_color text, tagline text, logo_url text);
+      custom_domain text, custom_domain_verified boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+    CREATE TABLE public.tenant_settings (tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id), primary_color text, accent_color text, tagline text, logo_url text,
+      language text NOT NULL DEFAULT 'en', seo_noindex boolean NOT NULL DEFAULT false);
     CREATE TABLE public.menus (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES public.tenants(id), slug text NOT NULL, is_default boolean NOT NULL DEFAULT false,
-      is_active boolean NOT NULL DEFAULT true, position int NOT NULL DEFAULT 0, updated_at timestamptz NOT NULL DEFAULT now());
+      is_active boolean NOT NULL DEFAULT true, is_private boolean NOT NULL DEFAULT false, position int NOT NULL DEFAULT 0, updated_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE public.locations (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES public.tenants(id), slug text NOT NULL, is_active boolean NOT NULL DEFAULT true,
-      created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+      menu_id uuid NULL REFERENCES public.menus(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE public.products (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, menu_id uuid NOT NULL, name text NOT NULL,
       image_url text, category_id uuid, position int NOT NULL DEFAULT 0);
     CREATE TABLE public.blog_posts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid, slug text NOT NULL, status text NOT NULL, tags text,
       published_at timestamptz, updated_at timestamptz DEFAULT now());`)
   await admin.query(`INSERT INTO public.tenants(id,name,slug,custom_domain,custom_domain_verified) VALUES
     ($1,'Bistro','bistro','menu.bistro.test',true),($2,'Other','other','pending.other.test',false)`, [tenantId, otherTenantId])
-  await admin.query(`INSERT INTO public.tenant_settings VALUES ($1,'#112233',NULL,'Good food',NULL)`, [tenantId])
+  await admin.query(`INSERT INTO public.tenant_settings(tenant_id,primary_color,accent_color,tagline,logo_url) VALUES ($1,'#112233',NULL,'Good food',NULL)`, [tenantId])
   await admin.query(`INSERT INTO public.menus(id,tenant_id,slug,is_default,position) VALUES ($1,$2,'main',true,0),($3,$2,'lunch',false,1)`, [menuId, tenantId, randomUUID()])
   await admin.query(`INSERT INTO public.locations(id,tenant_id,slug) VALUES ($1,$2,'downtown')`, [randomUUID(), tenantId])
   await admin.query(`INSERT INTO public.products(tenant_id,menu_id,name,position) VALUES ($1,$2,'B',2),($1,$2,'A',1),($3,$2,'foreign',0)`, [tenantId, menuId, otherTenantId])
@@ -161,10 +162,16 @@ test('SEO and picker reads keep the legacy projections and tenant boundaries', a
   assert.equal(tenants.find(t => t.slug === 'bistro')?.custom_domain_verified, true)
   const seo = await run(q => readSeoTenant(q, 'bistro'))
   assert.equal(seo?.id, tenantId)
+  assert.equal(seo?.tenant_settings?.language, 'en')
+  assert.equal(seo?.tenant_settings?.seo_noindex, false)
+  assert.ok(seo?.published_at) // pre-identity schema uses the existing creation date
   assert.equal(await run(q => readSeoTenant(q, 'missing')), null)
   const entries = await run(q => readTenantSitemapEntries(q, tenantId))
   assert.deepEqual(entries.menus.map(m => m.slug), ['main', 'lunch'])
   assert.deepEqual(entries.locations.map(l => l.slug), ['downtown'])
+  await admin.query("UPDATE public.menus SET is_private=true WHERE tenant_id=$1 AND slug='lunch'", [tenantId])
+  assert.deepEqual((await run(q => readTenantSitemapEntries(q, tenantId))).menus.map(m => m.slug), ['main'])
+  await admin.query("UPDATE public.menus SET is_private=false WHERE tenant_id=$1 AND slug='lunch'", [tenantId])
   const og = await run(q => readOgTenant(q, 'bistro'))
   assert.equal(og?.settings.tagline, 'Good food')
   const blog = await run(q => readPlatformBlogSitemap(q))

@@ -1,3 +1,4 @@
+import { siteLocale } from '@/lib/site/request-contract'
 import { cache } from 'react'
 import type { Metadata } from 'next'
 import { getTenantBySlug } from '@/lib/menu/public-menu-data'
@@ -37,7 +38,7 @@ export function pageMetadata(tenant: any, page: PublicPage, site?: ResolvedSite 
     alternates: { canonical: canonicalUrl },
     openGraph: {
       type: 'website', title, description, url: canonicalUrl, siteName: tenant.name,
-      ...(site ? { locale: site.lang.replace('-', '_') } : {}),
+      ...(site ? { locale: siteLocale(site.lang) } : {}),
       ...(ogOverride ? { images: [{ url: ogOverride, alt: tenant.name }] } : {}),
     },
     twitter: { card: 'summary_large_image', title, description, ...(ogOverride ? { images: [ogOverride] } : {}) },

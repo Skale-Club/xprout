@@ -8,11 +8,16 @@ for (let i = 0; i < args.length; i++) {
   else if (key === '--canonical-origin') options.canonicalOrigin = args[++i]
   else if (key === '--tenant') options.tenants.push(...args[++i].split(','))
   else if (key === '--expect-demos-noindex') options.demos = true
+  else if (key === '--preview') options.preview = true
   else if (key === '--json') options.json = args[++i]
   else throw new Error(`Unknown option: ${key}`)
 }
-if (!options.origin) throw new Error('Use --origin https://your-host [--tenant slug] [--canonical-origin https://production-host] [--expect-demos-noindex] [--json file]')
+if (!options.origin) throw new Error('Use --origin https://your-host [--tenant slug] [--canonical-origin https://production-host] [--preview] [--expect-demos-noindex] [--json file]')
 const origin = new URL(options.origin).origin, canonicalOrigin = new URL(options.canonicalOrigin ?? origin).origin
+const hostname = new URL(origin).hostname
+const preview = options.preview || hostname === 'localhost' || hostname === '[::1]' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
+  || hostname.split('.').some(label => /(?:^|-)(?:dev|stage|staging|preview|test|localhost)(?:-|$)/.test(label))
+  || hostname.endsWith('.vercel.app') || hostname.endsWith('.netlify.app')
 if (new URL(options.origin).username || new URL(options.origin).password) throw new Error('Origin must not contain credentials')
 if (options.demos) options.tenants.push('aurora', 'bella-vista')
 const checks = [], check = (name, ok, evidence = '') => checks.push({ name, ok: Boolean(ok), evidence })
@@ -39,12 +44,12 @@ function inspectPage(label, page, expectedRoot = false, demo = false) {
   try { sameHost = Boolean(ogUrl && href && new URL(ogUrl).hostname === new URL(href).hostname) } catch {}
   check(`${label}: OG identity`, sameHost, ogUrl ?? 'missing')
   check(`${label}: OG image absolute`, image && /^https?:\/\//.test(image), image ? 'absolute image found' : 'missing')
-  if (demo || origin !== canonicalOrigin) check(`${label}: noindex`, /noindex/i.test(robots), robots)
+  if (demo || preview || origin !== canonicalOrigin) check(`${label}: noindex`, /noindex/i.test(robots), robots)
 }
 const home = await get('/')
 inspectPage('home', home, true)
 const sitemap = await get('/sitemap.xml'), robots = await get('/robots.txt')
-const publicHost = origin === canonicalOrigin
+const publicHost = !preview && origin === canonicalOrigin
 check('robots reachable', robots.status === 200)
 check('sitemap host policy', sitemap.status === (publicHost ? 200 : 404), String(sitemap.status))
 if (publicHost) {
@@ -64,7 +69,7 @@ for (const slug of [...new Set(options.tenants)].slice(0, 20)) {
   const page = await get(`/${slug}`), demo = options.demos && ['aurora', 'bella-vista'].includes(slug)
   inspectPage(slug, page, false, demo)
   const map = await get(`/${slug}/sitemap.xml`)
-  check(`${slug}: sitemap policy`, demo ? map.status === 404 : [200, 404].includes(map.status), String(map.status))
+  check(`${slug}: sitemap policy`, demo || preview || origin !== canonicalOrigin ? map.status === 404 : [200, 404].includes(map.status), String(map.status))
 }
 for (const [label, path, headers] of [
   ['cookie', '/', { Cookie: 'seo-live-check=1' }], ['query', '/?table=seo-live-check', {}],
@@ -76,7 +81,7 @@ for (const [label, path, headers] of [
   check(`${label}: no shared cache hit`, !['HIT', 'STALE', 'UPDATING', 'REVALIDATED'].includes(cf.toUpperCase()), cf || 'no CDN hit header')
   check(`${label}: response bypass policy`, /private|no-store|max-age=0/i.test(cache), cache || 'missing cache policy')
 }
-const report = { origin, canonicalOrigin, checkedAt: new Date().toISOString(), passed: checks.filter(item => item.ok).length, failed: checks.filter(item => !item.ok).length, checks }
+const report = { origin, canonicalOrigin, preview: Boolean(preview), checkedAt: new Date().toISOString(), passed: checks.filter(item => item.ok).length, failed: checks.filter(item => !item.ok).length, checks }
 if (options.json) await writeFile(options.json, JSON.stringify(report, null, 2) + '\n')
 for (const item of checks) console.log(`${item.ok ? 'PASS' : 'FAIL'} ${item.name}${item.evidence ? `: ${item.evidence}` : ''}`)
 console.log(`${report.passed} passed, ${report.failed} failed`)

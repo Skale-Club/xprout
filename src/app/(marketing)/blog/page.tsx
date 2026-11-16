@@ -7,6 +7,7 @@ import {nativeBlogSelected} from '@/lib/blog/native/selected'
  * escopo e o `basePath`.
  */
 import type { Metadata } from 'next'
+import { cache } from 'react'
 
 import { createServiceClient } from '@/lib/supabase/server'
 import { PLATFORM_BASE } from '@/lib/seo'
@@ -19,7 +20,7 @@ const BLOG_TITLE = 'Blog | Xprout'
 const BLOG_DESCRIPTION =
   'Cardápio, margem, delivery e operação — o que aprendemos ajudando restaurantes a vender mais.'
 
-export const metadata: Metadata = {
+const BLOG_METADATA: Metadata = {
   title: BLOG_TITLE,
   description: BLOG_DESCRIPTION,
   alternates: { canonical: `${PLATFORM_BASE}/blog` },
@@ -27,13 +28,23 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: BLOG_TITLE, description: BLOG_DESCRIPTION },
 }
 
-export default async function BlogIndexPage() {
+const loadBlogIndex = cache(async () => {
   const svc = (nativeBlogSelected()?null:createServiceClient())
   const [posts, archive, tags] = await Promise.all([
     listPublishedPosts(svc, null),
     listArchive(svc, null),
     listTags(svc, null),
   ])
+  return { posts, archive: posts.length ? archive : [], tags: posts.length ? tags : [] }
+})
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { posts } = await loadBlogIndex()
+  return { ...BLOG_METADATA, ...(!posts.length ? { robots: { index: false, follow: false } } : {}) }
+}
+
+export default async function BlogIndexPage() {
+  const { posts, archive, tags } = await loadBlogIndex()
 
   return (
     <BlogPostList

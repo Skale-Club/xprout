@@ -43,3 +43,18 @@ Validation: run `tests/unit/local-discovery.test.ts` with the focused metadata,
 public-menu, tenant-page and pricing tests. Visual browser checks and production
 rollout require a machine with sufficient resources and the existing release
 authorization.
+
+## Restaurant owner launch steps
+
+Use the same real business name, address and phone on the site, Google Business
+Profile and every directory. Set the Profile's Menu link to the canonical menu
+URL and Order link to the restaurant's actual ordering URL when ordering is
+enabled. Add `utm_source=gbp` for measurement; the canonical URL remains free of
+query parameters. Do not publish fictional demo contact details as a real listing.
+
+Verify a separate Search Console property for each custom domain, using DNS or
+the saved Google verification token, and submit that host's `/sitemap.xml`.
+Use the Bing verification token for Bing Webmaster Tools when applicable.
+Inspect the canonical home, a real branch and an eligible dish with Google's
+Rich Results Test. The launch scanner reports observed markup and cache
+behavior; it cannot establish directory ownership or guarantee indexing.

@@ -61,7 +61,7 @@ describe('anonymous HTML cache boundary', () => {
     expect(PUBLIC_HTML_CACHE).not.toContain('3153')
     expect(PRIVATE_HTML_CACHE).toBe('private, no-store')
   })
-  it.each([{ cookie: 'session=one' }, { cookie: 'session=two' }, { authorization: 'Bearer private' }, { rsc: '1' }, { 'next-router-prefetch': '1' }])('bypasses visitor/RSC state %j', headers => {
+  it.each([{ cookie: 'session=one' }, { cookie: 'session=two' }, { authorization: 'Bearer private' }, { rsc: '1' }, { 'next-router-prefetch': '1' }] as Record<string,string>[])('bypasses visitor/RSC state %j', headers => {
     expect(anonymousPublicHtml(request(undefined, headers), site)).toBe(false)
   })
   it.each(['?table=secret','?lang=pt','?view=feed','?utm_source=gbp','?_rsc=one'])('bypasses query %s', query => {

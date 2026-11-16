@@ -26,8 +26,10 @@ DO $$ DECLARE field text; BEGIN
  END LOOP;
  FOREACH field IN ARRAY ARRAY['google_site_verification','bing_site_verification'] LOOP
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.tenant_settings'::regclass AND conname='tenant_settings_'||field||'_check') THEN
-   EXECUTE format('ALTER TABLE public.tenant_settings ADD CONSTRAINT %I CHECK (%I IS NULL OR %I ~ %L)',
-    'tenant_settings_'||field||'_check', field, field, '^[a-zA-Z0-9_-]{1,256}$');
+   -- PostgreSQL regex repetition bounds stop at 255; keep the 256-character
+   -- token budget in char_length rather than an invalid {1,256} quantifier.
+   EXECUTE format('ALTER TABLE public.tenant_settings ADD CONSTRAINT %I CHECK (%I IS NULL OR (%I ~ %L AND char_length(%I)<=256))',
+    'tenant_settings_'||field||'_check', field, field, '^[a-zA-Z0-9_-]+$', field);
   END IF;
  END LOOP;
  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.tenant_settings'::regclass AND conname='tenant_settings_special_hours_check') THEN

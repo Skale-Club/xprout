@@ -123,6 +123,7 @@ interface Props {
   pageLinks?: ReadonlyArray<{ slug: string; title: string }>
   navigationLinks?: ReadonlyArray<{ title: string; href: string }>
   canonicalBaseUrl?: string
+  dishDiscoveryEnabled?: boolean
   publicNap?: { name: string; address?: string | null; city?: string | null; phone?: string | null }
   optionGroupsByProductId?: Record<string, GroupWithOptions[]>
   productIngredientsByProductId?: Record<string, ProductIngredientWithIngredient[]>
@@ -157,7 +158,7 @@ function getTranslatedMenuField(
   return typeof value === 'string' && value.trim() ? value : fallback
 }
 
-export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
+export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, dishDiscoveryEnabled = true, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
   const router = useRouter()
   const [feedPreview, setFeedPreview] = useState(false)
   const feedEnabled = (tenant.tenant_settings?.visual_feed_enabled ?? true) || feedPreview
@@ -1037,6 +1038,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const activeTab = visibleCategory ?? tabs[0]?.id ?? null
   const showOrderBar = directOrdersEnabled && cart.length > 0 && !cartOpen && !checkoutOpen && activeMenuView === 'list'
   const showContactFooter = true
+  const footerDishes = dishDiscoveryEnabled && !feedPreview && canonicalBaseUrl && menu?.slug && menu.is_private === false
+    ? baseProducts.filter(isIndexableDish).slice(0, 100).map(product => ({ title: product.name, href: `${canonicalBaseUrl}/${menu.slug}/${dishSlug(product)}` })) : []
+  const exploreDishes = ({ en: 'Explore dishes', pt: 'Conheça os pratos', es: 'Descubre los platos' } as Record<string, string>)[selectedLanguage.split('-')[0]] ?? 'Explore dishes'
 
   return (
     <div className="menu-root min-h-screen bg-menu text-zinc-900" lang={localeFor(selectedLanguage)}>
@@ -1448,13 +1452,21 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
             {(pageLinks.length > 0 || navigationLinks.length > 0) && (
               <nav aria-label={copy.pagesMore} className={hasContact ? 'mt-6' : ''}>
                 <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">
-                  {navigationLinks.map(link => <li key={link.href}><a href={link.href} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>)}
+                  {navigationLinks.filter(link => !(canonicalBaseUrl && menu?.slug && link.href.startsWith(`${canonicalBaseUrl}/${menu.slug}/`))).map(link => <li key={link.href}><a href={link.href} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>)}
                   {pageLinks.map(link => (
                     <li key={link.slug}><a href={`${canonicalBaseUrl ?? `/${tenant.slug}`}/${link.slug}`} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>
                   ))}
                 </ul>
               </nav>
             )}
+            {footerDishes.length > 0 && <details className="mt-6 text-sm text-zinc-700">
+              <summary className="min-h-11 cursor-pointer py-3 font-medium">{exploreDishes}</summary>
+              <nav aria-label={exploreDishes} className="pt-2">
+                <ul className="flex flex-wrap gap-x-5 gap-y-2">
+                  {footerDishes.map(dish => <li key={dish.href} className="min-w-0 max-w-full"><a href={dish.href} className="inline-flex min-h-11 max-w-full items-center break-words underline-offset-4 hover:text-zinc-950 hover:underline">{dish.title}</a></li>)}
+                </ul>
+              </nav>
+            </details>}
             {shownFooterBrand && (
               <p className={`flex items-center gap-1 text-[12px] text-zinc-500 ${hasContact || pageLinks.length > 0 ? 'mt-8' : ''}`}>
                 {copy.poweredBy}

@@ -7,9 +7,11 @@ import { SITE_CONTEXT_HEADER, SITE_PATH_HEADER } from '../../../src/lib/site/req
 test.describe.configure({ mode: 'serial' })
 const token = randomUUID().slice(0, 8)
 const tenantId = randomUUID(), demoId = randomUUID(), brandId = randomUUID()
+const partnerTenantId = randomUUID(), companyTenantId = randomUUID(), partnerMenuId = randomUUID()
 const menuId = randomUUID(), privateMenuId = randomUUID(), productId = randomUUID(), privateProductId = randomUUID()
 const slug = `seo-${token}`, host = `restaurant-${token}.example.org`, partnerHost = `partner-${token}.example.org`
 const name = `SEO Restaurant ${token}`, partnerName = `Independent Brand ${token}`
+const partnerSlug = `partner-restaurant-${token}`, companySlug = `company-${token}`
 const publicDish = { id: productId, name: 'Tomato Soup' }
 const dish = dishSlug(publicDish)
 const head = (html: string) => html.match(/<head[^>]*>([\s\S]*?)<\/head>/i)?.[1] ?? html
@@ -23,13 +25,21 @@ test.beforeAll(async () => {
   checked(await db().from('tenants').insert([
     { id: tenantId, slug, name, is_active: true, is_demo: false, published_at: '2026-01-01T00:00:00Z', custom_domain: host, custom_domain_verified: true },
     { id: demoId, slug: `demo-${token}`, name: 'Unpublished synthetic demo', is_active: true, is_demo: true, published_at: null },
+    { id: partnerTenantId, slug: partnerSlug, name: 'Partner Restaurant', brand_id: brandId, is_active: true, is_demo: false, published_at: '2026-01-01T00:00:00Z' },
+    { id: companyTenantId, slug: companySlug, name: partnerName, brand_id: brandId, business_kind: 'software', is_active: true, is_demo: false, published_at: '2026-01-01T00:00:00Z' },
   ]))
   checked(await db().from('tenant_settings').insert({ tenant_id: tenantId, language: 'pt', currency: 'USD', visual_feed_enabled: false, menu_default_view: 'list',
     address: '10 Example Street', city: 'Example City', phone: '+1 212 555 0100', business_hours: { mon: '09:00-21:00' }, seo_noindex: false,
     orders_enabled: false, direct_orders_enabled: false, logo_url: '/brands/aurora-kitchen-bar/logo.webp' }))
+  checked(await db().from('tenant_settings').insert([
+    { tenant_id: partnerTenantId, language: 'fr', currency: 'EUR', seo_noindex: false, orders_enabled: false, direct_orders_enabled: false, visual_feed_enabled: false },
+    { tenant_id: companyTenantId, language: 'es', currency: 'USD', seo_noindex: false, about: 'Independent software for local businesses.', orders_enabled: false, direct_orders_enabled: false, visual_feed_enabled: false },
+  ]))
+  checked(await db().from('brands').update({ apex_tenant_id: companyTenantId, apex_home_slug: 'home' }).eq('id', brandId))
   checked(await db().from('menus').insert([
     { id: menuId, tenant_id: tenantId, name: 'Dinner', slug: 'dinner', language: 'pt', supported_languages: ['pt'], is_active: true, is_default: true, is_private: false },
     { id: privateMenuId, tenant_id: tenantId, name: 'Private menu', slug: 'members', language: 'pt', supported_languages: ['pt'], is_active: true, is_default: false, is_private: true },
+    { id: partnerMenuId, tenant_id: partnerTenantId, name: 'Partner menu', slug: 'dinner', language: 'fr', supported_languages: ['fr'], is_active: true, is_default: true, is_private: false },
   ]))
   checked(await db().from('products').insert([
     { id: productId, tenant_id: tenantId, menu_id: menuId, name: publicDish.name, description: 'Roasted tomatoes and basil.', price: 12.50, is_available: true, image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp' },
@@ -39,7 +49,7 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
   assertLocalSupabase()
-  checked(await db().from('tenants').delete().in('id', [tenantId, demoId]))
+  checked(await db().from('tenants').delete().in('id', [tenantId, demoId, partnerTenantId, companyTenantId]))
   checked(await db().from('brands').delete().eq('id', brandId))
 })
 
@@ -118,6 +128,7 @@ test('partner host owns root metadata, robots, sitemap and manifest identity', a
   expect(response.status()).toBe(200)
   const html = await response.text()
   expect(canonical(html)).toBe(`https://${partnerHost}`)
+  expect(html).toMatch(/<html[^>]+lang=["']es["']/i)
   expect(head(html)).toContain(partnerName)
   expect(head(html)).not.toMatch(/Xprout|xprout\.app/i)
   const robots = await request.get('/robots.txt', { headers: { host: partnerHost } })
@@ -130,11 +141,66 @@ test('partner host owns root metadata, robots, sitemap and manifest identity', a
   expect(await manifest.text()).not.toMatch(/Xprout|xprout\.app/i)
 })
 
+test('partner tenant and company apex use their assigned host authority without cross-brand canonicals', async ({ request }) => {
+  const response = await request.get(`/${partnerSlug}`, { headers: { host: partnerHost } })
+  expect(response.status()).toBe(200)
+  const html = await response.text()
+  expect(canonical(html)).toBe(`https://${partnerHost}/${partnerSlug}`)
+  expect(html).toMatch(/<html[^>]+lang=["']fr["']/i)
+  expect(head(html)).not.toMatch(/Xprout|xprout\.app/i)
+  const apex = await request.get('/', { headers: { host: partnerHost } })
+  const body = await apex.text()
+  expect(canonical(body)).toBe(`https://${partnerHost}`)
+  expect(body).toContain(partnerName)
+  expect(body).toContain('SoftwareApplication')
+  expect(body).not.toMatch(/"@type"\s*:\s*"Restaurant"/)
+})
+
+test('partner social image is an actually bounded PNG and icon retains partner identity', async ({ request }) => {
+  const image = await request.get('/opengraph-image', { headers: { host: partnerHost } })
+  expect(image.status()).toBe(200)
+  expect(image.headers()['content-type']).toContain('image/png')
+  const bytes = await image.body()
+  expect(bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))).toBe(true)
+  expect(bytes.readUInt32BE(16)).toBe(1200)
+  expect(bytes.readUInt32BE(20)).toBe(630)
+  expect(bytes.byteLength).toBeLessThanOrEqual(180 * 1024)
+  const icon = await request.get('/icon.png', { headers: { host: partnerHost }, maxRedirects: 0 })
+  expect([200, 307]).toContain(icon.status())
+  if (icon.status() === 307) expect(icon.headers().location).toContain('/brands/aurora-kitchen-bar/logo.webp')
+  else expect(await icon.text()).not.toMatch(/Xprout|xprout\.app/i)
+})
+
 test('internal site lookup rejects public Host and forwarded loopback callers', async ({ request }) => {
   const callers: Record<string, string>[] = [{ host }, { host: 'localhost', 'x-forwarded-for': '203.0.113.1' }]
   for (const headers of callers) {
     const response = await request.get(`/api/internal/resolve-site?host=${host}&path=/`, { headers })
     expect(response.status()).toBe(404)
     expect(response.headers()['cache-control']).toContain('no-store')
+  }
+})
+
+test('mobile and desktop menu/dish screenshots retain readable read-only layouts without overflow', async ({ page }, testInfo) => {
+  for (const width of [375, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    // Local paths intentionally avoid external DNS and custom browser Host overrides.
+    await page.goto(`/${slug}`)
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
+    await expect(page.locator(`a[href$="/dinner/${dish}"]`).first()).toHaveAttribute('href', `https://${host}/dinner/${dish}`)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+    await expect(page.getByRole('button', { name: /add to cart|view cart|checkout|adicionar ao carrinho|finalizar pedido/i })).toHaveCount(0)
+    await testInfo.attach(`menu-${width}.png`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+
+    await page.goto(`/${slug}/dinner/${dish}`)
+    await expect(page.getByRole('heading', { name: publicDish.name, exact: true })).toBeVisible()
+    await expect(page.getByText('Roasted tomatoes and basil.', { exact: true })).toBeVisible()
+    await expect(page.locator('.tabular-nums')).toContainText('12,50')
+    const photo = page.getByRole('img', { name: publicDish.name, exact: true })
+    await expect(photo).toBeVisible()
+    await expect.poll(async () => photo.evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true)
+    await expect(page.getByRole('link', { name: 'Dinner', exact: true }).last()).toHaveAttribute('href', `https://${host}/dinner`)
+    await expect(page.getByRole('button', { name: /add|cart|checkout|adicionar|carrinho/i })).toHaveCount(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+    await testInfo.attach(`dish-${width}.png`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
   }
 })

@@ -68,3 +68,8 @@ spacing and feedback coherent across equivalent views. Respect menu capabilities
 read-only menus must not acquire cart actions. Review the related screens
 together; document rollout gaps instead of claiming global alignment is complete.
 <!-- /ui-consistency -->
+
+## SEO consistency
+
+Follow the [shared SEO conventions](https://github.com/Skale-Club/skaleclub-apps/blob/main/agents/SEO-CONVENTIONS.md)
+and this repository's [delivery contract](docs/product/seo-conventions.md) for public identity, discovery and caching.

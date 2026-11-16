@@ -10,24 +10,35 @@ import JsonLdScript from '@/components/seo/JsonLdScript'
 import { PlatformTagManager } from '@/components/tracking/PlatformTagManager'
 
 type Props = { params: Promise<{ host: string; segments?: string[] }> }
+const DEFAULT_BRAND_ID = '00000000-0000-4000-8000-000000000001'
 
 async function pageTarget(props: Props) {
   const [{ host, segments = [] }, site] = await Promise.all([props.params, requestSite()])
   if (host !== site.brand.primary_host || !site.rewrite?.startsWith(`/brand-site/${host}`)) notFound()
   if (!site.tenant) {
     if (segments.length) notFound()
-    return { site, tenant: null, page: null, nav: [] }
+    return { site, tenant: null, page: null, nav: [], codedFallback: site.brand.id === DEFAULT_BRAND_ID }
   }
   if (segments.length > 1) notFound()
   const tenant = await getTenantBySlug(site.tenant.slug)
-  if (!tenant) notFound()
+  if (!tenant) {
+    if (segments.length) notFound()
+    return { site, tenant: null, page: null, nav: [], codedFallback: site.brand.id === DEFAULT_BRAND_ID }
+  }
   const { page, nav } = await loadPublicPages(tenant, segments[0] ?? site.brand.apex_home_slug ?? 'home')
-  if (!page) notFound()
-  return { site, tenant, page, nav }
+  if (!page && segments.length) notFound()
+  return { site, tenant, page, nav, codedFallback: !page && site.brand.id === DEFAULT_BRAND_ID }
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const { site, tenant, page } = await pageTarget(props)
+  const { site, tenant, page, codedFallback } = await pageTarget(props)
+  if (codedFallback) {
+    const { generateMetadata: marketingMetadata } = await import('@/app/(marketing)/page')
+    const metadata = await marketingMetadata()
+    return { ...metadata, alternates: { ...metadata.alternates, canonical: site.canonicalUrl },
+      robots: { index: site.indexable, follow: site.indexable },
+      openGraph: { ...metadata.openGraph, url: site.canonicalUrl, locale: siteLocale(site.lang) } }
+  }
   const title = page?.title ?? site.brand.name
   const description = page?.description || (tenant?.tenant_settings?.about as string | undefined)
   return { title: { absolute: `${title}${title === site.brand.name ? '' : ` | ${site.brand.name}`}` }, description,
@@ -41,7 +52,13 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 }
 
 export default async function BrandSitePage(props: Props) {
-  const { site, tenant, page, nav } = await pageTarget(props)
+  const { site, tenant, page, nav, codedFallback } = await pageTarget(props)
+  if (codedFallback) {
+    const [{ default: MarketingPage }, { default: MarketingLayout }] = await Promise.all([
+      import('@/app/(marketing)/page'), import('@/app/(marketing)/layout'),
+    ])
+    return MarketingLayout({ children: await MarketingPage() })
+  }
   const businessKind = site.tenant?.business_kind ?? 'software'
   const entity = { '@context': 'https://schema.org', '@type': businessKind === 'restaurant' ? 'Restaurant' : businessKind === 'agency' ? 'ProfessionalService' : 'Organization',
     '@id': `${site.origin}#organization`, name: tenant?.name ?? site.brand.name, url: site.origin,
@@ -54,7 +71,10 @@ export default async function BrandSitePage(props: Props) {
       nav={nav.map(item => ({ ...item, slug: item.slug === site.brand.apex_home_slug ? '' : item.slug }))} lang={site.lang} baseUrl={site.origin} />
       : <main className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-6 px-6 py-20">
         <h1 className="text-4xl font-semibold tracking-tight">{site.brand.name}</h1>
-        <p className="max-w-xl text-lg leading-relaxed">Digital menus and direct ordering for restaurants. Explore the menu, discover a dish, and connect with your restaurant.</p>
+        <p className="max-w-xl text-lg leading-relaxed">Welcome to {site.brand.name}. Sign in to continue or contact our team.</p>
+        {nav.length > 0 && <nav aria-label="Public pages" className="flex flex-wrap gap-5 text-sm">
+          {nav.map(item => <a key={item.slug} href={`${site.origin}/${item.slug}`} className="underline underline-offset-4">{item.title}</a>)}
+        </nav>}
         {site.brand.support_email && <a href={`mailto:${site.brand.support_email}`} className="underline">Contact {site.brand.name}</a>}
         <Link href={`/auth/login?brand=${encodeURIComponent(site.brand.id)}`} className="w-fit rounded-full bg-zinc-900 px-6 py-3 text-white">Sign in</Link>
         <footer className="flex flex-wrap gap-6 text-sm">

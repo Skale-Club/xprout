@@ -1,3 +1,4 @@
+import { siteLocale } from '@/lib/site/request-contract'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { DeliveryImage } from '@/components/delivery-image'
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: { absolute: title }, description, metadataBase: new URL(site.origin),
     alternates: { canonical: site.canonicalUrl }, robots: siteRobots(site),
     openGraph: { type: 'website', title, description, siteName: tenant.name, url: site.canonicalUrl,
-      locale: site.lang.replace('-', '_'), images: [{ url: imageUrl, alt: product.name }] },
+      locale: siteLocale(site.lang), images: [{ url: imageUrl, alt: product.name }] },
     twitter: { card: 'summary_large_image', title, description, images: [imageUrl] } }
 }
 
@@ -54,7 +55,7 @@ export default async function DishPage({ params }: Props) {
     <JsonLdScript data={dishJsonLd(product, site.canonicalUrl, menuUrl, currency, imageUrl, price)} />
     <JsonLdScript data={buildBreadcrumbJsonLd([{ name: tenant.name, url: site.baseUrl }, { name: menu.name, url: menuUrl }, { name: product.name, url: site.canonicalUrl }])} />
     <article className="grid gap-8 md:grid-cols-2">
-      <DeliveryImage src={imageUrl} alt={product.name} width={900} height={900} sizes="(max-width: 767px) calc(100vw - 40px), 450px" className="aspect-square h-auto w-full rounded-2xl object-cover" priority />
+      <DeliveryImage src={toPublicAssetUrl(product.image_url!)} alt={product.name} width={900} height={900} sizes="(max-width: 767px) calc(100vw - 40px), 450px" className="aspect-square h-auto w-full rounded-2xl object-cover" priority />
       <div className="space-y-5">
         <p className="text-sm text-zinc-500">{tenant.name}</p>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">{product.name}</h1>
