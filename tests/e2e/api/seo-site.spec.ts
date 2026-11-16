@@ -4,7 +4,9 @@ import { assertLocalSupabase, db } from '../fixtures/db'
 import { dishSlug } from '../../../src/lib/menu/dish-pages'
 import { SITE_CONTEXT_HEADER, SITE_PATH_HEADER } from '../../../src/lib/site/request-contract'
 
-test.describe.configure({ mode: 'serial' })
+// Reads share a disposable fixture but do not depend on one another. A failed
+// assertion must not hide the remaining authority/privacy/cache evidence.
+test.describe.configure({ mode: 'default' })
 const token = randomUUID().slice(0, 8)
 const tenantId = randomUUID(), demoId = randomUUID(), brandId = randomUUID()
 const partnerTenantId = randomUUID(), companyTenantId = randomUUID(), partnerMenuId = randomUUID()
