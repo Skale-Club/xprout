@@ -1,6 +1,14 @@
 import type { AdminMenuContext, AdminMenuQuery } from './admin-menus'
 import { AdminMenuError } from './admin-menus'
 import { planCeiling } from '../service-modes'
+import { LOCAL_SEO_FIELDS, parseLocalSeoUpdate } from '../seo'
+
+export const LOCAL_SEO_COLUMNS = LOCAL_SEO_FIELDS
+export const LOCAL_SEO_READY_SQL = `SELECT count(*) = ${LOCAL_SEO_COLUMNS.length} AS ready FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='tenant_settings' AND column_name IN (${LOCAL_SEO_COLUMNS.map(column => `'${column}'`).join(',')})`
+export async function localSeoReady(query: AdminMenuQuery): Promise<boolean> {
+  return (await query(LOCAL_SEO_READY_SQL)).rows[0]?.ready === true
+}
 
 export type DisplaySettingsView = 'branding' | 'seo' | 'menu-display'
 
@@ -16,7 +24,7 @@ const COLUMNS: Record<DisplaySettingsView, readonly string[]> = {
 }
 const WRITABLE_COLUMNS: Record<DisplaySettingsView, readonly string[]> = {
   branding: ['primary_color', 'accent_color', 'instagram', 'tagline', 'whatsapp', 'logo_url', 'banner_url'],
-  seo: ['seo_title', 'seo_description', 'seo_keywords', 'seo_og_image_url', 'seo_noindex'],
+  seo: ['seo_title', 'seo_description', 'seo_keywords', 'seo_og_image_url', 'seo_noindex', ...LOCAL_SEO_COLUMNS],
   'menu-display': ['analytics_enabled', 'visual_feed_enabled', 'menu_default_view', 'feed_autoplay_videos', 'upsell_enabled'],
 }
 
@@ -29,21 +37,24 @@ function assertContext(context: AdminMenuContext, write = false) {
   if (write && context.role === 'store-staff') throw new AdminMenuError(403, 'Forbidden')
 }
 
-function columns(view: DisplaySettingsView) {
-  return COLUMNS[view].map(column => `s.${column}`).join(', ')
+function columns(view: DisplaySettingsView, localReady = false) {
+  return [...COLUMNS[view], ...(view === 'seo' && localReady ? LOCAL_SEO_COLUMNS : [])].map(column => `s.${column}`).join(', ')
 }
 
 export async function readAdminDisplaySettings(query: AdminMenuQuery, context: AdminMenuContext, view: DisplaySettingsView) {
   assertContext(context)
-  const selected = columns(view)
+  const ready = view === 'seo' && await localSeoReady(query)
+  const selected = columns(view, ready)
   const result = await query(`SELECT ${selected} FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 1`, [context.tenantId])
   return result.rows[0] ?? null
 }
 
 export async function readAdminSeoSettingsPage(query: AdminMenuQuery, context: AdminMenuContext) {
   assertContext(context)
+  const ready = await localSeoReady(query)
   const result = await query(`SELECT s.tenant_id IS NOT NULL AS has_settings, s.seo_title, s.seo_description, s.seo_keywords,
       s.seo_og_image_url, s.seo_noindex, s.tagline, s.about, s.primary_color,
+      ${ready ? LOCAL_SEO_COLUMNS.map(column => `s.${column}`).join(', ') + ',' : ''}
       t.slug, t.custom_domain, t.custom_domain_verified
     FROM public.tenants t LEFT JOIN public.tenant_settings s ON s.tenant_id=t.id
     WHERE t.id=$1 LIMIT 1`, [context.tenantId])
@@ -51,7 +62,7 @@ export async function readAdminSeoSettingsPage(query: AdminMenuQuery, context: A
   if (!row) return { settings: null, tenant: null }
   const { has_settings, slug, custom_domain, custom_domain_verified, ...settings } = row
   return {
-    settings: has_settings === true ? settings : null,
+    settings: has_settings === true ? { ...settings, local_seo_available: ready } : null,
     tenant: {
       slug: typeof slug === 'string' ? slug : null,
       custom_domain: typeof custom_domain === 'string' ? custom_domain : null,
@@ -88,18 +99,25 @@ export async function mutateAdminDisplaySettings(
   const allowed = WRITABLE_COLUMNS[view]
   const entries = Object.entries(input)
   if (!entries.length || entries.some(([key]) => !allowed.includes(key))) throw new AdminMenuError(400, 'Invalid settings')
+  const localReady = view === 'seo' && await localSeoReady(query)
+  if (view === 'seo') {
+    const parsed = parseLocalSeoUpdate(input)
+    if (!parsed.ok) throw new AdminMenuError(400, parsed.error)
+    if (Object.keys(parsed.value).length && !localReady) throw new AdminMenuError(503, 'Local SEO settings are not available yet')
+    Object.assign(input, parsed.value)
+  }
 
   await query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`xmartmenu-display-settings:${context.tenantId}`])
   if (view === 'menu-display' && input.upsell_enabled === true && !(await paymentsEntitlement(query, context.tenantId, true))) {
     throw new AdminMenuError(403, 'Order suggestions are part of the Menu + Payments plan')
   }
   const fields = entries.map(([key]) => key)
-  const values = entries.map(([, value]) => value)
+  const values = entries.map(([key]) => key === 'special_hours' ? JSON.stringify(input[key]) : input[key])
   const insertColumns = ['tenant_id', ...fields, 'updated_at']
   const insertValues = ['$1', ...fields.map((_, index) => `$${index + 2}`), 'now()']
   const updates = fields.map(field => `${field}=EXCLUDED.${field}`).concat('updated_at=now()')
   const sql = `INSERT INTO public.tenant_settings AS s (${insertColumns.join(', ')}) VALUES (${insertValues.join(', ')})
-    ON CONFLICT (tenant_id) DO UPDATE SET ${updates.join(', ')} RETURNING ${columns(view)}`
+    ON CONFLICT (tenant_id) DO UPDATE SET ${updates.join(', ')} RETURNING ${columns(view, localReady)}`
   const result = await query(sql, [context.tenantId, ...values])
   const row = result.rows[0]
   if (!row) throw new Error('Settings write failed')

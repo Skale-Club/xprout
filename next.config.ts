@@ -21,6 +21,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  expireTime: 86400,
   // Coolify/Docker target: emit a minimal traced server (.next/standalone) with
   // its own server.js instead of bundling the full node_modules. Required for
   // the multi-stage Dockerfile; harmless on Vercel (ignored there).
@@ -42,6 +43,8 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
+    // Uploaded media keys and checked-in content revisions are immutable.
+    minimumCacheTTL: 31536000,
     // Development never contacts external hosts from the server (scripts/lib/dev-outbound-guard.mjs), so the
     // optimizer cannot fetch CDN images there; the browser loads them directly instead.
     unoptimized: process.env.NODE_ENV === 'development',

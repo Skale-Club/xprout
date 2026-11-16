@@ -6,8 +6,7 @@ import { nativeBlogSelected } from '@/lib/blog/native/selected'
 import { nativePlatformSitemap } from '@/lib/blog/native/sitemap'
 import { ownedModeActive } from '@/lib/data/owned-mode'
 import { SITEMAP_HEADERS, sitemapUnavailable, urlsetXml, type SitemapUrl } from '@/lib/sitemap-xml'
-import { loadSiteBrand } from '@/lib/site/runtime'
-import { resolveSite } from '@/lib/site/resolve-site'
+import { discoveryRequestSite } from '@/lib/site/discovery-request'
 
 export const revalidate = 300
 
@@ -31,10 +30,9 @@ async function ownedBlogEntries(entries: SitemapUrl[]) {
 }
 
 export async function GET(request: Request) {
+  let site: Awaited<ReturnType<typeof discoveryRequestSite>>
   try {
-    const brand = await loadSiteBrand()
-    const site = resolveSite({ host: request.headers.get('host') ?? new URL(request.url).host,
-      pathname: '/sitemaps/platform.xml', tenant: null, brand })
+    site = await discoveryRequestSite(request)
     if (!site.indexable) return new Response('Not found', { status: 404,
       headers: { 'X-Robots-Tag': 'noindex', 'Cache-Control': 'no-store', Vary: 'Host' } })
   } catch (error) {
@@ -42,6 +40,18 @@ export async function GET(request: Request) {
     response.headers.set('Cache-Control', 'no-store')
     response.headers.set('Vary', 'Host')
     return response
+  }
+  if (site.brand.id !== '00000000-0000-4000-8000-000000000001' || site.kind === 'brand-apex-tenant') {
+    const entries: SitemapUrl[] = [{ url: site.origin, changeFrequency: 'weekly', priority: 1 }]
+    if (site.tenant?.id) {
+      const { ownedPublishedPageEntries } = await import('@/lib/data/tenant-pages-runtime')
+      const pages = await ownedPublishedPageEntries(site.tenant.id)
+      for (const page of pages) {
+        if (page.slug === site.brand.apex_home_slug || (!site.brand.tenant_marketing_routes && ['pricing','blog'].includes(page.slug))) continue
+        entries.push({ url: `${site.origin}/${page.slug}`, lastModified: page.updated_at })
+      }
+    }
+    return new Response(urlsetXml(entries), { headers: { ...SITEMAP_HEADERS, Vary: 'Host' } })
   }
   let entries: SitemapUrl[]
   if (nativeBlogSelected()) entries = await nativePlatformSitemap()

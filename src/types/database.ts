@@ -162,6 +162,17 @@ export interface TenantSettings {
   seo_keywords: string | null
   seo_og_image_url: string | null
   seo_noindex: boolean
+  google_business_url?: string | null
+  google_review_url?: string | null
+  facebook?: string | null
+  tripadvisor?: string | null
+  yelp?: string | null
+  accepts_reservations?: boolean | null
+  special_hours?: SpecialHours[] | null
+  google_site_verification?: string | null
+  bing_site_verification?: string | null
+  /** Owner settings readiness marker; not a database column. */
+  local_seo_available?: boolean
   // SEED-014 local SEO: structured address, geo & price range (migration 053)
   city: string | null
   region: string | null
@@ -171,6 +182,8 @@ export interface TenantSettings {
   longitude: number | null
   price_range: string | null
 }
+
+export interface SpecialHours { date: string; closed: boolean; opens?: string; closes?: string }
 
 export interface BusinessHours {
   mon?: string

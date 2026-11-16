@@ -11,6 +11,12 @@ import { completeOwnedLogin, ownedLoginDestination, OwnedLoginError } from '@/li
 import Link from 'next/link'
 import { ArrowRight, ChevronLeft } from 'lucide-react'
 import type { GuestBrand } from '@/lib/auth/guest-brand'
+import type { PublicPlatformBrand } from '@/lib/site/public-brand'
+
+function PartnerSignature({ brand, className }: { brand: PublicPlatformBrand; className?: string }) {
+  return brand.logoUrl ? <DeliveryImage src={brand.logoUrl} alt={brand.name} width={195} height={60} sizes="195px" className={`h-auto max-h-16 w-48 object-contain ${className ?? ''}`} />
+    : <span className={`block text-2xl font-semibold tracking-tight ${className ?? ''}`}>{brand.name}</span>
+}
 import GuestSignInHeader from '@/components/auth/GuestSignInHeader'
 import PhoneField from '@/components/ui/PhoneField'
 import { keepFieldVisible, nextFieldOnEnter } from '@/components/ui/keyboard-fields'
@@ -43,12 +49,13 @@ function googleEmail(token: string): string {
   } catch { return 'this Google account' }
 }
 
-export default function IdentityPilot({ config, continueToApp = false, existingAccountLink = false, next = '/',customerFlow = false,linkCurrentAccount = false,staffAccess,embedded = false,brand = null }: {
+export default function IdentityPilot({ config, continueToApp = false, existingAccountLink = false, next = '/',customerFlow = false,linkCurrentAccount = false,staffAccess,embedded = false,brand = null, platformBrand }: {
   config: IdentityWebConfig; continueToApp?: boolean; existingAccountLink?: boolean; next?: string; customerFlow?: boolean; linkCurrentAccount?: boolean; staffAccess?: {kind:'invite'|'recovery';code:string}
   /** Inside the menu's sign-in popup (a same-origin frame): no full-screen page, no card border; the popup is the card. */
   embedded?: boolean
   /** The restaurant the guest signs in from (embedded customer sign-in): its look, country and language. */
   brand?: GuestBrand | null
+  platformBrand?: PublicPlatformBrand
 }) {
   const [phone, setPhone] = useState('')
   /** Branded sign-in: the number the code went to, shown while the code is typed. */
@@ -296,7 +303,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
       <section aria-labelledby="identity-title" className="platform-popup-identity relative">
         <div className="mb-8 text-center">
 
-          {isDefaultPlatformLogo(platformLogo)
+          {platformBrand ? <PartnerSignature brand={platformBrand} className="mx-auto mb-7" /> : isDefaultPlatformLogo(platformLogo)
             ? <PlatformSignature tone="forest" className="mx-auto mb-7" />
             : <DeliveryImage src={platformLogoUrl(platformLogo)} width={48} height={48} sizes="48px" alt="Xprout" className="mx-auto mb-7 size-12 object-contain" />}
           <h1 id="identity-title" className="text-[30px] font-semibold tracking-tight">Welcome back.</h1>
@@ -355,7 +362,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
     <section aria-labelledby="identity-title" className={embedded ? 'w-full px-6 pb-6 pt-7' : 'relative isolate w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-900/60 p-6 sm:p-8'}>
       {!tenantLinkBrand && !brand && !embedded ? <GradientTopLine glow={false} /> : null}
       {!tenantLinkBrand ? <>
-      <PlatformSignature tone="ivory" className="mb-6" />
+      {platformBrand ? <PartnerSignature brand={platformBrand} className="mb-6" /> : <PlatformSignature tone="ivory" className="mb-6" />}
       <h1 id="identity-title" className="text-2xl font-bold tracking-tight">{existingAccountLink ? 'Link your existing account' : 'Sign in with your phone'}</h1>
       <p className="mt-2 text-sm leading-6 text-zinc-400">{existingAccountLink ? 'Prove your previous account, then verify a phone number or Google account. Your company access stays unchanged.' : 'Verify your number by SMS, or continue with Google.'}</p>
       </> : null}

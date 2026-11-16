@@ -16,9 +16,11 @@ interface Props {
   tenantSlug: string
   locations: BranchLocation[]
   initialView?: 'list' | 'feed'
+  canonicalBaseUrl?: string
+  navigationLinks?: ReadonlyArray<{ title: string; href: string }>
 }
 
-export default function BranchPicker({ tenantName, tenantSlug, locations, initialView = 'list' }: Props) {
+export default function BranchPicker({ tenantName, tenantSlug, locations, initialView = 'list', canonicalBaseUrl, navigationLinks = [] }: Props) {
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-start py-16 px-4">
       <div className="w-full max-w-2xl">
@@ -34,7 +36,7 @@ export default function BranchPicker({ tenantName, tenantSlug, locations, initia
           {locations.map(loc => (
             <Link
               key={loc.id}
-              href={`/${tenantSlug}/${loc.slug}${initialView === 'feed' ? '?view=feed' : ''}`}
+              href={`${canonicalBaseUrl ?? `/${tenantSlug}`}/${loc.slug}${initialView === 'feed' ? '?view=feed' : ''}`}
               className="group flex items-center gap-5 bg-white border border-zinc-100 rounded-[1.25rem] p-6 shadow-sm hover:border-primary hover:shadow-lg hover:shadow-primary/5 transition-all duration-200"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary transition-colors duration-200">
@@ -73,6 +75,9 @@ export default function BranchPicker({ tenantName, tenantSlug, locations, initia
             </Link>
           ))}
         </div>
+        {navigationLinks.length > 0 && <nav aria-label="Restaurant pages" className="mt-8 flex flex-wrap gap-4 text-sm">
+          {navigationLinks.map(link => <a key={link.href} href={link.href} className="underline-offset-4 hover:underline">{link.title}</a>)}
+        </nav>}
       </div>
     </div>
   )

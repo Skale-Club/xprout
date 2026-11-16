@@ -1,6 +1,7 @@
 import pg from 'pg'
 import { postgresRuntimeConfig } from './database-config'
 import { sharedRuntimePool } from './shared-pool'
+import { scheduleTenantPublish } from '../site/publish-effects-runtime'
 import { AdminMenuError, findAdminMenu, mutateAdminMenu, readAdminMenus, type AdminMenuContext, type AdminMenuMutation, type AdminMenuQuery } from './admin-menus'
 
 let pool: pg.Pool | undefined, configuration: string | undefined
@@ -48,6 +49,10 @@ export async function adminMenuTransaction<T>(source: Pick<pg.Pool, 'connect'>, 
 }
 export const listOwnedAdminMenus = (context: AdminMenuContext) => adminMenuTransaction(ownedPool(), false, query => readAdminMenus(query, context))
 export const findOwnedAdminMenu = (context: AdminMenuContext, id: string) => adminMenuTransaction(ownedPool(), false, query => findAdminMenu(query, context, id))
-export const mutateOwnedAdminMenu = (context: AdminMenuContext, mutation: AdminMenuMutation) => adminMenuTransaction(ownedPool(), true, query => mutateAdminMenu(query, context, mutation))
+export const mutateOwnedAdminMenu = async (context: AdminMenuContext, mutation: AdminMenuMutation) => {
+  const result = await adminMenuTransaction(ownedPool(), true, query => mutateAdminMenu(query, context, mutation))
+  scheduleTenantPublish(context.tenantId)
+  return result
+}
 /** Other back-office repositories share this pool and its connection budget. */
 export const ownedAdminTransaction = <T>(write: boolean, operation: (query: AdminMenuQuery) => Promise<T>, timeoutMs?: number) => adminMenuTransaction(ownedPool(), write, operation, timeoutMs)

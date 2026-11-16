@@ -8,12 +8,13 @@ import { ChevronDown } from 'lucide-react'
  * header and the page header. A button that opens a short list of links;
  * Escape or a tap outside closes it.
  */
-export default function PageLinksMenu({ tenantSlug, links, label, variant = 'overlay' }: {
+export default function PageLinksMenu({ tenantSlug, links, label, variant = 'overlay', baseUrl }: {
   tenantSlug: string
   links: ReadonlyArray<{ slug: string; title: string }>
   label: string
   /** 'overlay' sits on the menu banner (white pill); 'bar' sits on the page header. */
   variant?: 'overlay' | 'bar'
+  baseUrl?: string
 }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -45,7 +46,7 @@ export default function PageLinksMenu({ tenantSlug, links, label, variant = 'ove
         <ul id={listId} className="absolute right-0 z-30 mt-2 max-h-[60vh] min-w-[200px] max-w-[80vw] overflow-y-auto rounded-2xl bg-white p-1.5 shadow-card ring-1 ring-black/5">
           {links.map(link => (
             <li key={link.slug}>
-              <a href={`/${tenantSlug}/${link.slug}`} className="block rounded-xl px-3.5 py-2.5 text-[15px] font-medium text-zinc-800 hover:bg-zinc-100">{link.title}</a>
+              <a href={`${(baseUrl ?? `/${tenantSlug}`).replace(/\/$/, '')}/${link.slug}`} className="block rounded-xl px-3.5 py-2.5 text-[15px] font-medium text-zinc-800 hover:bg-zinc-100">{link.title}</a>
             </li>
           ))}
         </ul>

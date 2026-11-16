@@ -4,7 +4,7 @@ import { BRAND_PRIMARY } from '@/lib/brand'
 import { useState } from 'react'
 import { compressImageForUpload } from '@/lib/media/client-compress'
 import Image from 'next/image'
-import type { TenantSettings } from '@/types/database'
+import type { TenantSettings, SpecialHours } from '@/types/database'
 import { Search, Save, Globe, Image as ImageIcon, EyeOff, CheckCircle2, AlertCircle, Tag } from 'lucide-react'
 
 interface Props {
@@ -32,6 +32,15 @@ export default function SeoClient({ settings, tenantName, canonicalUrl, isCustom
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const localAvailable = settings?.local_seo_available ?? Boolean(settings && 'google_business_url' in settings)
+  const [local, setLocal] = useState({
+    google_business_url: settings?.google_business_url ?? '', google_review_url: settings?.google_review_url ?? '',
+    facebook: settings?.facebook ?? '', tripadvisor: settings?.tripadvisor ?? '', yelp: settings?.yelp ?? '',
+    reservation_url: settings?.reservation_url ?? '', google_site_verification: settings?.google_site_verification ?? '',
+    bing_site_verification: settings?.bing_site_verification ?? '',
+  })
+  const [reservations, setReservations] = useState(settings?.accepts_reservations == null ? '' : String(settings.accepts_reservations))
+  const [specialHours, setSpecialHours] = useState<SpecialHours[]>(settings?.special_hours ?? [])
 
   // Derived (what the public page would actually render after fallbacks)
   const tagline = settings?.tagline ?? ''
@@ -58,7 +67,8 @@ export default function SeoClient({ settings, tenantName, canonicalUrl, isCustom
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const payload = { ...form, seo_og_image_url: ogImage || null }
+    const payload = { ...form, seo_og_image_url: ogImage || null,
+      ...(localAvailable ? { ...local, accepts_reservations: reservations === '' ? null : reservations === 'true', special_hours: specialHours } : {}) }
     const res = await fetch('/api/admin/seo', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -130,6 +140,48 @@ export default function SeoClient({ settings, tenantName, canonicalUrl, isCustom
           {form.seo_noindex ? 'Hidden from search' : 'Search visible'}
         </div>
       </div>
+
+      <fieldset disabled={!localAvailable} className="space-y-6 rounded-lg border border-zinc-200 p-6 disabled:opacity-60">
+        <legend className="px-2 text-lg font-semibold text-zinc-950">Local search and business profiles</legend>
+        {!localAvailable && <p className="text-sm text-zinc-600">Local search settings will be available shortly. Your current SEO settings can still be saved.</p>}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {([
+            ['google_business_url', 'Google Business Profile'], ['google_review_url', 'Google review link'],
+            ['facebook', 'Facebook'], ['tripadvisor', 'Tripadvisor'], ['yelp', 'Yelp'], ['reservation_url', 'Reservation link'],
+            ['google_site_verification', 'Google Search Console verification code'], ['bing_site_verification', 'Bing verification code'],
+          ] as const).map(([key, label]) => <div key={key}>
+            <label htmlFor={`local-${key}`} className={labelClassName}>{label}</label>
+            <input id={`local-${key}`} type={key.includes('verification') ? 'text' : 'url'} maxLength={key.includes('verification') ? 256 : 500}
+              className={inputClassName} value={local[key]} onChange={event => setLocal({ ...local, [key]: event.target.value })}
+              placeholder={key.includes('verification') ? 'Verification code only' : 'https://'} />
+          </div>)}
+          <div>
+            <label htmlFor="local-reservations" className={labelClassName}>Accepts reservations</label>
+            <select id="local-reservations" className={inputClassName} value={reservations} onChange={event => setReservations(event.target.value)}>
+              <option value="">Not specified</option><option value="true">Yes</option><option value="false">No</option>
+            </select>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <p className={labelClassName}>Holiday and special hours</p>
+          <p className="text-sm text-zinc-600">These dates override your regular opening hours. Use one entry per date.</p>
+          {specialHours.map((hours, index) => <div key={index} className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 p-3">
+            <label className="text-sm">Date<input type="date" required value={hours.date} className={inputClassName}
+              onChange={event => setSpecialHours(specialHours.map((row, at) => at === index ? { ...row, date: event.target.value } : row))} /></label>
+            <label className="flex items-center gap-2 py-3 text-sm"><input type="checkbox" checked={hours.closed}
+              onChange={event => setSpecialHours(specialHours.map((row, at) => at === index ? { ...row, closed: event.target.checked } : row))} />Closed all day</label>
+            {!hours.closed && <>
+              <label className="text-sm">Opens<input type="time" required value={hours.opens ?? ''} className={inputClassName}
+                onChange={event => setSpecialHours(specialHours.map((row, at) => at === index ? { ...row, opens: event.target.value } : row))} /></label>
+              <label className="text-sm">Closes<input type="time" required value={hours.closes ?? ''} className={inputClassName}
+                onChange={event => setSpecialHours(specialHours.map((row, at) => at === index ? { ...row, closes: event.target.value } : row))} /></label>
+            </>}
+            <button type="button" className="px-3 py-3 text-sm font-semibold text-red-700" onClick={() => setSpecialHours(specialHours.filter((_, at) => at !== index))}>Remove date</button>
+          </div>)}
+          <button type="button" disabled={specialHours.length >= 60} className="rounded-lg bg-zinc-100 px-4 py-3 text-sm font-semibold disabled:opacity-50"
+            onClick={() => setSpecialHours([...specialHours, { date: '', closed: true }])}>Add special date</button>
+        </div>
+      </fieldset>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* Left: form fields */}

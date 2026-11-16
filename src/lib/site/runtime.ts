@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { ownedModeActive } from '@/lib/data/owned-mode'
 import { readSeoTenant, readSiteBrand, type SeoTenant } from '@/lib/data/public-seo'
 import { resolveSite, type SiteBrand, type SiteTenant } from './resolve-site'
+import { siteLocale } from './request-contract'
 
 const DEFAULT_BRAND_ID = '00000000-0000-4000-8000-000000000001'
 // Restaurant subdomains are owned-only; old development schemas need not have the column.
@@ -78,6 +79,10 @@ export async function tenantSiteMetadata(slug: string, pathname: string, options
   if (!site) return { robots: { index: false, follow: false } }
   return {
     robots: { index: site.indexable, follow: site.indexable },
-    openGraph: { locale: site.lang.replace('-', '_') },
+    openGraph: { locale: siteLocale(site.lang) },
+    verification: {
+      google: site.tenant?.tenant_settings?.google_site_verification ?? undefined,
+      other: site.tenant?.tenant_settings?.bing_site_verification ? { 'msvalidate.01': site.tenant.tenant_settings.bing_site_verification } : undefined,
+    },
   }
 }

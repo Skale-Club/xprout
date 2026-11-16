@@ -1,7 +1,7 @@
 import { BRAND_PRIMARY } from '@/lib/brand'
 export const revalidate = 60
 
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { sanitizeTenantForClient } from '@/lib/tenant-public'
 import MenuPage from '@/components/menu/MenuPage'
 import BranchPicker from '@/components/menu/BranchPicker'
@@ -12,6 +12,9 @@ import type { Metadata } from 'next'
 import { getPublicMenuBase, loadPublicMenuData, withMenuPrices } from '@/lib/menu/public-menu-data'
 import { loadTenantSite } from '@/lib/site/runtime'
 import { siteRobots } from '@/lib/site/indexability'
+import { loadLocalNavigation } from '@/lib/menu/local-navigation'
+import { dishPath, isIndexableDish } from '@/lib/menu/dish-pages'
+import type { Product } from '@/types/database'
 import PrivateMenuWrapper from '@/components/menu/PrivateMenuWrapper'
 import { parseTableParam } from '@/lib/service-modes'
 import { computePrimaryForeground, safeCssColor } from '@/lib/color-utils'
@@ -27,7 +30,7 @@ import {
 
 interface Props {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ lang?: string; view?: string; table?: string }>
+  searchParams: Promise<{ lang?: string; view?: string; table?: string; dish?: string; preview?: string; feed_preview?: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -73,7 +76,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PublicMenuPage({ params, searchParams }: Props) {
   const { slug } = await params
-  const { lang, view, table: tableParam } = await searchParams
+  const { lang, view, table: tableParam, dish, preview, feed_preview } = await searchParams
 
   // All queries in four parallel stages (src/lib/menu/public-menu-data.ts).
   const data = await loadPublicMenuData({
@@ -88,17 +91,26 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
 
   // LOC-03: 2+ active locations → branch picker
   if (data.kind === 'branches') {
+    const site = await loadTenantSite(slug, `/${slug}`)
+    const baseUrl = site?.baseUrl ?? getCanonicalUrl(tenant, '/')
+    const [navigation, pageLinks] = await Promise.all([loadLocalNavigation(tenant.id, baseUrl), loadPublicPageNav(tenant)])
     const primaryColor = (tenant.tenant_settings as any)?.primary_color ?? BRAND_PRIMARY
     const accentColor = (tenant.tenant_settings as any)?.accent_color ?? '#09090b'
     const primaryForeground = computePrimaryForeground(primaryColor)
     return (
       <>
         <style>{`:root{--primary:${safeCssColor(primaryColor)};--primary-foreground:${primaryForeground};--accent:${safeCssColor(accentColor)};}`}</style>
+        <JsonLdScript data={buildLocalBusinessJsonLd(tenant, tenant.tenant_settings, baseUrl, {
+          menuUrls: navigation.filter(link => link.kind === 'menu').map(link => link.href),
+          branches: navigation.filter(link => link.kind === 'branch').map(link => ({ name: link.title, url: link.href })),
+        })} />
         <BranchPicker
           tenantName={tenant.name}
           tenantSlug={slug}
           locations={data.locations}
           initialView={view === 'feed' ? 'feed' : 'list'}
+          canonicalBaseUrl={baseUrl}
+          navigationLinks={[...navigation, ...pageLinks.map(link => ({ title: link.title, href: `${baseUrl}/${link.slug}` }))]}
         />
       </>
     )
@@ -120,9 +132,19 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
   const primaryForeground = computePrimaryForeground(primaryColor)
   const site = await loadTenantSite(slug, `/${slug}`, { privatePage: isPrivate })
   const canonicalUrl = site?.canonicalUrl ?? getCanonicalUrl(tenant, '/')
+  if (dish && !preview && !feed_preview && !tableParam && !isPrivate && site?.indexable && resolvedMenu?.slug) {
+    const product = products.find((product: Product) => product.id === dish && isIndexableDish(product))
+    if (product) permanentRedirect(`${site.baseUrl}${dishPath(resolvedMenu.slug, product)}`)
+  }
+  const navigation = await loadLocalNavigation(tenant.id, site?.baseUrl ?? canonicalUrl)
+  const dishLinks = !isPrivate && resolvedMenu?.slug ? products.filter(isIndexableDish).slice(0, 100).map((product: Product) => ({ title: product.name, href: `${site?.baseUrl ?? canonicalUrl}${dishPath(resolvedMenu.slug, product)}` })) : []
   const currency = (tenant.tenant_settings as any)?.currency ?? 'USD'
 
-  const localBusinessLd = buildLocalBusinessJsonLd(tenant, tenant.tenant_settings as any, canonicalUrl)
+  const localBusinessLd = buildLocalBusinessJsonLd(tenant, tenant.tenant_settings as any, canonicalUrl, {
+    menuUrls: navigation.filter(link => link.kind === 'menu').map(link => link.href),
+    branches: navigation.filter(link => link.kind === 'branch').map(link => ({ name: link.title, url: link.href })),
+    areaServed: data.deliveryZones.map(zone => zone.name),
+  })
   const menuLd = resolvedMenu && !isPrivate
     ? buildMenuJsonLd(resolvedMenu.name, canonicalUrl, categories, products, currency)
     : null
@@ -146,6 +168,8 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
       chatAddonTextEnabled={data.chatAddonTextEnabled}
       capabilities={capabilities}
       pageLinks={pageLinks}
+      navigationLinks={[...navigation, ...dishLinks]}
+      canonicalBaseUrl={site?.baseUrl ?? canonicalUrl}
       table={capabilities.guestOrdering ? table : null}
       waiterCallTable={capabilities.waiterCalls ? table : null}
     />

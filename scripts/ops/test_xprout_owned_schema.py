@@ -23,6 +23,9 @@ AR_FILE = '20261107090000_product_ar_models.sql'
 REAL_SIZE_FILE = '20261111090000_ar_real_size_and_cart_source.sql'
 STAGING_FILE = '20261111120000_menu_staging.sql'
 SUBDOMAIN_FILE = '20261111140000_tenant_subdomain.sql'
+SITE_IDENTITY_FILE = '20261116200000_site_identity.sql'
+LOCAL_SEO_FILE = '20261116210000_local_seo.sql'
+BRAND_APEX_FILE = '20261116220000_brand_apex.sql'
 
 
 def make_bundle(root: Path, files: dict, tamper: str = None):
@@ -167,6 +170,49 @@ INSERT INTO public.tenants(slug) VALUES ('aurora'), ('bella-vista'), ('real-rest
         self.assertEqual(pg.sql("SELECT has_table_privilege('xmartmenu_runtime','public.brands','INSERT,UPDATE,DELETE');"), 'f')
         self.assertEqual(pg.sql("SELECT relrowsecurity FROM pg_class WHERE oid='public.brands'::regclass;"), 't')
         bad = self.psql("SET ROLE xmartmenu_owner; UPDATE public.tenants SET brand_id=gen_random_uuid() WHERE slug='new-draft';", 'xmartmenu', check=False)
+        self.assertNotEqual(bad.returncode, 0)
+
+    def test_local_seo_and_brand_apex_apply_twice_without_republishing_or_seeding_partners(self):
+        self.psql("""SET ROLE xmartmenu_owner;
+ALTER TABLE public.tenants ADD COLUMN slug text, ADD COLUMN created_at timestamptz NOT NULL DEFAULT now();
+CREATE TABLE public.tenant_settings(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id), reservation_url text NULL);
+INSERT INTO public.tenants(slug) VALUES ('aurora'), ('real-restaurant');
+INSERT INTO public.tenant_settings(tenant_id) SELECT id FROM public.tenants WHERE slug='real-restaurant';""", 'xmartmenu')
+        pg = ops.Pg(self.cfg)
+        names = (SITE_IDENTITY_FILE, LOCAL_SEO_FILE, BRAND_APEX_FILE)
+        texts = {name: (REPO / 'docs/owned-schema' / name).read_text() for name in names}
+        files = ops.load_bundle(make_bundle(self.tmp / 'local-seo-apex', texts))
+        self.assertEqual(ops.Operator(self.cfg, pg, files, 'seo1').apply(), 0)
+        self.assertEqual(ops.Operator(self.cfg, pg, files, 'seo2').statuses(), [(name, 'applied') for name in names])
+        pg.sql("UPDATE public.tenants SET published_at=NULL WHERE slug='real-restaurant';", role='xmartmenu_owner')
+        for text in texts.values():
+            pg.sql(text, role='xmartmenu_owner')
+        self.assertEqual(pg.sql("SELECT published_at IS NULL FROM public.tenants WHERE slug='real-restaurant';"), 't')
+        self.assertEqual(pg.sql("SELECT count(*) FROM public.brands;"), '1')
+        self.assertEqual(pg.sql("SELECT count(*) FROM public.brands WHERE apex_tenant_id IS NOT NULL;"), '0')
+        self.assertEqual(pg.sql("SELECT count(*) FROM public.tenants WHERE business_kind='restaurant';"), '2')
+        pg.sql("""UPDATE public.tenant_settings SET google_business_url='https://maps.google.com/?cid=123',
+google_site_verification='valid_token-123', special_hours='[{"date":"2026-12-25","closed":true}]'::jsonb;
+UPDATE public.tenants SET business_kind='software' WHERE slug='real-restaurant';""", role='xmartmenu_owner')
+        for assignment in ("facebook='http://facebook.com/example'", "bing_site_verification='<meta>'", "special_hours='{}'::jsonb"):
+            bad = self.psql(f"SET ROLE xmartmenu_owner; UPDATE public.tenant_settings SET {assignment};", 'xmartmenu', check=False)
+            self.assertNotEqual(bad.returncode, 0, assignment)
+        too_many = json.dumps([{'date': '2026-12-25', 'closed': True}] * 61)
+        bad = self.psql(f"SET ROLE xmartmenu_owner; UPDATE public.tenant_settings SET special_hours='{too_many}'::jsonb;", 'xmartmenu', check=False)
+        self.assertNotEqual(bad.returncode, 0)
+        for query in (
+            "UPDATE public.brands SET apex_home_slug='../admin';",
+            "UPDATE public.tenants SET business_kind='unrecognized';",
+            "UPDATE public.brands SET apex_tenant_id=gen_random_uuid();",
+        ):
+            self.assertNotEqual(self.psql('SET ROLE xmartmenu_owner; ' + query, 'xmartmenu', check=False).returncode, 0)
+        for column in ('google_business_url', 'special_hours', 'google_site_verification'):
+            for privilege in ('SELECT', 'INSERT', 'UPDATE'):
+                self.assertEqual(pg.sql(f"SELECT has_column_privilege('xmartmenu_runtime','public.tenant_settings','{column}','{privilege}');"), 't')
+        self.assertEqual(pg.sql("SELECT has_table_privilege('xmartmenu_runtime','public.tenant_settings','DELETE');"), 'f')
+        self.assertEqual(pg.sql("SELECT has_table_privilege('xmartmenu_runtime','public.brands','INSERT,UPDATE,DELETE');"), 'f')
+        pg.sql("UPDATE public.tenant_settings SET facebook='https://facebook.com/example';", role='xmartmenu_runtime')
+        bad = self.psql("SET ROLE xmartmenu_runtime; UPDATE public.brands SET apex_home_slug='other';", 'xmartmenu', check=False)
         self.assertNotEqual(bad.returncode, 0)
 
     def test_real_size_file_adds_columns_and_the_ar_source_once(self):

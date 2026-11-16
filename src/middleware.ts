@@ -12,6 +12,9 @@ import { LegacyIdentityBoundaryUnavailable } from './lib/auth/owned-principal'
 import { ownedModeActive } from './lib/data/owned-mode'
 import { resolveOwnedDomainSlug, rememberDomain, type DomainCacheEntry } from './lib/custom-domain-lookup'
 import { subdomainBase, subdomainLabelFromHost } from './lib/tenant-subdomain'
+import { lookupRequestSite, type SiteCacheEntry } from './lib/site/request-lookup'
+import { serializeRequestSite, SITE_CONTEXT_HEADER, SITE_PATH_HEADER } from './lib/site/request-contract'
+import { anonymousPublicHtml, PUBLIC_HTML_CACHE, PRIVATE_HTML_CACHE } from './lib/site/cache-policy'
 
 // Cache BOTH hits and misses. Without caching misses, every request carrying an
 // unknown Host header (bots hitting the raw IP, preview hosts, misconfigured
@@ -19,6 +22,7 @@ import { subdomainBase, subdomainLabelFromHost } from './lib/tenant-subdomain'
 const customDomainCache = new Map<string, DomainCacheEntry>()
 const CACHE_TTL_MS = 60_000
 const CACHE_MISS_TTL_MS = 30_000
+const siteContextCache = new Map<string, SiteCacheEntry>()
 
 async function resolveTenantSlugFromHost(host: string): Promise<string | null> {
   const normalized = host.split(':')[0].toLowerCase()
@@ -61,13 +65,38 @@ async function resolveTenantSlugFromHost(host: string): Promise<string | null> {
 export async function middleware(request: NextRequest) {
   const requestId = resolveRequestId(request.headers)
   request.headers.set(REQUEST_ID_HEADER, requestId)
+  request.headers.delete(SITE_CONTEXT_HEADER)
+  request.headers.set(SITE_PATH_HEADER, request.nextUrl.pathname)
+  // Internal lookup bypasses this branch and never forwards credentials/cookies.
+  const publicSurface = !/^\/(?:api|_next)(?:\/|$)/.test(request.nextUrl.pathname)
+  const site = publicSurface ? await lookupRequestSite(request.headers.get('host') ?? '', request.nextUrl.pathname, siteContextCache, fetch, Date.now, request.nextUrl.searchParams.get('brand') ?? undefined) : null
+  if (site) request.headers.set(SITE_CONTEXT_HEADER, serializeRequestSite(site))
   let response: NextResponse
-  try { response = await route(request) }
+  try {
+    if (request.nextUrl.pathname.startsWith('/brand-site/')) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (site?.rewrite && !request.nextUrl.pathname.startsWith('/api/')) {
+      const url = request.nextUrl.clone()
+      url.pathname = site.rewrite
+      const feed = resolveFeedRewritePath(url.pathname, site.tenant?.slug ?? null)
+      if (feed) { url.pathname = feed; if (!url.searchParams.has('view')) url.searchParams.set('view', 'feed') }
+      response = await updateSession(request, url)
+    } else response = await route(request)
+  }
   catch (error) {
     if (!(error instanceof LegacyIdentityBoundaryUnavailable)) throw error
     response = NextResponse.json({ error: error.message }, { status: 503 })
   }
   response.headers.set(REQUEST_ID_HEADER, requestId)
+  if (publicSurface) {
+    if (!site?.indexable) response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+    const cacheable = anonymousPublicHtml(request, site) && !response.headers.has('set-cookie') && response.status === 200
+    // Discovery/image routes supply their own precise policy; only HTML gets this contract.
+    if (!/\.(?:xml|txt|webmanifest|png|jpg|jpeg|webp|svg|ico|js|css|woff2?)$/.test(request.nextUrl.pathname)
+      && !request.nextUrl.pathname.includes('opengraph-image') && !request.nextUrl.pathname.includes('twitter-image')) {
+      response.headers.set('Cache-Control', cacheable ? PUBLIC_HTML_CACHE : PRIVATE_HTML_CACHE)
+      response.headers.set('Vary', 'Host, Cookie, RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch')
+    }
+  }
   return response
 }
 

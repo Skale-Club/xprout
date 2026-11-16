@@ -15,5 +15,5 @@ export default async function WebsitePage() {
   if (!effective) redirect('/auth/login')
   if (effective.role === 'store-staff') redirect('/dashboard')
   if (!(await getTenantCapabilities(effective.tenantId)).plan.blog) redirect('/dashboard')
-  return <WebsiteClient tenantSlug={effective.slug} available={tenantPagesAvailable()} />
+  return <WebsiteClient tenantSlug={effective.slug} tenantName={effective.name} available={tenantPagesAvailable()} />
 }

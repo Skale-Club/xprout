@@ -9,6 +9,7 @@ import {
 import type { ContactSubmission } from '../pages/contact-form'
 import { menuCacheTags, publicMenuCacheSeconds } from '../menu/public-menu-cache'
 import { log } from '../observability/log'
+import { scheduleTenantPublish } from '../site/publish-effects-runtime'
 
 /**
  * Pages exist on the owned database only: in the legacy (Supabase development)
@@ -19,10 +20,23 @@ export const tenantPagesAvailable = () => adminMenusOwned()
 // ── Admin ──────────────────────────────────────────────────────────────────
 export const listOwnedPages = (context: AdminStoreContext) => ownedAdminTransaction(false, query => listAdminPages(query, context))
 export const getOwnedPage = (context: AdminStoreContext, id: string) => ownedAdminTransaction(false, query => getAdminPage(query, context, id))
-export const createOwnedPage = (context: AdminStoreContext, body: unknown) => ownedAdminTransaction(true, query => createAdminPage(query, context, body))
-export const updateOwnedPage = (context: AdminStoreContext, id: string, body: unknown) => ownedAdminTransaction(true, query => updateAdminPage(query, context, id, body))
+export const createOwnedPage = async (context: AdminStoreContext, body: unknown) => {
+  const result = await ownedAdminTransaction(true, query => createAdminPage(query, context, body))
+  scheduleTenantPublish(context.tenantId, [`/${result.slug}`]); return result
+}
+export const updateOwnedPage = async (context: AdminStoreContext, id: string, body: unknown) => {
+  const result = await ownedAdminTransaction(true, query => updateAdminPage(query, context, id, body))
+  scheduleTenantPublish(context.tenantId, [`/${result.slug}`]); return result
+}
 export const moveOwnedPage = (context: AdminStoreContext, id: string, direction: unknown) => ownedAdminTransaction(true, query => moveAdminPage(query, context, id, direction))
-export const deleteOwnedPage = (context: AdminStoreContext, id: string) => ownedAdminTransaction(true, query => deleteAdminPage(query, context, id))
+export const deleteOwnedPage = async (context: AdminStoreContext, id: string) => {
+  const result = await ownedAdminTransaction(true, async query => {
+    const page = await getAdminPage(query, context, id)
+    await deleteAdminPage(query, context, id)
+    return { ok: true, slug: page.slug }
+  })
+  scheduleTenantPublish(context.tenantId, [`/${result.slug}`]); return { ok: true }
+}
 export const listOwnedSubmissions = (context: AdminStoreContext, pageId?: string | null) => ownedAdminTransaction(false, query => listAdminSubmissions(query, context, pageId))
 
 // ── Public ─────────────────────────────────────────────────────────────────

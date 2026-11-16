@@ -155,13 +155,15 @@ function Section({ section, page, tenant, locations, lang, primary, foreground }
  * page's sections, and the other pages in the footer. Text is always rendered
  * escaped; nothing is embedded.
  */
-export default function TenantPageView({ tenant, settings, page, nav, lang }: {
+export default function TenantPageView({ tenant, settings, page, nav, lang, baseUrl }: {
   tenant: { name: string; slug: string }
   settings: { logo_url?: string | null; primary_color?: string | null; accent_color?: string | null } | null
   page: PublicPage
   nav: ReadonlyArray<{ slug: string; title: string }>
   lang: string
+  baseUrl?: string
 }) {
+  const base = (baseUrl ?? `/${tenant.slug}`).replace(/\/$/, '')
   const copy = getMenuCopy(lang)
   const primary = safeCssColor(settings?.primary_color ?? BRAND_PRIMARY)
   const foreground = computePrimaryForeground(settings?.primary_color ?? BRAND_PRIMARY)
@@ -170,7 +172,7 @@ export default function TenantPageView({ tenant, settings, page, nav, lang }: {
       <style>{`:root{--primary:${primary};--primary-foreground:${foreground};}`}</style>
       <header className="border-b border-zinc-200/70 bg-white/80">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3 sm:px-8">
-          <a href={`/${tenant.slug}`} className="flex min-w-0 items-center gap-3" aria-label={`${tenant.name} · ${copy.pageViewMenu}`}>
+          <a href={base || '/'} className="flex min-w-0 items-center gap-3" aria-label={tenant.name}>
             <span className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-black/5">
               {settings?.logo_url
                 ? <Image src={settings.logo_url} alt="" fill sizes="44px" className="object-contain p-1.5" />
@@ -179,8 +181,8 @@ export default function TenantPageView({ tenant, settings, page, nav, lang }: {
             <span className="truncate text-[17px] font-bold tracking-tight text-zinc-900">{tenant.name}</span>
           </a>
           <div className="flex shrink-0 items-center gap-2">
-            <a href={`/${tenant.slug}`} className="hidden h-10 items-center rounded-full bg-white px-4 text-[14px] font-medium text-zinc-900 shadow-card ring-1 ring-black/5 sm:flex">{copy.pageViewMenu}</a>
-            <PageLinksMenu tenantSlug={tenant.slug} links={nav} label={copy.pagesMore} variant="bar" />
+            <a href={base || '/'} className="hidden h-10 items-center rounded-full bg-white px-4 text-[14px] font-medium text-zinc-900 shadow-card ring-1 ring-black/5 sm:flex">{baseUrl !== undefined ? tenant.name : copy.pageViewMenu}</a>
+            <PageLinksMenu tenantSlug={tenant.slug} links={nav} label={copy.pagesMore} variant="bar" baseUrl={base} />
           </div>
         </div>
       </header>
@@ -198,9 +200,9 @@ export default function TenantPageView({ tenant, settings, page, nav, lang }: {
         <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8">
           <nav aria-label={tenant.name}>
             <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">
-              <li><a href={`/${tenant.slug}`} className="text-zinc-900 underline-offset-2 hover:underline">{copy.pageViewMenu}</a></li>
+              <li><a href={base || '/'} className="text-zinc-900 underline-offset-2 hover:underline">{baseUrl !== undefined ? tenant.name : copy.pageViewMenu}</a></li>
               {nav.map(link => (
-                <li key={link.slug}><a href={`/${tenant.slug}/${link.slug}`} className="text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline" {...(link.slug === page.slug ? { 'aria-current': 'page' as const } : {})}>{link.title}</a></li>
+                <li key={link.slug}><a href={`${base}/${link.slug}`} className="text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline" {...(link.slug === page.slug ? { 'aria-current': 'page' as const } : {})}>{link.title}</a></li>
               ))}
             </ul>
           </nav>

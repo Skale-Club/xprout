@@ -5,6 +5,7 @@ import { SITEMAP_HEADERS, urlsetXml, sitemapUnavailable, type SitemapUrl } from 
 import { resolveSite } from '@/lib/site/resolve-site'
 import { loadSiteIdentity } from '@/lib/site/runtime'
 import { tenantSitemapCatalog } from '@/lib/data/public-seo'
+import { loadTenantDiscoveryExtras } from '@/lib/site/discovery-extras'
 
 export const revalidate = 300
 
@@ -35,7 +36,8 @@ export async function GET(
       // Published website pages (none until the schema step ran or while the plan lacks them).
       const { ownedPublishedPageEntries } = await import('@/lib/data/tenant-pages-runtime')
       for (const page of await ownedPublishedPageEntries(tenant.id)) if (indexable(`/${page.slug}`)) owned.push(entry(canonical(`/${page.slug}`), page.updated_at))
-      return new NextResponse(urlsetXml(owned), { headers: { ...SITEMAP_HEADERS, Vary: 'Host' } })
+      for (const extra of await loadTenantDiscoveryExtras(tenant.id, site.baseUrl)) if (indexable(extra.url.slice(site.baseUrl.length))) owned.push(extra)
+      return new NextResponse(urlsetXml(owned.slice(0, 5000)), { headers: { ...SITEMAP_HEADERS, Vary: 'Host' } })
     }
 
     const supabase = createServiceClient()
@@ -58,7 +60,8 @@ export async function GET(
     const entries = catalog.rootIsPublic ? [entry(canonical('/'), tenant.updated_at, 1)] : []
     for (const menu of catalog.menus) if (!menu.is_default && indexable(`/${menu.slug}`)) entries.push(entry(canonical(`/${menu.slug}`)))
     for (const loc of catalog.locations) if (indexable(`/${loc.slug}`)) entries.push(entry(canonical(`/${loc.slug}`), loc.updated_at))
-    return new NextResponse(urlsetXml(entries), { headers: { ...SITEMAP_HEADERS, Vary: 'Host' } })
+    for (const extra of await loadTenantDiscoveryExtras(tenant.id, site.baseUrl)) if (indexable(extra.url.slice(site.baseUrl.length))) entries.push(extra)
+    return new NextResponse(urlsetXml(entries.slice(0, 5000)), { headers: { ...SITEMAP_HEADERS, Vary: 'Host' } })
   } catch (error) {
     return sitemapUnavailable(`tenant ${slug}`, error)
   }

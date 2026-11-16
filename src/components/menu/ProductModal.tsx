@@ -81,7 +81,8 @@ function VideoSlide({ url }: { url: string }) {
   )
 }
 
-export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart, noticeMinutes = 0 }: {
+export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart, noticeMinutes = 0, shareUrl }: {
+  shareUrl?: string
   /** Notice this dish needs, in minutes (0 = none); shown only when the restaurant takes scheduled orders. */
   noticeMinutes?: number
   /** Adds one of this dish from the AR camera without closing the sheet (no upsell). */
@@ -478,7 +479,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
     return () => window.clearTimeout(timer)
   }, [linkCopied])
   async function shareDish() {
-    const url = dishShareUrl(window.location.href, product.id)
+    const url = shareUrl ?? dishShareUrl(window.location.href, product.id)
     try {
       if (typeof navigator.share === 'function') {
         await navigator.share({ title: product.name, url })

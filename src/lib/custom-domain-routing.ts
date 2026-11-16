@@ -34,6 +34,7 @@ const GLOBAL_FILES = new Set([
   '/icon.png',
   '/apple-icon.png',
   '/manifest.webmanifest',
+  '/indexnow-key.txt',
 ])
 
 export type CustomDomainRoute =

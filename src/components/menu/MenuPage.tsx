@@ -55,6 +55,7 @@ import {
 import BottomSheet from '@/components/ui/BottomSheet'
 import LanguagePicker from './LanguagePicker'
 import { findDishByParam, readDishParam, withDishParam } from '@/lib/menu/dish-link'
+import { dishSlug, isIndexableDish } from '@/lib/menu/dish-pages'
 import { dishFeature, dishTagOptions, filterByDishTags } from '@/lib/menu/dish-tags'
 import DishFeaturePill from './DishFeaturePill'
 import { ui } from './menu-ui'
@@ -106,6 +107,8 @@ interface Props {
   products: Product[]
   menu?: {
     id?: string
+    slug?: string | null
+    is_private?: boolean
     name: string
     description?: string | null
     language: string
@@ -118,6 +121,9 @@ interface Props {
   footerBrand?: string
   /** The restaurant's published website pages that show in the navigation ("More" menu and footer links). */
   pageLinks?: ReadonlyArray<{ slug: string; title: string }>
+  navigationLinks?: ReadonlyArray<{ title: string; href: string }>
+  canonicalBaseUrl?: string
+  publicNap?: { name: string; address?: string | null; city?: string | null; phone?: string | null }
   optionGroupsByProductId?: Record<string, GroupWithOptions[]>
   productIngredientsByProductId?: Record<string, ProductIngredientWithIngredient[]>
   deliveryZones?: DeliveryZone[]
@@ -151,7 +157,7 @@ function getTranslatedMenuField(
   return typeof value === 'string' && value.trim() ? value : fallback
 }
 
-export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
+export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
   const router = useRouter()
   const [feedPreview, setFeedPreview] = useState(false)
   const feedEnabled = (tenant.tenant_settings?.visual_feed_enabled ?? true) || feedPreview
@@ -1030,7 +1036,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   ]
   const activeTab = visibleCategory ?? tabs[0]?.id ?? null
   const showOrderBar = directOrdersEnabled && cart.length > 0 && !cartOpen && !checkoutOpen && activeMenuView === 'list'
-  const showContactFooter = activeMenuView === 'list' && !!(hasContact || pageLinks.length > 0 || shownFooterBrand)
+  const showContactFooter = true
 
   return (
     <div className="menu-root min-h-screen bg-menu text-zinc-900" lang={localeFor(selectedLanguage)}>
@@ -1434,11 +1440,17 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                 </ul>
               </>
             )}
-            {pageLinks.length > 0 && (
+            <address className="mt-6 space-y-1 text-sm not-italic text-zinc-600">
+              <p className="font-medium text-zinc-800">{publicNap?.name ?? tenant.name}</p>
+              <p>{[publicNap ? publicNap.address : settings?.address, publicNap ? publicNap.city : settings?.city].filter(Boolean).join(', ')}</p>
+              {(publicNap ? publicNap.phone : settings?.phone) && <p>{publicNap ? publicNap.phone : settings?.phone}</p>}
+            </address>
+            {(pageLinks.length > 0 || navigationLinks.length > 0) && (
               <nav aria-label={copy.pagesMore} className={hasContact ? 'mt-6' : ''}>
                 <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">
+                  {navigationLinks.map(link => <li key={link.href}><a href={link.href} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>)}
                   {pageLinks.map(link => (
-                    <li key={link.slug}><a href={`/${tenant.slug}/${link.slug}`} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>
+                    <li key={link.slug}><a href={`${canonicalBaseUrl ?? `/${tenant.slug}`}/${link.slug}`} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>
                   ))}
                 </ul>
               </nav>
@@ -1484,6 +1496,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         return (
         <ProductModal
           product={shownProduct}
+          shareUrl={canonicalBaseUrl && menu?.slug && menu.is_private === false && isIndexableDish(shownProduct)
+            ? `${canonicalBaseUrl}/${menu.slug}/${dishSlug(shownProduct)}` : undefined}
           details={dishDetailsFor(tenant.slug, shownProduct)}
           extraImages={extraDishImagesFor(tenant.slug, shownProduct)}
           onPrevProduct={!editingCartKey && !returnToCart && prevProduct ? () => openProduct(prevProduct, 'detail') : undefined}

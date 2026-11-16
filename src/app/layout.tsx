@@ -1,4 +1,4 @@
-import { BRAND_NAME, BRAND_URL } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
 import landingCopy from '@/lib/marketing/landing-copy.json'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
@@ -8,6 +8,13 @@ import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 import { platformMetadataIcons } from '@/lib/platform-metadata'
 import { PLATFORM_SOCIAL_IMAGE } from '@/lib/platform-brand'
 import './globals.css'
+import { requestSite } from '@/lib/site/request-runtime'
+import { siteLocale } from '@/lib/site/request-contract'
+import { tenantMonogramIcon } from '@/lib/tenant-metadata'
+
+// Authority/language are request data. Anonymous HTML is explicitly cached by
+// middleware/Cloudflare; authenticated and parameterized responses remain private.
+export const dynamic = 'force-dynamic'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -17,35 +24,38 @@ const inter = Inter({
 })
 
 export async function generateViewport(): Promise<Viewport> {
-  const ps = await getPlatformAppearance()
+  const [ps, site] = await Promise.all([getPlatformAppearance(), requestSite()])
   return {
-    themeColor: platformColors(ps?.cta_color).primary,
+    themeColor: site.brand.name === BRAND_NAME ? platformColors(ps?.cta_color).primary : '#18181b',
     viewportFit: 'cover',
   }
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const ps = await getPlatformAppearance()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || BRAND_URL
+  const [ps, site] = await Promise.all([getPlatformAppearance(), requestSite()])
+  const appUrl = site.origin
+  const partner = site.brand.name !== BRAND_NAME
+  const appName = partner ? site.brand.name : BRAND_NAME
   return {
     title: {
-      template: `%s | ${BRAND_NAME}`,
-      default: `${BRAND_NAME} | ${landingCopy.seo.titleSuffix}`,
+      template: `%s | ${appName}`,
+      default: partner ? appName : `${appName} | ${landingCopy.seo.titleSuffix}`,
     },
-    description: landingCopy.seo.description,
+    description: partner ? undefined : landingCopy.seo.description,
     metadataBase: new URL(appUrl),
-    applicationName: BRAND_NAME,
+    robots: { index: site.indexable, follow: site.indexable },
+    applicationName: appName,
     appleWebApp: {
       capable: true,
       statusBarStyle: 'default',
-      title: BRAND_NAME,
+      title: appName,
     },
-    icons: platformMetadataIcons(ps?.favicon_url),
+    icons: partner ? { icon: site.brand.icon || tenantMonogramIcon(appName), apple: site.brand.icon || tenantMonogramIcon(appName) } : platformMetadataIcons(ps?.favicon_url),
     openGraph: {
       type: 'website',
-      locale: 'en_US',
-      siteName: BRAND_NAME,
-      images: [{ url: PLATFORM_SOCIAL_IMAGE, width: 1200, height: 630, alt: BRAND_NAME }],
+      locale: siteLocale(site.lang),
+      siteName: appName,
+      images: partner ? (site.brand.social_image ? [{ url: site.brand.social_image, alt: appName }] : []) : [{ url: PLATFORM_SOCIAL_IMAGE, width: 1200, height: 630, alt: appName }],
     },
     twitter: { card: 'summary_large_image' },
   }
@@ -56,11 +66,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const ps = await getPlatformAppearance()
-  const { primary, onPrimary } = platformColors(ps?.cta_color)
+  const [ps, site] = await Promise.all([getPlatformAppearance(), requestSite()])
+  const { primary, onPrimary } = platformColors(site.brand.name === BRAND_NAME ? ps?.cta_color : '#18181b')
 
   return (
-    <html lang="en" className={`h-full antialiased ${inter.variable}`}>
+    <html lang={site.lang} className={`h-full antialiased ${inter.variable}`}>
       <head>
         <style>{`:root{--primary:${primary};--primary-foreground:${onPrimary};}`}</style>
       </head>

@@ -9,6 +9,7 @@ export interface TenantManifestInput {
   primaryColor?: string | null
   customDomain?: string | null
   customDomainVerified?: boolean | null
+  basePath?: string
 }
 
 function hostOnly(host: string | null | undefined): string {
@@ -35,7 +36,8 @@ function iconType(url: string): string | undefined {
 
 /** Per-restaurant web app manifest: installing a menu installs the restaurant, not the platform. */
 export function buildTenantManifest(tenant: TenantManifestInput, host?: string | null): MetadataRoute.Manifest {
-  const root = isTenantCustomDomainHost(host, tenant) ? '/' : `/${tenant.slug}`
+  const root = tenant.basePath?.startsWith('/') && !tenant.basePath.startsWith('//') ? tenant.basePath
+    : isTenantCustomDomainHost(host, tenant) ? '/' : `/${tenant.slug}`
   const color = /^#[0-9a-f]{3,8}$/iu.test(tenant.primaryColor?.trim() ?? '') ? tenant.primaryColor!.trim() : BRAND_PRIMARY
   const src = tenant.logoUrl?.trim() || tenantMonogramIcon(tenant.name)
   const type = iconType(src)

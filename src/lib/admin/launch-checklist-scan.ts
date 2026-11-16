@@ -80,6 +80,28 @@ function linkHref(html: string, rel: RegExp): string | null {
 
 const unique = (values: string[]) => Array.from(new Set(values));
 
+/** Checks factual Restaurant fields, without claiming directory ownership or rich-result approval. */
+export function restaurantLocalSeoCheck(html: string): { present: boolean; complete: boolean } {
+  const blocks = html.match(/<script[^>]+application\/ld\+json[^>]*>[\s\S]*?<\/script>/gi) ?? [];
+  for (const block of blocks) {
+    try {
+      const parsed: unknown = JSON.parse(block.replace(/^<script[^>]*>/i, '').replace(/<\/script>$/i, ''));
+      const root = parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+      const nodes = Array.isArray(parsed) ? parsed : root && Array.isArray(root['@graph']) ? root['@graph'] : [root];
+      for (const node of nodes.slice(0, 100)) {
+        if (!node || typeof node !== 'object') continue;
+        const row = node as Record<string, unknown>;
+        if (row['@type'] !== 'Restaurant') continue;
+        const address = row.address && typeof row.address === 'object' ? row.address as Record<string, unknown> : null;
+        return { present: true, complete: typeof row['@id'] === 'string' && row['@id'].endsWith('#restaurant')
+          && typeof row.name === 'string' && Boolean(row.name.trim()) && typeof row.telephone === 'string' && Boolean(row.telephone.trim())
+          && Boolean(address && (address.streetAddress || address.addressLocality)) };
+      }
+    } catch { /* An invalid block is not evidence; other blocks can still be valid. */ }
+  }
+  return { present: false, complete: false };
+}
+
 export function findGtmIds(text: string): string[] {
   return unique(text.match(/\bGTM-[A-Z0-9]{4,10}\b/g) ?? []);
 }
@@ -198,6 +220,10 @@ export function deriveScanFindings(input: ScanInputs): Record<string, ScanFindin
   findings.structured_data = ldTypes.length
     ? { ok: true, evidence: `JSON-LD: ${ldTypes.slice(0, 6).join(", ")} (still run the Rich Results Test)` }
     : { ok: false, evidence: "no JSON-LD on the homepage" };
+  const restaurant = restaurantLocalSeoCheck(html);
+  if (restaurant.present) findings.structured_data = restaurant.complete
+    ? { ok: true, evidence: 'Restaurant JSON-LD has stable identity, name, address and phone; still run the Rich Results Test' }
+    : { ok: false, evidence: 'Restaurant JSON-LD is missing stable identity or name/address/phone' };
 
   const canonical = linkHref(html, /^canonical$/i);
   findings.canonical_host = canonical

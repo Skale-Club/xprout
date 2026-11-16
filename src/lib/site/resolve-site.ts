@@ -18,9 +18,13 @@ export interface SiteBrand {
   privacy_url?: string | null
   terms_url?: string | null
   show_powered_by?: boolean
+  apex_tenant_id?: string | null
+  apex_home_slug?: string | null
+  tenant_marketing_routes?: boolean
 }
 
 export interface SiteTenant {
+  id?: string
   slug: string
   name?: string
   is_active: boolean
@@ -30,7 +34,8 @@ export interface SiteTenant {
   custom_domain_verified?: boolean
   subdomain?: string | null
   brand_id?: string | null
-  tenant_settings?: { language?: string | null; seo_noindex?: boolean | null } | null
+  business_kind?: 'restaurant' | 'software' | 'agency'
+  tenant_settings?: { language?: string | null; seo_noindex?: boolean | null; google_site_verification?: string | null; bing_site_verification?: string | null } | null
 }
 
 export interface ResolveSiteInput {
@@ -51,7 +56,7 @@ export interface ResolvedSite {
   canonicalUrl: string
   brand: SiteBrand
   tenant: SiteTenant | null
-  kind: 'brand' | 'tenant-path' | 'tenant-subdomain' | 'tenant-domain'
+  kind: 'brand' | 'tenant-path' | 'tenant-subdomain' | 'tenant-domain' | 'brand-apex-tenant'
   lang: string
   indexable: boolean
   reason: IndexabilityReason
@@ -99,18 +104,21 @@ export function resolveSite(input: ResolveSiteInput): ResolvedSite {
   const validPath = path === input.pathname.split(/[?#]/u)[0]
   const slugValid = tenant ? /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(tenant.slug) : true
   const domain = tenant?.custom_domain_verified && tenant.custom_domain ? normalizeSiteHost(tenant.custom_domain) : null
-  const rawSubdomainBase = input.subdomainBase === undefined ? configuredSubdomainBase() : input.subdomainBase
+  const rawSubdomainBase = input.subdomainBase === undefined
+    ? brand.id === '00000000-0000-4000-8000-000000000001' ? configuredSubdomainBase() : brand.primary_host
+    : input.subdomainBase
   const subdomainBase = rawSubdomainBase ? normalizeSiteHost(rawSubdomainBase) : null
   const subdomain = tenant ? tenantSubdomainHost(tenant.subdomain, subdomainBase) : null
   // Wrap the existing canonical precedence after validating untrusted persisted host values.
   const ownHost = tenant ? tenantOwnHost({ ...tenant, custom_domain: domain, custom_domain_verified: Boolean(domain) }, subdomainBase) : null
-  const origin = ownHost ? `https://${ownHost}` : brandOrigin
-  const baseUrl = tenant && slugValid && !ownHost ? `${origin}/${tenant.slug}` : origin
+  const apexTenant = Boolean(tenant?.id && brand.apex_tenant_id === tenant.id)
+  const origin = apexTenant ? brandOrigin : ownHost ? `https://${ownHost}` : brandOrigin
+  const baseUrl = tenant && slugValid && !ownHost && !apexTenant ? `${origin}/${tenant.slug}` : origin
   let kind: ResolvedSite['kind'] = 'brand'
   let localPath = path
   let gatePath = path
   if (tenant) {
-    kind = host && host === domain ? 'tenant-domain' : host && host === subdomain ? 'tenant-subdomain' : 'tenant-path'
+    kind = apexTenant ? 'brand-apex-tenant' : host && host === domain ? 'tenant-domain' : host && host === subdomain ? 'tenant-subdomain' : 'tenant-path'
     // Existing routing handles whole-segment namespacing and preserves global routes.
     const route = resolveCustomDomainRoute(path, tenant.slug)
     const namespaced = route.kind === 'rewrite' ? route.pathname : path
@@ -120,7 +128,7 @@ export function resolveSite(input: ResolveSiteInput): ResolvedSite {
   }
   const canonicalUrl = `${baseUrl}${localPath === '/' ? '' : localPath}`
   const canonicalHost = new URL(origin).hostname
-  const tenantPathMatches = !tenant || ownHost !== null || path === `/${tenant.slug}` || path.startsWith(`/${tenant.slug}/`)
+  const tenantPathMatches = !tenant || apexTenant || ownHost !== null || path === `/${tenant.slug}` || path.startsWith(`/${tenant.slug}/`)
   const gate = indexability({
     canonicalHost: Boolean(host && host === canonicalHost && brandHost && validPath && slugValid && tenantPathMatches),
     preview: input.preview || previewHost(host), privatePage: input.privatePage,

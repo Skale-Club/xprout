@@ -2,7 +2,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { ownedModeActive } from '@/lib/data/owned-mode'
 import { SITEMAP_HEADERS, sitemapIndexXml, sitemapUnavailable } from '@/lib/sitemap-xml'
 import { resolveSite } from '@/lib/site/resolve-site'
-import { legacySiteTenant, LEGACY_SITE_COLUMNS, loadSiteBrand, missingSiteColumns } from '@/lib/site/runtime'
+import { legacySiteTenant, LEGACY_SITE_COLUMNS, missingSiteColumns } from '@/lib/site/runtime'
+import { discoveryRequestSite } from '@/lib/site/discovery-request'
 
 export const revalidate = 300
 
@@ -25,8 +26,8 @@ async function sitemapTenants() {
 export async function GET(request: Request) {
   try {
     const host = request.headers.get('host') ?? new URL(request.url).host
-    const brand = await loadSiteBrand()
-    const platform = resolveSite({ host, pathname: '/sitemap.xml', tenant: null, brand })
+    const platform = await discoveryRequestSite(request)
+    const brand = platform.brand
     if (!platform.indexable) return new Response('Not found', { status: 404, headers: { 'X-Robots-Tag': 'noindex', Vary: 'Host' } })
     const tenants = await sitemapTenants()
     const sites = tenants.map(tenant => resolveSite({ host, pathname: `/${tenant.slug}`, tenant, brand }))

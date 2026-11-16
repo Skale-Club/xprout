@@ -1,7 +1,11 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { LazyMotion, domAnimation } from 'framer-motion'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { resolveSite } from '@/lib/site/resolve-site'
+const siteMock = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/site/request-runtime', () => ({ requestSite: siteMock }))
+beforeEach(() => siteMock.mockResolvedValue(resolveSite({ host: 'xprout.app', pathname: '/', tenant: null })))
 import { isDefaultPlatformLogo, PLATFORM_BRAND_ASSETS, platformLogoUrl } from '@/lib/platform-brand'
 import { platformMetadataIcons } from '@/lib/platform-metadata'
 import PlatformSignature from '@/components/branding/PlatformSignature'
@@ -28,6 +32,14 @@ describe('approved platform identity preserves explicit configuration', () => {
     expect(tenant).toContain('tenant-logo.png')
     expect(tenant).not.toContain(PLATFORM_BRAND_ASSETS.horizontalIvory)
   })
+  it('renders a partner sign-in without Xprout artwork or wording', () => {
+    const markup = renderToStaticMarkup(createElement(IdentityPilot, {
+      config: { apiKey: 'public-test-key', projectId: 'synthetic', authDomain: 'synthetic.example' }, continueToApp: true,
+      platformBrand: { name: 'Partner Dining', logoUrl: '/partner/logo.svg' },
+    }))
+    expect(markup).toContain('Partner Dining')
+    expect(markup).not.toMatch(/xprout/iu)
+  })
   it('selects versioned default assets without silently rewriting old or custom logos', () => {
     expect(platformLogoUrl(null)).toBe(PLATFORM_BRAND_ASSETS.icon)
     expect(isDefaultPlatformLogo(`https://xprout.app${PLATFORM_BRAND_ASSETS.icon}`)).toBe(true)
@@ -53,7 +65,7 @@ describe('approved platform identity preserves explicit configuration', () => {
     expect(footer).toContain(PLATFORM_BRAND_ASSETS.horizontalIvory)
   })
   it('publishes versioned PWA icons and bounded approved PNG social bytes', async () => {
-    const icons = manifest().icons!
+    const icons = (await manifest()).icons!
     expect(icons.map(icon => icon.src)).toEqual([PLATFORM_BRAND_ASSETS.icon192, PLATFORM_BRAND_ASSETS.icon, PLATFORM_BRAND_ASSETS.maskable192, PLATFORM_BRAND_ASSETS.maskable512])
     expect(icons.map(icon => icon.purpose)).toEqual(['any', 'any', 'maskable', 'maskable'])
     expect(JSON.stringify(platformMetadataIcons())).toContain(PLATFORM_BRAND_ASSETS.apple)

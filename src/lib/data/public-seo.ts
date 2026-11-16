@@ -19,15 +19,19 @@ const label = (value: unknown) => (typeof value === 'string' && value ? value : 
 const SITE_COLUMNS = `t.id, t.name, t.is_active,
   COALESCE((to_jsonb(t)->>'is_demo')::boolean, false) AS is_demo,
   CASE WHEN to_jsonb(t) ? 'published_at' THEN to_jsonb(t)->>'published_at' ELSE to_jsonb(t)->>'created_at' END AS published_at,
-  to_jsonb(t)->>'brand_id' AS brand_id, s.language, s.seo_noindex`
+  to_jsonb(t)->>'brand_id' AS brand_id, to_jsonb(t)->>'business_kind' AS business_kind, s.language, s.seo_noindex,
+  to_jsonb(s)->>'google_site_verification' AS google_site_verification,
+  to_jsonb(s)->>'bing_site_verification' AS bing_site_verification`
 
 function seoTenant(row: Record<string, unknown>): SeoTenant {
   return { id: String(row.id), slug: String(row.slug), name: String(row.name),
     is_active: row.is_active === true, is_demo: row.is_demo === true,
     published_at: iso(row.published_at), brand_id: label(row.brand_id),
+    business_kind: row.business_kind === 'software' || row.business_kind === 'agency' ? row.business_kind : 'restaurant',
     custom_domain: label(row.custom_domain), custom_domain_verified: row.custom_domain_verified === true,
     subdomain: label(row.subdomain), updated_at: iso(row.updated_at),
-    tenant_settings: { language: label(row.language), seo_noindex: row.seo_noindex === true } }
+    tenant_settings: { language: label(row.language), seo_noindex: row.seo_noindex === true,
+      google_site_verification: label(row.google_site_verification), bing_site_verification: label(row.bing_site_verification) } }
 }
 
 export async function readSitemapTenants(query: AdminMenuQuery) {
@@ -69,15 +73,26 @@ export async function readSiteBrand(query: AdminMenuQuery, brandId: string | nul
     return undefined
   }
   const { rows } = await query(`SELECT id, name, primary_host, extra_hosts, logo, icon, social_image,
-    gtm_id, support_email, privacy_url, terms_url, show_powered_by, default_lang
-    FROM public.brands WHERE id=$1 LIMIT 2`, [brandId ?? '00000000-0000-4000-8000-000000000001'])
+    gtm_id, support_email, privacy_url, terms_url, show_powered_by, default_lang,
+    to_jsonb(b)->>'apex_tenant_id' AS apex_tenant_id, to_jsonb(b)->>'apex_home_slug' AS apex_home_slug,
+    COALESCE((to_jsonb(b)->>'tenant_marketing_routes')::boolean,false) AS tenant_marketing_routes
+    FROM public.brands b WHERE id=$1 LIMIT 2`, [brandId ?? '00000000-0000-4000-8000-000000000001'])
   if (rows.length !== 1) throw new Error('Site brand is unavailable')
   const row = rows[0]
   return { id: String(row.id), name: String(row.name), primary_host: String(row.primary_host),
     extra_hosts: Array.isArray(row.extra_hosts) ? row.extra_hosts.filter((v): v is string => typeof v === 'string') : [],
     default_lang: String(row.default_lang), logo: label(row.logo), icon: label(row.icon), social_image: label(row.social_image),
     gtm_id: label(row.gtm_id), support_email: label(row.support_email), privacy_url: label(row.privacy_url),
-    terms_url: label(row.terms_url), show_powered_by: row.show_powered_by === true }
+    terms_url: label(row.terms_url), show_powered_by: row.show_powered_by === true,
+    apex_tenant_id: label(row.apex_tenant_id), apex_home_slug: label(row.apex_home_slug), tenant_marketing_routes: row.tenant_marketing_routes === true }
+}
+
+export async function readHostBrand(query: AdminMenuQuery, host: string): Promise<SiteBrand | undefined> {
+  const ready = (await query("SELECT to_regclass('public.brands') IS NOT NULL AS ready")).rows[0]?.ready === true
+  if (!ready) return undefined
+  const { rows } = await query('SELECT id FROM public.brands WHERE primary_host=$1 OR $1=ANY(extra_hosts) LIMIT 2', [host])
+  if (rows.length > 1) throw new Error('Ambiguous site brand')
+  return rows.length === 1 ? readSiteBrand(query, String(rows[0].id)) : undefined
 }
 
 export async function readTenantSitemapEntries(query: AdminMenuQuery, tenantId: string) {

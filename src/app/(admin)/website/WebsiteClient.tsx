@@ -5,6 +5,7 @@ import { AlertCircle, ArrowDown, ArrowUp, ExternalLink, Globe, Plus, Trash2, Upl
 import { compressImageForUpload } from '@/lib/media/client-compress'
 import { blankSection, SECTION_LABELS, SECTION_TYPES, type PageSection, type SectionType } from '@/lib/pages/sections'
 import { slugFromTitle } from '@/lib/pages/page-rules'
+import { localPageTemplate, type LocalPageTemplate } from '@/lib/pages/local-templates'
 
 type PageRow = { id: string; slug: string; title: string; is_published: boolean; show_in_nav: boolean; section_count: number }
 type Submission = { id: string; page_id: string; page_title: string; name: string; email: string; phone: string | null; message: string; created_at: string }
@@ -147,7 +148,7 @@ function SectionEditor({ section, onChange, onError }: { section: PageSection; o
   }
 }
 
-export default function WebsiteClient({ tenantSlug, available }: { tenantSlug: string; available: boolean }) {
+export default function WebsiteClient({ tenantSlug, tenantName = tenantSlug, available }: { tenantSlug: string; tenantName?: string; available: boolean }) {
   const [pages, setPages] = useState<PageRow[]>([])
   const [ready, setReady] = useState(true)
   const [loaded, setLoaded] = useState(false)
@@ -231,6 +232,23 @@ export default function WebsiteClient({ tenantSlug, available }: { tenantSlug: s
           {tab === 'pages' && (
             <>
               <button type="button" className={primary} onClick={() => { setError(null); setDraft(emptyDraft()) }}><Plus className="w-4 h-4" /> New page</button>
+              <label className="flex flex-wrap items-center gap-3 text-sm font-medium text-zinc-700">
+                Start from a template
+                <select className={`${input} max-w-xs`} defaultValue="" onChange={event => {
+                  const kind = event.target.value as LocalPageTemplate
+                  if (!kind) return
+                  const template = localPageTemplate(kind, { restaurantName: tenantName })
+                  setError(null)
+                  setDraft({ ...emptyDraft(), title: template.title, slug: kind === 'locations' ? 'location-hours' : kind,
+                    sections: template.sections, slugTouched: true })
+                }}>
+                  <option value="" disabled>Choose a starting point</option>
+                  <option value="locations">Locations and hours</option>
+                  <option value="catering">Catering</option>
+                  <option value="private-events">Private events</option>
+                  <option value="faq">Questions and answers</option>
+                </select>
+              </label>
               <div className={`${card} divide-y divide-zinc-100`}>
                 {pages.length === 0 && <p className="p-8 text-sm font-medium text-zinc-500">No pages yet.</p>}
                 {pages.map((page, index) => (

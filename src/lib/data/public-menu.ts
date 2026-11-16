@@ -11,6 +11,7 @@ import { resolveTenantCapabilities, type ServiceSettings } from '../service-mode
 import { hasAnyChannel, resolveChatChannels } from '../chat-channels'
 import type { GroupWithOptions } from '@/app/(admin)/menu/products/[id]/page'
 import type { DeliveryZone, ProductIngredientWithIngredient, ProductMedia, PublicProductArModel } from '@/types/database'
+import { LOCAL_SEO_FIELDS } from '../seo'
 
 export type PublicMenuQuery = (text: string, values?: unknown[]) => Promise<{ rows: Array<{ row: unknown }> }>
 type Row = Record<string, unknown>
@@ -95,6 +96,10 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
     // Menu action links and the "Powered by" switch (tenant_settings), read once the
     // schema step added them; named columns, so a column-level grant suffices.
     if (settings) {
+      const localSeo = one(await rows<Row>(query, `SELECT jsonb_build_object('ready',count(*)=${LOCAL_SEO_FIELDS.length}) AS row FROM information_schema.columns
+        WHERE table_schema='public' AND table_name='tenant_settings' AND column_name IN (${LOCAL_SEO_FIELDS.map(column => `'${column}'`).join(',')})`, [], 1))?.ready === true
+      if (localSeo) Object.assign(settings, one(await rows<Row>(query,
+        `SELECT jsonb_build_object(${LOCAL_SEO_FIELDS.map(column => `'${column}',s.${column}`).join(',')}) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2`, [tenantId], 1)))
       const linksReady = one(await rows<Row>(query,
         `SELECT jsonb_build_object('ready', count(*) = ${ACTION_LINK_COLUMNS.length}) AS row FROM information_schema.columns
          WHERE table_schema='public' AND table_name='tenant_settings' AND column_name IN (${ACTION_LINK_COLUMNS.map(column => `'${column}'`).join(',')})`, [], 1))?.ready === true
