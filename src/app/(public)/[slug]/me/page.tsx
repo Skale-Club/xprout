@@ -28,11 +28,11 @@ export default async function CustomerPanelPage({ params }: Props) {
     if (!customer) redirect(`/auth/login?flow=customer&from=${encodeURIComponent(`/${slug}/me`)}`)
     const panel = await readOwnedCustomerPanel(customer,slug)
     if (!panel) notFound()
-    const { tenant,orders,linkingUnavailable } = panel, settings = tenant.settings
+    const { tenant,orders,linkingUnavailable,loyalty } = panel, settings = tenant.settings
     return <PanelClient tenant={{ name: tenant.name,slug: tenant.slug,settings: {
       primary_color: settings.primary_color ?? BRAND_PRIMARY,accent_color: settings.accent_color ?? '#09090b',address: settings.address,
       phone: settings.phone,currency: settings.currency ?? 'USD',logo_url: settings.logo_url } }} orders={orders}
-      customerPhone={customer.phoneE164 ?? ''} ownedAuth linkingUnavailable={linkingUnavailable} />
+      customerPhone={customer.phoneE164 ?? ''} ownedAuth linkingUnavailable={linkingUnavailable} loyalty={loyalty} />
   }
 
   const supabase = await createClient()

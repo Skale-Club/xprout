@@ -16,6 +16,7 @@ import { ctaStyle, ui } from './menu-ui'
 import { asapBlockedReason, generateSlots, groupSlotsByDay, localDayKey, type Hours } from '@/lib/orders/scheduled-orders'
 import { formatSlotDay, formatSlotTime } from './schedule-format'
 import { deliveryRuleViolation } from '@/lib/orders/delivery-rules'
+import { rewardDiscountCents } from '@/lib/orders/loyalty'
 import { discountCents as promoDiscountCents, taxCents as salesTaxCents, type PromoKind } from '@/lib/orders/tax-promo'
 
 /** What checkout needs to offer Schedule for later: the hours, the zone and the cart's notice. */
@@ -23,6 +24,8 @@ export type CheckoutScheduling = { hours: Hours; timeZone: string; prepMinutes: 
 
 /** A promo code the server accepted, kept to preview its discount; the order only carries the code. */
 export type AppliedPromo = { code: string; kind: PromoKind; value: number }
+/** The program and the signed-in customer's balance (GET /api/loyalty), for the checkout display only. */
+export type LoyaltyInfo = { signedIn: boolean; balance: number; rewardPoints: number; rewardCents: number }
 
 function findMatchingZone(zipcode: string | undefined, zones: DeliveryZone[] | undefined): DeliveryZone | null {
   if (!zipcode || !zones || zones.length === 0) return null
@@ -40,7 +43,7 @@ function findMatchingZone(zipcode: string | undefined, zones: DeliveryZone[] | u
  * above the keys; Enter moves to the next field and, in the last one, places
  * the order.
  */
-export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, deliveryZonesOnly = false, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', restaurantName = '', contact = { email: '', smsOptIn: false, emailOptIn: false }, onContactChange, onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
+export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, deliveryZonesOnly = false, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, loyalty, useReward, onUseRewardChange, signInHref, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', restaurantName = '', contact = { email: '', smsOptIn: false, emailOptIn: false }, onContactChange, onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
   cart: CartItem[]
   confirmedCart: CartItem[]
   currency: string
@@ -74,6 +77,12 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   promoEnabled?: boolean
   promo?: AppliedPromo | null
   onPromoChange?: (promo: AppliedPromo | null) => void
+  /** Loyalty program (null = off). The reward is the order's one discount, so it excludes a promo code. */
+  loyalty?: LoyaltyInfo | null
+  useReward?: boolean
+  onUseRewardChange?: (use: boolean) => void
+  /** Where a guest signs in to earn points (the customer panel redirects to the sign-in). */
+  signInHref?: string
   /** Scheduled orders: only guest checkout with the schema in place and the restaurant's switch on. */
   scheduling?: CheckoutScheduling | null
   /** The chosen time (epoch ms), or null for ASAP. */
@@ -118,7 +127,11 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
     : 0
   // Preview only: POST /api/orders recomputes the discount, tax and total.
   const subtotalCents = Math.round(total * 100)
-  const discountCents = promo ? promoDiscountCents(subtotalCents, promo) : 0
+  // Reward: only for a signed-in customer with enough points, never next to a promo code (one discount per order).
+  const rewardUsable = !!loyalty && loyalty.signedIn && loyalty.balance >= loyalty.rewardPoints && !promo
+  const rewardActive = rewardUsable && useReward === true
+  const rewardDiscount = rewardActive ? rewardDiscountCents(subtotalCents, loyalty!.rewardCents) : 0
+  const discountCents = rewardActive ? rewardDiscount : promo ? promoDiscountCents(subtotalCents, promo) : 0
   const taxAmountCents = salesTaxCents(subtotalCents - discountCents, taxBps)
   // Own-delivery rules; the server enforces them again. The minimum is on the items subtotal before any discount.
   const zipTyped = !!deliveryZipcode?.replace(/\D/g, '')
@@ -437,7 +450,24 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                   </Card>
                 )}
 
-                {showForm && promoEnabled && (
+                {showForm && loyalty && (
+                  <Card title={copy.loyaltyReward}>
+                    <div className="space-y-2 px-4 pb-4 text-[15px]">
+                      {!loyalty.signedIn ? (
+                        <a href={signInHref} className="font-medium text-zinc-900 underline underline-offset-2">{copy.loyaltySignIn}</a>
+                      ) : rewardUsable || rewardActive ? (
+                        <label className="flex min-h-11 cursor-pointer items-center gap-3">
+                          <input type="checkbox" checked={useReward === true} onChange={e => onUseRewardChange?.(e.target.checked)} className="size-5 shrink-0" />
+                          <span className="font-medium text-zinc-900">{fill(copy.loyaltyUseReward, { amount: money(rewardDiscountCents(subtotalCents, loyalty.rewardCents) / 100), points: String(loyalty.rewardPoints) })}</span>
+                        </label>
+                      ) : (
+                        <p className="text-zinc-600">{fill(copy.loyaltyBalance, { points: String(loyalty.balance) })}{promo ? '' : ` · ${loyalty.balance} / ${loyalty.rewardPoints}`}</p>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+                {showForm && promoEnabled && !rewardActive && (
                   <Card title={copy.promoCode}>
                     <div className="space-y-2 px-4 pb-4">
                       {promo ? (
@@ -502,7 +532,10 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                   <Card title={copy.paymentSummary}>
                     <dl className="space-y-1.5 px-4 pb-4 text-[15px]">
                       <div className="flex justify-between"><dt className="text-zinc-600">{copy.subtotal}</dt><dd className="tabular-nums text-zinc-800">{money(total)}</dd></div>
-                      {discountCents > 0 && promo && (
+                      {rewardDiscount > 0 && (
+                        <div className="flex justify-between"><dt className="text-zinc-600">{copy.loyaltyReward} ({loyalty!.rewardPoints})</dt><dd className="tabular-nums text-zinc-800">-{money(rewardDiscount / 100)}</dd></div>
+                      )}
+                      {discountCents > 0 && promo && !rewardActive && (
                         <div className="flex justify-between"><dt className="text-zinc-600">{copy.discount} ({promo.code})</dt><dd className="tabular-nums text-zinc-800">-{money(discountCents / 100)}</dd></div>
                       )}
                       {taxAmountCents > 0 && (

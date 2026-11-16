@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { TenantSettings } from '@/types/database'
 import type { Tenant } from '@/types/database'
 import type { StripeConnection } from '@/lib/stripe'
-import { Store, Globe, Phone, Clock, ShoppingCart, Activity, CreditCard, CheckCircle2, AlertCircle, Save, Info, MapPin, Link2, XCircle, UtensilsCrossed, Percent, LayoutGrid, MessageCircle } from 'lucide-react'
+import { Store, Globe, Phone, Clock, ShoppingCart, Activity, CreditCard, CheckCircle2, AlertCircle, Save, Info, MapPin, Link2, XCircle, UtensilsCrossed, Percent, Gift, LayoutGrid, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import DeliveryZonesSection from './DeliveryZonesSection'
 import TablesSection from './TablesSection'
@@ -16,6 +16,7 @@ import type { TenantCapabilities } from '@/lib/service-modes'
 import type { ServiceNumberKey, ServiceSettingsPatch } from '@/lib/service-settings'
 import { notifyPublicMenuChanged } from '@/lib/menu/revalidate-client'
 import { bpsToPercent, percentToBps } from '@/lib/orders/tax-promo'
+import { amountToCents, centsToAmount, loyaltySettingsValid } from '@/lib/orders/loyalty'
 
 interface Props {
   settings: TenantSettings | null
@@ -177,6 +178,10 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     tax_rate_pct: bpsToPercent(settings?.tax_rate_bps ?? 0),
     scheduled_orders_enabled: settings?.scheduled_orders_enabled === true,
     delivery_zones_only: settings?.delivery_zones_only === true,
+    loyalty_enabled: settings?.loyalty_enabled === true,
+    loyalty_spend: centsToAmount(settings?.loyalty_cents_per_point ?? 500),
+    loyalty_reward_points: String(settings?.loyalty_reward_points ?? 20),
+    loyalty_reward_value: centsToAmount(settings?.loyalty_reward_cents ?? 1000),
     tip_percentage_1: settings?.tip_percentage_1 ?? 15,
     tip_percentage_2: settings?.tip_percentage_2 ?? 18,
     tip_percentage_3: settings?.tip_percentage_3 ?? 20,
@@ -369,6 +374,8 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
   // Delivery area rules exist once the schema step ran (the switch is then a boolean).
   const deliveryRulesAvailable = typeof settings?.delivery_zones_only === 'boolean'
   const schedulingAvailable = typeof settings?.scheduled_orders_enabled === 'boolean' && caps.guestOrdering
+  // Loyalty exists once the schema step ran (the switch is then a boolean), on the owned database, and guests can order.
+  const loyaltyAvailable = typeof settings?.loyalty_enabled === 'boolean' && caps.guestOrdering
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -387,7 +394,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     }
 
     // Tip presets only exist on the plan that sells guest ordering.
-    const { tip_percentage_1, tip_percentage_2, tip_percentage_3, tax_rate_pct, scheduled_orders_enabled, delivery_zones_only, ...regionalAndContact } = form
+    const { tip_percentage_1, tip_percentage_2, tip_percentage_3, tax_rate_pct, scheduled_orders_enabled, delivery_zones_only, loyalty_enabled, loyalty_spend, loyalty_reward_points, loyalty_reward_value, ...regionalAndContact } = form
     const tipPresets = caps.plan.payments ? { tip_percentage_1, tip_percentage_2, tip_percentage_3 } : {}
 
     // Sales tax exists once the schema step ran and the restaurant takes orders from the menu.
@@ -398,12 +405,21 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
       return
     }
 
+    // Loyalty numbers: dollars and whole points typed by the owner, checked with the same bounds as the schema.
+    const loyaltyNumbers = { centsPerPoint: amountToCents(loyalty_spend), rewardPoints: /^\d{1,6}$/.test(loyalty_reward_points.trim()) ? Number(loyalty_reward_points) : null, rewardCents: amountToCents(loyalty_reward_value) }
+    if (loyaltyAvailable && !loyaltySettingsValid(loyaltyNumbers)) {
+      setError('Loyalty: spend per point must be $1 to $1,000, the reward 1 to 100,000 points and its value up to $10,000')
+      setLoading(false)
+      return
+    }
+
     const payload = {
         ...regionalAndContact,
         ...tipPresets,
         ...(taxBps !== null ? { tax_rate_bps: taxBps } : {}),
         ...(schedulingAvailable ? { scheduled_orders_enabled } : {}),
         ...(deliveryRulesAvailable ? { delivery_zones_only } : {}),
+        ...(loyaltyAvailable ? { loyalty_enabled, loyalty_cents_per_point: loyaltyNumbers.centsPerPoint, loyalty_reward_points: loyaltyNumbers.rewardPoints, loyalty_reward_cents: loyaltyNumbers.rewardCents } : {}),
         // Coerce local-SEO fields: empty strings → null, coordinates → number.
         city: form.city.trim() || null,
         region: form.region.trim() || null,
@@ -978,6 +994,41 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
                   className={inputClassName}
                 />
                 <p className="text-[13px] font-medium text-zinc-600 mt-1.5 ml-1">e.g. 6.25. Added to the items (after any promo code) when guests order from the menu. Tips and delivery are not taxed. Saved with Apply Settings.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Loyalty � one reward, earned by signed-in customers when an order is completed */}
+          {loyaltyAvailable && (
+            <div className="bg-white border border-zinc-100 rounded-[1.25rem] p-10 space-y-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Gift className="w-4 h-4 text-primary" />
+                </div>
+                <h2 className="text-xl font-black text-zinc-950 tracking-tight">Loyalty</h2>
+              </div>
+              <ToggleRow
+                title="Loyalty rewards"
+                description="Signed-in customers earn points when an order is completed and can spend them on one reward at checkout. The reward replaces a promo code on that order. Saved with Apply Settings."
+                checked={form.loyalty_enabled}
+                onChange={checked => setForm(f => ({ ...f, loyalty_enabled: checked }))}
+              />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className={labelClassName}>Spend per point ($)</label>
+                  <input type="text" inputMode="decimal" value={form.loyalty_spend} onChange={e => setForm(f => ({ ...f, loyalty_spend: e.target.value }))} className={inputClassName} />
+                  <p className="text-[13px] font-medium text-zinc-600 mt-1.5 ml-1">e.g. 5 = 1 point per $5 spent (items after discounts).</p>
+                </div>
+                <div>
+                  <label className={labelClassName}>Points for the reward</label>
+                  <input type="text" inputMode="numeric" value={form.loyalty_reward_points} onChange={e => setForm(f => ({ ...f, loyalty_reward_points: e.target.value }))} className={inputClassName} />
+                  <p className="text-[13px] font-medium text-zinc-600 mt-1.5 ml-1">e.g. 20.</p>
+                </div>
+                <div>
+                  <label className={labelClassName}>Reward value ($ off)</label>
+                  <input type="text" inputMode="decimal" value={form.loyalty_reward_value} onChange={e => setForm(f => ({ ...f, loyalty_reward_value: e.target.value }))} className={inputClassName} />
+                  <p className="text-[13px] font-medium text-zinc-600 mt-1.5 ml-1">e.g. 10. Never more than the items total.</p>
+                </div>
               </div>
             </div>
           )}

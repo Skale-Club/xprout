@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Clock, CheckCircle2, Package, UtensilsCrossed, Truck, LogOut, MapPin, Phone as PhoneIcon, RefreshCw } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
+import { rewardProgress } from '@/lib/orders/loyalty'
 import type { Order, OrderItem } from '@/types/database'
 import { useState } from 'react'
 
@@ -54,6 +55,8 @@ interface Props {
   customerPhone: string
   ownedAuth?: boolean
   linkingUnavailable?: boolean
+  /** The restaurant's loyalty program and this customer's points; null when the program is off. */
+  loyalty?: { balance: number; rewardPoints: number; rewardCents: number } | null
 }
 
 function OrderStatusBar({ order, primaryColor }: { order: OrderWithItems; primaryColor: string }) {
@@ -89,7 +92,7 @@ function OrderStatusBar({ order, primaryColor }: { order: OrderWithItems; primar
   )
 }
 
-export default function PanelClient({ tenant, orders, customerPhone,ownedAuth = false,linkingUnavailable = false }: Props) {
+export default function PanelClient({ tenant, orders, customerPhone,ownedAuth = false,linkingUnavailable = false,loyalty = null }: Props) {
   const router = useRouter()
   const supabase = ownedAuth ? null : createClient()
   const [signoutError,setSignoutError] = useState('')
@@ -151,6 +154,27 @@ export default function PanelClient({ tenant, orders, customerPhone,ownedAuth = 
         {signoutError && <p role="alert" className="text-sm text-red-700">{signoutError}</p>}
         {linkingUnavailable && <p role="status" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Some earlier orders could not be linked. Refresh to try again.</p>}
         {ownedAuth && !customerPhone && <p className="rounded-xl bg-white p-4 text-sm text-zinc-600">Your account orders are shown here. <a href={`/identity?action=link&from=${encodeURIComponent(`/${tenant.slug}/me`)}&flow=customer`} className="font-bold underline">Verify your phone</a> to access phone-only menus and link earlier guest orders.</p>}
+
+        {loyalty && (() => {
+          const progress = rewardProgress(loyalty.balance, loyalty.rewardPoints)
+          return (
+            <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5 space-y-3" data-testid="loyalty-card">
+              <div className="flex items-baseline justify-between">
+                <h2 className="text-[12px] font-black text-zinc-600 uppercase tracking-widest">Rewards</h2>
+                <span className="text-[13px] font-black text-zinc-950 tabular-nums">{progress.current} / {progress.target} points</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-zinc-200 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={progress.target} aria-valuenow={progress.current}>
+                <div className="h-full rounded-full" style={{ width: `${Math.round((progress.current / progress.target) * 100)}%`, backgroundColor: primaryColor }} />
+              </div>
+              <p className="text-[14px] font-medium text-zinc-600">
+                {progress.ready
+                  ? `You have a reward: ${formatPrice(loyalty.rewardCents / 100, currency)} off your next order. Use it at checkout.`
+                  : `${progress.target - progress.current} more points for ${formatPrice(loyalty.rewardCents / 100, currency)} off.`}
+                {' '}Your balance: {loyalty.balance} points.
+              </p>
+            </div>
+          )
+        })()}
 
         {/* Active Orders */}
         {activeOrders.length > 0 && (

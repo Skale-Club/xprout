@@ -74,7 +74,7 @@ import {
   ShoppingBag,
   CalendarCheck,
 } from 'lucide-react'
-import type { AppliedPromo } from './CheckoutModal'
+import type { AppliedPromo, LoyaltyInfo } from './CheckoutModal'
 
 const ProductModal = dynamic(() => import('./ProductModal'), { ssr: false })
 const CartPanel = dynamic(() => import('./CartPanel'), { ssr: false })
@@ -226,6 +226,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const [deliveryNotes, setDeliveryNotes] = useState('')
   const [tipCents, setTipCents] = useState(0)
   const [promo, setPromo] = useState<AppliedPromo | null>(null)
+  // Loyalty: the program's switch comes with the menu; the customer's balance is per person, so it is read live.
+  const [loyalty, setLoyalty] = useState<LoyaltyInfo | null>(null)
+  const [useReward, setUseReward] = useState(false)
   // The time chosen for a scheduled order (epoch ms); null = as soon as possible.
   const [scheduledFor, setScheduledFor] = useState<number | null>(null)
   const [confirmedScheduledFor, setConfirmedScheduledFor] = useState<number | null>(null)
@@ -252,6 +255,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   // Sales tax and the promo field exist for guest checkout once the schema step ran (the rate is then a number).
   const taxPromoReady = capabilities.guestOrdering && typeof settings?.tax_rate_bps === 'number'
   const taxBps = taxPromoReady ? settings?.tax_rate_bps ?? 0 : 0
+  const loyaltyOn = capabilities.guestOrdering && settings?.loyalty_enabled === true
   // Scheduled orders exist once the schema step ran (the switch is then a boolean), the restaurant turned them on
   // and its time zone is known; the dishes' notice only shows then too.
   const schedulingZone = capabilities.scheduledOrders && typeof settings?.scheduled_orders_enabled === 'boolean'
@@ -497,6 +501,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       customer_phone: customerPhone.trim(),
       ...orderFields,
       ...(taxPromoReady && promo ? { promo_code: promo.code } : {}),
+      ...(loyaltyOn && useReward && !promo ? { use_loyalty_reward: true } : {}),
       ...(scheduling && scheduledFor != null ? { scheduled_for: new Date(scheduledFor).toISOString() } : {}),
       // An address that is not plausible is left out rather than blocking the order.
       ...(receiptEmail ? { customer_email: receiptEmail } : {}),
@@ -570,6 +575,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       setOrderType(defaultOrderType)
       setTipCents(0)
       setPromo(null)
+      setUseReward(false)
       setScheduledFor(null)
     } catch (error) {
       setOrderError(error instanceof Error && error.message ? error.message : copy.errSubmit)
@@ -623,6 +629,21 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     analyticsTracker.track({ event_name: 'checkout_started', source: 'checkout' })
     void analyticsTracker.flush()
   }, [analyticsTracker, checkoutOpen])
+
+  // Loyalty balance, read each time checkout opens (it changes when an order completes). Display only: the order re-checks it.
+  useEffect(() => {
+    if (!loyaltyOn || !checkoutOpen) return
+    let cancelled = false
+    fetch(`/api/loyalty?tenant_id=${encodeURIComponent(tenant.id)}`, { cache: 'no-store' })
+      .then(response => (response.ok ? response.json() : null))
+      .then((data: { enabled?: boolean; signed_in?: boolean; balance?: number; reward_points?: number; reward_cents?: number } | null) => {
+        if (cancelled) return
+        if (!data?.enabled) { setLoyalty(null); return }
+        setLoyalty({ signedIn: data.signed_in === true, balance: Number(data.balance) || 0, rewardPoints: Number(data.reward_points) || 1, rewardCents: Number(data.reward_cents) || 0 })
+      })
+      .catch(() => { if (!cancelled) setLoyalty(null) })
+    return () => { cancelled = true }
+  }, [loyaltyOn, checkoutOpen, tenant.id])
 
   useEffect(() => {
     if (!analyticsTracker || !search.trim()) return
@@ -1609,7 +1630,11 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           taxBps={taxBps}
           promoEnabled={taxPromoReady}
           promo={taxPromoReady ? promo : null}
-          onPromoChange={setPromo}
+          onPromoChange={(next) => { setPromo(next); if (next) setUseReward(false) }}
+          loyalty={loyaltyOn ? loyalty : null}
+          useReward={useReward}
+          onUseRewardChange={setUseReward}
+          signInHref={`/${tenant.slug}/me`}
           scheduling={scheduling}
           scheduledFor={scheduledFor}
           onScheduledForChange={setScheduledFor}

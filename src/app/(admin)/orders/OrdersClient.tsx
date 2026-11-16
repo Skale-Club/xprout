@@ -233,7 +233,7 @@ function OrderCard({
             <p className="text-[10px] font-bold text-zinc-400">tip {formatMoney((order as any).tip_cents / 100)}</p>
           )}
           {(order as any).discount_cents > 0 && (
-            <p className="text-[10px] font-bold text-zinc-400">discount -{formatMoney((order as any).discount_cents / 100)}{(order as any).promo_code ? ` (${(order as any).promo_code})` : ''}</p>
+            <p className="text-[10px] font-bold text-zinc-400">{(order as any).loyalty_points_redeemed > 0 ? 'Reward' : 'discount'} -{formatMoney((order as any).discount_cents / 100)}{(order as any).loyalty_points_redeemed > 0 ? ` (${(order as any).loyalty_points_redeemed} pts)` : (order as any).promo_code ? ` (${(order as any).promo_code})` : ''}</p>
           )}
           {(order as any).tax_cents > 0 && (
             <p className="text-[10px] font-bold text-zinc-400">tax {formatMoney((order as any).tax_cents / 100)}</p>
@@ -726,7 +726,7 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
                       <p className="text-xs font-bold text-zinc-500 mt-0.5">incl. tip {fmtMoney((selectedOrder as any).tip_cents / 100)}</p>
                     )}
                     {(selectedOrder as any).discount_cents > 0 && (
-                      <p className="text-xs font-bold text-zinc-500 mt-0.5">Discount -{fmtMoney((selectedOrder as any).discount_cents / 100)}{(selectedOrder as any).promo_code ? ` (${(selectedOrder as any).promo_code})` : ''}</p>
+                      <p className="text-xs font-bold text-zinc-500 mt-0.5">{(selectedOrder as any).loyalty_points_redeemed > 0 ? 'Reward' : 'Discount'} -{fmtMoney((selectedOrder as any).discount_cents / 100)}{(selectedOrder as any).loyalty_points_redeemed > 0 ? ` (${(selectedOrder as any).loyalty_points_redeemed} pts)` : (selectedOrder as any).promo_code ? ` (${(selectedOrder as any).promo_code})` : ''}</p>
                     )}
                     {(selectedOrder as any).tax_cents > 0 && (
                       <p className="text-xs font-bold text-zinc-500 mt-0.5">Tax {fmtMoney((selectedOrder as any).tax_cents / 100)}</p>
