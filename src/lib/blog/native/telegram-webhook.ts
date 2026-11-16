@@ -13,13 +13,13 @@ export async function nativeBlogTelegramWebhook(request:Request){
  try{
   const provided=request.headers.get('x-telegram-bot-api-secret-token')??''
   if(!provided||provided.length>256)throw new AdminMenuError(401,'Unauthorized')
-  const body=await tenantAdminBody(request)
-  if(!body||typeof body!=='object'||Array.isArray(body))throw new AdminMenuError(400,'Invalid Telegram update')
-  const callback=(body as Record<string,unknown>).callback_query as {id?:unknown;data?:unknown;message?:{chat?:{id?:unknown}}}|undefined
   const settings=await ownedAdminTransaction(false,async query=>(await query('SELECT * FROM public.telegram_settings WHERE webhook_secret=$1 AND enabled=true AND approvals_enabled=true LIMIT 2',[provided])).rows)
   if(settings.length!==1||typeof settings[0].webhook_secret!=='string')throw new AdminMenuError(401,'Unauthorized')
   const expected=Buffer.from(settings[0].webhook_secret),actual=Buffer.from(provided)
   if(expected.length!==actual.length||!timingSafeEqual(expected,actual))throw new AdminMenuError(401,'Unauthorized')
+  const body=await tenantAdminBody(request)
+  if(!body||typeof body!=='object'||Array.isArray(body))throw new AdminMenuError(400,'Invalid Telegram update')
+  const callback=(body as Record<string,unknown>).callback_query as {id?:unknown;data?:unknown;message?:{chat?:{id?:unknown}}}|undefined
   if(!callback?.data)return json({ok:true,ignored:true})
   const parsed=typeof callback.data==='string'?parseApprovalCallbackData(callback.data):null
   if(!parsed||!UUID.test(parsed.postId)||typeof callback.id!=='string'||!callback.id||callback.id.length>128)return json({ok:true,ignored:true})
