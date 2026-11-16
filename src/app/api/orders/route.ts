@@ -9,6 +9,8 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { phoneMatchKey, sessionPhoneE164, toE164 } from '@/lib/phone'
 import { recordTrustedOrderAnalyticsEvent } from '@/lib/analytics/server'
 import { OptionSelectionError, resolveOptionSelection } from '@/lib/menu/option-pricing'
+import { legacyRecordTaxPromo, legacyTaxPromo } from '@/lib/orders/tax-promo-legacy'
+import { TAX_PROMO_NOT_READY, normalizePromoCode, priceOrder, promoRejection, type TaxPromoState } from '@/lib/orders/tax-promo'
 import { createOrderSchema, describeInputError, orderFingerprint, parseIdempotencyKey, type OrderItemInput } from '@/lib/orders/order-input'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
@@ -130,7 +132,7 @@ async function handlePOST(request: Request) {
     }
     const idempotencyKey = parseIdempotencyKey(request.headers.get('idempotency-key'))
     const checkout = async (owned?: OwnedOrderRepository) => {
-      const { tenant_id, customer_name, customer_phone, items, order_type: rawOrderType, delivery_address: rawDeliveryAddress, delivery_street: rawDeliveryStreet, delivery_complement: rawDeliveryComplement, delivery_zipcode: rawDeliveryZipcode, delivery_city: rawDeliveryCity, delivery_notes: rawDeliveryNotes, location_id: rawLocationId, tip_cents: rawTipCents, menu_id: rawMenuId, table_name: rawTableName, table_id: rawTableId, analytics_session_id: rawAnalyticsSessionId } = parsed.data
+      const { tenant_id, customer_name, customer_phone, items, order_type: rawOrderType, delivery_address: rawDeliveryAddress, delivery_street: rawDeliveryStreet, delivery_complement: rawDeliveryComplement, delivery_zipcode: rawDeliveryZipcode, delivery_city: rawDeliveryCity, delivery_notes: rawDeliveryNotes, location_id: rawLocationId, tip_cents: rawTipCents, menu_id: rawMenuId, promo_code: rawPromoCode, table_name: rawTableName, table_id: rawTableId, analytics_session_id: rawAnalyticsSessionId } = parsed.data
 
       const service = owned ? undefined : await createServiceClient()
 
@@ -455,7 +457,24 @@ async function handlePOST(request: Request) {
         }
       }
 
-      const totalCents = subtotalCents + deliveryFeeCents + tipCents
+      // Sales tax and one promo code (guest checkout only, and only once the schema
+      // step ran). The client sends the code, never an amount: the discount, the tax
+      // and the total are decided here from the restaurant's own rows.
+      const typedPromo = rawPromoCode?.trim() ? rawPromoCode : null
+      const promoCode = typedPromo ? normalizePromoCode(typedPromo) : null
+      const taxPromo: TaxPromoState = capabilities.guestOrdering
+        ? await (owned ? owned.taxPromo(promoCode) : legacyTaxPromo(service!, tenant_id, promoCode))
+        : TAX_PROMO_NOT_READY
+      if (typedPromo && !taxPromo.ready) {
+        return NextResponse.json({ error: 'Promo codes are not available for this restaurant' }, { status: 400 })
+      }
+      if (typedPromo && (!promoCode || promoRejection(taxPromo.promo, new Date()))) {
+        return NextResponse.json({ error: 'This promo code is not valid', code: 'promo_invalid' }, { status: 400 })
+      }
+      const priced = priceOrder({ subtotalCents, promo: typedPromo ? taxPromo.promo : null, taxBps: taxPromo.taxBps, deliveryFeeCents, tipCents })
+      const totalCents = priced.totalCents
+      const storesBreakdown = taxPromo.ready && (priced.discountCents > 0 || priced.taxCents > 0)
+      const appliedPromoCode = priced.discountCents > 0 ? taxPromo.promo!.code : null
 
       const orderRow = {
         tenant_id,
@@ -495,7 +514,7 @@ async function handlePOST(request: Request) {
       const trustedOrder = {
         ...orderRow,
         idempotency_key: idempotencyKey,
-        request_fingerprint: idempotencyKey ? orderFingerprint({ order: orderRow, items: itemRows }) : null,
+        request_fingerprint: idempotencyKey ? orderFingerprint({ order: orderRow, items: itemRows, ...(storesBreakdown ? { pricing: { discount: priced.discountCents, tax: priced.taxCents, promo: appliedPromoCode } } : {}) }) : null,
       }
       const { data: created, error: createError } = owned ? await owned.create(trustedOrder, itemRows, sessionCustomer?.id ?? null) : await service!.rpc('create_order_with_items', {
         p_order: trustedOrder,
@@ -510,6 +529,17 @@ async function handlePOST(request: Request) {
         return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
       }
       const order = created as { id: string; status: string; total: number | string; order_type: string; replayed: boolean }
+
+      // The order function predates the breakdown columns: write them right after,
+      // inside the owned transaction (a failure rolls the order back).
+      if (storesBreakdown && !order.replayed) {
+        const values = { discountCents: priced.discountCents, taxCents: priced.taxCents, promoCode: appliedPromoCode }
+        if (owned) await owned.recordTaxPromo(order.id, values)
+        else {
+          const { error: breakdownError } = await legacyRecordTaxPromo(service!, tenant_id, order.id, values)
+          if (breakdownError) log.error('orders.tax_promo_record_error', { err: breakdownError, order_id: order.id })
+        }
+      }
 
       if (analyticsSessionId && !order.replayed) {
         if (owned) await owned.recordAnalytics(order.id, 'order_created')

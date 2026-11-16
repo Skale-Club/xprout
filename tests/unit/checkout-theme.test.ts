@@ -77,6 +77,7 @@ describe('restaurant payment theme', () => {
     const query = vi.fn().mockResolvedValueOnce({ rows: [{ id, tenant_id: tenant, status: 'paid', total: '12.50', currency: 'eur' }] })
       .mockResolvedValueOnce({ rows: [{ slug: 'fixture', name: 'Fixture', currency: 'eur', primary_color: '#184D3B', accent_color: '#E94560' }] })
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ ready: false }] })
     const result = await new OwnedPaymentRepository(query).checkout(id)
     expect(query.mock.calls[1]).toEqual([expect.stringContaining('s.primary_color,s.accent_color'), [tenant]])
     expect(result?.tenants.tenant_settings).toEqual({ currency: 'eur', primary_color: '#184D3B', accent_color: '#E94560' })

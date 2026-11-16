@@ -56,6 +56,8 @@ export const createOrderSchema = z.object({
   delivery_notes: optionalText(300),
   location_id: uuid.nullish(),
   tip_cents: z.number().int().min(0).max(1_000_000).nullish(),
+  // One optional promo code; checked against the restaurant's codes on the server, never trusted for amounts.
+  promo_code: text(64).nullish(),
   menu_id: uuid.nullish(),
   table_name: optionalText(80),
   table_id: z.string().max(64).nullish(),

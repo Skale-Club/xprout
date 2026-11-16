@@ -143,6 +143,7 @@ export interface TenantSettings {
   hide_platform_brand?: boolean     // true hides "Powered by Xprout" on the public menu (docs/owned-schema/20261116120000)
   order_online_url?: string | null  // "Order online" button for menus without guest checkout (https, max 500)
   reservation_url?: string | null   // "Reserve a table" button (https, max 500)
+  tax_rate_bps?: number             // Sales tax in basis points (625 = 6.25%); absent until docs/owned-schema/20261116130000 ran
   updated_at: string
   // AI-04: New fields added in migration 022
   business_type: string | null
@@ -368,6 +369,9 @@ export interface Order {
   delivery_address: string | null                   // ORD-05 (migration 035, null for non-delivery)
   location_id: string | null                        // LOC-06 (migration 037, null = no branch)
   tip_cents: number                                  // SEED-017 (migration 038, always 0 when no tip)
+  discount_cents?: number                            // Promo discount on the items subtotal (absent until the tax/promo schema ran)
+  tax_cents?: number                                 // Sales tax on subtotal - discount
+  promo_code?: string | null                         // Code used (snapshot)
   delivery_street: string | null                     // SEED-020 (migration 041)
   delivery_complement: string | null                 // SEED-020 (migration 041)
   delivery_zipcode: string | null                    // SEED-020 (migration 041)

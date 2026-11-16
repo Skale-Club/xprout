@@ -1,5 +1,6 @@
 import { BRAND_NAME } from '@/lib/brand'
 import { ACTION_LINK_COLUMNS } from '../menu-action-links'
+import { TAX_PROMO_READY_SQL } from '../orders/tax-promo'
 import type { CachedPublicMenu } from '../menu/public-menu-data'
 import { arModelsByProductId, buildOptionGroupsByProductId, groupByProductId, pickDefaultMenu, pickSectionMenu } from '../menu/public-menu-model'
 import { resolveTenantCapabilities, type ServiceSettings } from '../service-modes'
@@ -96,6 +97,9 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       Object.assign(settings, linksReady
         ? one(await rows<Row>(query, `SELECT jsonb_build_object(${ACTION_LINK_COLUMNS.map(column => `'${column}', s.${column}`).join(', ')}) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2`, [tenantId], 1))
         : { hide_platform_brand: false, order_online_url: null, reservation_url: null })
+      // Sales tax rate (and, by its presence, the promo field) once the tax/promo schema step ran.
+      const taxReady = one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${TAX_PROMO_READY_SQL}) r`, [], 1))?.ready === true
+      if (taxReady) Object.assign(settings, one(await rows<Row>(query, "SELECT jsonb_build_object('tax_rate_bps', s.tax_rate_bps) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2", [tenantId], 1)))
     }
     const footer = one(await rows<Row>(query, 'SELECT jsonb_build_object(\'menu_footer_brand\', menu_footer_brand) AS row FROM public.platform_settings LIMIT 2', [], 1))
     const footerBrand = typeof footer?.menu_footer_brand === 'string' ? footer.menu_footer_brand : BRAND_NAME

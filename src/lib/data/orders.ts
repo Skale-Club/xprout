@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { canKitchenMove, isOrderStatus, type OrderStatus } from '../orders/status-machine'
 import { resolveTenantCapabilities, type ServiceSettings } from '../service-modes'
 import { resolveOptionSelection, type OptionSelectionState, type ServerOptionGroup } from '../menu/option-pricing'
+import { TAX_PROMO_NOT_READY, TAX_PROMO_READY_SQL, type PromoCodeRow, type TaxPromoState } from '../orders/tax-promo'
 import type { Order, OrderItem, UserRole } from '@/types/database'
 
 export type OrderQuery = (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>
@@ -69,6 +70,8 @@ export function assertUnambiguousOrderOptionPricing(basePrice: number, editor: O
   }
 }
 export const ORDER_COLUMNS = 'id tenant_id customer_name customer_phone customer_phone_key customer_id customer_phone_e164 customer_linked_at customer_link_method status total subtotal currency delivery_fee_cents payment_intent_id order_type delivery_address delivery_street delivery_complement delivery_zipcode delivery_city delivery_notes delivery_zone_id location_id tip_cents table_name table_id analytics_session_id notes created_at updated_at'
+/** Order columns that exist once docs/owned-schema/20261116130000_tax_and_promo_codes.sql ran. */
+export const TAX_PROMO_ORDER_COLUMNS = ' discount_cents tax_cents promo_code'
 export const ITEM_COLUMNS = 'id order_id product_id product_name quantity unit_price selected_options notes ingredient_modifications added_via'
 const SETTINGS_COLUMNS = 'orders_enabled direct_orders_enabled table_management_enabled whatsapp_orders_enabled whatsapp tips_enabled item_notes_enabled ingredient_customization_enabled dine_in_enabled pickup_enabled delivery_enabled upsell_enabled delivery_fee_cents currency country amber_threshold_minutes red_threshold_minutes'
 const orderFields = new Set(('tenant_id customer_name customer_phone customer_phone_key customer_id customer_phone_e164 status total subtotal currency delivery_fee_cents order_type delivery_address delivery_street delivery_complement delivery_zipcode delivery_city delivery_notes delivery_zone_id location_id tip_cents table_name table_id analytics_session_id idempotency_key request_fingerprint').split(' '))
@@ -233,10 +236,32 @@ export class OwnedOrderRepository {
       || typeof created.replayed !== 'boolean') throw new OrderDataError(503, 'Order creation result is unavailable')
     return ok(created)
   }
+  /** Whether the tax and promo schema step ran; until it did, orders behave as before. */
+  async taxPromoReady() {
+    return (await this.query(TAX_PROMO_READY_SQL)).rows[0]?.ready === true
+  }
+  /** This restaurant's tax rate and the row of the typed code (null when no such code). */
+  async taxPromo(code: string | null): Promise<TaxPromoState> {
+    if (!(await this.taxPromoReady())) return TAX_PROMO_NOT_READY
+    const settings = rows<{ tax_rate_bps: number }>(await this.query(`SELECT jsonb_build_object('tax_rate_bps',s.tax_rate_bps) AS row
+      FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2`, [this.tenantId]), 1)[0]
+    const promo = code ? rows<PromoCodeRow>(await this.query(`SELECT ${projected('id code kind value starts_at ends_at is_active', 'p')} AS row
+      FROM public.promo_codes p WHERE p.tenant_id=$1 AND p.code=$2 LIMIT 2`, [this.tenantId, code]), 1)[0] ?? null : null
+    const taxBps = Number(settings?.tax_rate_bps ?? 0)
+    return { ready: true, taxBps: Number.isInteger(taxBps) ? taxBps : 0, promo }
+  }
+  /** Stores the breakdown on the order just created, in the same transaction (the order function predates these columns). */
+  async recordTaxPromo(orderId: string, values: { discountCents: number; taxCents: number; promoCode: string | null }) {
+    if (!UUID.test(orderId)) throw new OrderDataError(400, 'Invalid order')
+    const updated = await this.query('UPDATE public.orders SET discount_cents=$3,tax_cents=$4,promo_code=$5 WHERE tenant_id=$1 AND id=$2 RETURNING id',
+      [this.tenantId, orderId, values.discountCents, values.taxCents, values.promoCode])
+    if (updated.rows.length !== 1) throw new OrderDataError(503, 'Order creation result is unavailable')
+  }
   async list(context: OrderContext, cutoff: string) {
     staff(context, this.tenantId)
     if (!Number.isFinite(Date.parse(cutoff)) || Date.parse(cutoff) < Date.now() - 49 * 3600000) throw new OrderDataError(400, 'Invalid order window')
-    const found = rows<KdsOrder>(await this.query(`SELECT ${projected(ORDER_COLUMNS, 'o')}
+    const columns = (await this.taxPromoReady()) ? ORDER_COLUMNS + TAX_PROMO_ORDER_COLUMNS : ORDER_COLUMNS
+    const found = rows<KdsOrder>(await this.query(`SELECT ${projected(columns, 'o')}
       || jsonb_build_object('order_items',COALESCE((SELECT jsonb_agg(items.row ORDER BY items.id) FROM
         (SELECT oi.id,${projected(ITEM_COLUMNS, 'oi')} AS row FROM public.order_items oi WHERE oi.order_id=o.id ORDER BY oi.id LIMIT 1001) items),'[]'::jsonb)) AS row
       FROM public.orders o WHERE o.tenant_id=$1 AND o.created_at >= $2::timestamptz ORDER BY o.created_at DESC,o.id DESC LIMIT 500`, [this.tenantId, cutoff]), 500)
