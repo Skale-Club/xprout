@@ -28,11 +28,11 @@ The local move is done on this computer: the checkout is `C:\Users\Vanildo\Dev\x
 | Stale worktrees | Two worktrees registered under the old path pruned; four already-merged local branches deleted |
 | Dev `.env.local` values | `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_BASE_URL` switched from the old host to `https://xprout.app` (backup `.env.local.bak-xprout-20261115171521` in the Drive folder); R2 bucket names unchanged (compatibility) |
 | Claude Code memory | Copied from the old project folder to the `Dev\xprout` project folder |
-| `.env.local` symlink | **Pending owner:** still targeted `G:\My Drive\Dev\xmartmenu\.env.local` (broken) and was removed; creating the new link needs an elevated shell |
-| Codex project | **Pending owner:** `config.toml` and `.codex-global-state.json` still name `Dev\xmartmenu`; must be edited with Codex closed |
+| `.env.local` symlink | Done: the old link targeted `G:\My Drive\Dev\xmartmenu\.env.local` (broken); the helper relinked it to `G:\My Drive\Dev\xprout\.env.local` (resolves, 32 keys) |
+| Codex project | Done with the Codex app closed: state has 0 old / 8 new root paths, trust entry moved, project renamed "Xmart Menu" → "Xprout"; JSON validated with Node; `*.before-xprout-*` backups in `.codex` |
 | Shared registry | **Pending (desktop):** `skaleclub-apps/apps/xmartmenu.md` on origin still shows the old repository; the Xprout update `a3439db` was never pushed from the computer that made it |
 
-Both pending local items are handled by [relink-xprout-local.ps1](../../scripts/ops/relink-xprout-local.ps1) (Windows PowerShell 5.1, no network). It finds the Drive letter itself (`G:` here, `N:` on the desktop), refuses to replace a regular `.env.local`, skips the Codex step while Codex is running, and keeps timestamped backups. Its replacements were dry-run in memory on this computer (8 Codex state paths, 1 trust entry); the file writes themselves have not run yet. Run once per computer, in an elevated PowerShell with Codex closed:
+Both local items are handled by [relink-xprout-local.ps1](../../scripts/ops/relink-xprout-local.ps1) (Windows PowerShell 5.1, no network). It finds the Drive letter itself (`G:` here, `N:` on the desktop), refuses to replace a regular `.env.local`, skips the Codex step while Codex is running, and keeps timestamped backups. It ran on the Surface on 2026-11-15; it has **not** run on the desktop yet. "Codex closed" means the whole Codex desktop app (`ChatGPT.exe` from the `OpenAI.Codex` package): it respawns `codex.exe` while open. Run once per computer, in an elevated PowerShell with the app closed:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Vanildo\Dev\xprout\scripts\ops\relink-xprout-local.ps1"
