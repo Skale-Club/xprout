@@ -213,3 +213,6 @@ scratch/
 
 # Generated images and scratch output (kept locally, not versioned)
 /output/
+
+# in-repo worktrees (RULES §6)
+.worktrees/

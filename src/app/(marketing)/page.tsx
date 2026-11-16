@@ -53,6 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = settings.description ?? landingCopy.seo.description
   return {
     title: { absolute: title }, description,
+    alternates: { canonical: PLATFORM_BASE },
     openGraph: {
       title, description, url: PLATFORM_BASE, siteName: name, type: 'website', locale: 'en_US',
       images: [{ url: PLATFORM_SOCIAL_IMAGE, width: 1200, height: 630, alt: name }],

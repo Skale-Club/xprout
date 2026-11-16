@@ -20,7 +20,7 @@ const DEMO_EMAIL = process.env.DEMO_OWNER_EMAIL || 'demo-owner@xmartmenu.local'
 const PUBLIC_DEMO_SLUG = 'aurora'
 
 const publicDemo = (origin: string) => NextResponse.redirect(`${origin}/${PUBLIC_DEMO_SLUG}`, {
-  status: 307, headers: { 'Cache-Control': 'no-store' },
+  status: 308, headers: { 'Cache-Control': 'public, max-age=3600' },
 })
 
 export async function GET(request: Request) {

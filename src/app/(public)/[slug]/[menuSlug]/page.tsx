@@ -127,7 +127,7 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
   const { tenant, menu, location, categories, capabilities, table, optionGroupsByProductId, productIngredientsByProductId } = priced
 
   // P0-08 round 2: scan recording moved client-side via <ScanRecorder /> —
-  // this page is ISR-cached so a server insert here only fires per cache miss.
+  // this route reads searchParams, so it renders dynamically per request (only the data is cached, 60 s, by public-menu-cache); a server insert here would fire on every request.
 
   const primaryColor = (tenant.tenant_settings as any)?.primary_color ?? BRAND_PRIMARY
   const accentColor = (tenant.tenant_settings as any)?.accent_color ?? '#09090b'

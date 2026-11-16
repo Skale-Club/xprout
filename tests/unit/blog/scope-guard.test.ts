@@ -36,7 +36,7 @@ const ROOTS = [
 ]
 
 /** O sitemap é um ficheiro só, não uma pasta — mas lê `blog_posts`. */
-const EXTRA_FILES = ['src/app/sitemap.ts']
+const EXTRA_FILES = ['src/app/sitemaps/platform.xml/route.ts']
 
 /**
  * `from()` devolve um builder SEM métodos de filtro — `.is`/`.eq` só existem
@@ -163,7 +163,7 @@ describe('guarda de escopo do blog', () => {
     // servir o artigo de um cliente no site de outro.
     const offenders: string[] = []
     for (const { path, source } of FILES) {
-      if (!path.includes('(marketing)') && !path.includes('(public)') && !path.endsWith('sitemap.ts')) {
+      if (!path.includes('(marketing)') && !path.includes('(public)') && !path.includes('sitemaps/platform.xml')) {
         continue
       }
       for (const match of source.matchAll(/from\(\s*['"]blog_\w+['"]\s*\)/g)) {

@@ -20,6 +20,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   // Coolify/Docker target: emit a minimal traced server (.next/standalone) with
   // its own server.js instead of bundling the full node_modules. Required for
   // the multi-stage Dockerfile; harmless on Vercel (ignored there).

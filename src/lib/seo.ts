@@ -14,6 +14,20 @@ const SCHEMA_DAYS: Record<string, string> = {
   thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday',
 }
 
+const LEGACY_HOST = 'xmartmenu.skale.club'
+
+/** Rewrites an absolute URL on the legacy host to the platform host; everything else is returned unchanged. */
+export function toPublicAssetUrl<T extends string | null | undefined>(url: T): T {
+  if (!url) return url
+  try {
+    const u = new URL(url)
+    if (u.hostname !== LEGACY_HOST) return url
+    return `${PLATFORM_BASE}${u.pathname}${u.search}` as T
+  } catch {
+    return url
+  }
+}
+
 export type CanonicalTenant = { slug: string; custom_domain?: string | null; custom_domain_verified?: boolean; subdomain?: string | null }
 
 /**
@@ -156,8 +170,8 @@ export function buildLocalBusinessJsonLd(
   if (settings?.price_range?.trim()) ld.priceRange = settings.price_range.trim()
 
   if (settings?.logo_url) {
-    ld.image = settings.logo_url
-    ld.logo = settings.logo_url
+    ld.image = toPublicAssetUrl(settings.logo_url)
+    ld.logo = toPublicAssetUrl(settings.logo_url)
   }
 
   if (settings?.business_type) {
@@ -290,7 +304,7 @@ function buildMenuItem(p: Product, currency: string): object {
     },
   }
   if (p.description) item.description = p.description
-  if (p.image_url) item.image = p.image_url
+  if (p.image_url) item.image = toPublicAssetUrl(p.image_url)
   return item
 }
 
@@ -340,7 +354,7 @@ export function resolveSeoKeywords(settings: SeoSettings): string[] {
 /** Explicit social-share image override (https). null means "use the generated branded card". */
 export function resolveOgImageOverride(settings: SeoSettings): string | null {
   const url = clean(settings?.seo_og_image_url)
-  return url && /^https:\/\//.test(url) ? url : null
+  return url && /^https:\/\//.test(url) ? toPublicAssetUrl(url) : null
 }
 
 export function isTenantNoindex(settings: SeoSettings): boolean {
@@ -379,7 +393,7 @@ export function buildPlatformOrganizationJsonLd(opts: {
     url: opts.url,
   }
   if (clean(opts.description)) ld.description = opts.description
-  if (clean(opts.logoUrl)) ld.logo = opts.logoUrl
+  if (clean(opts.logoUrl)) ld.logo = toPublicAssetUrl(opts.logoUrl)
   if (opts.sameAs && opts.sameAs.length) ld.sameAs = opts.sameAs
   return ld
 }
@@ -390,14 +404,6 @@ export function buildWebSiteJsonLd(opts: { name: string; url: string }): object 
     '@type': 'WebSite',
     name: opts.name,
     url: opts.url,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${opts.url.replace(/\/$/, '')}/?q={search_term_string}`,
-      },
-      'query-input': 'required name=search_term_string',
-    },
   }
 }
 

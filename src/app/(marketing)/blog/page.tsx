@@ -15,11 +15,16 @@ import { listArchive, listPublishedPosts, listTags } from '@/lib/blog/public-que
 
 export const revalidate = 300
 
+const BLOG_TITLE = 'Blog | Xprout'
+const BLOG_DESCRIPTION =
+  'Cardápio, margem, delivery e operação — o que aprendemos ajudando restaurantes a vender mais.'
+
 export const metadata: Metadata = {
-  title: 'Blog | Xprout',
-  description:
-    'Cardápio, margem, delivery e operação — o que aprendemos ajudando restaurantes a vender mais.',
+  title: BLOG_TITLE,
+  description: BLOG_DESCRIPTION,
   alternates: { canonical: `${PLATFORM_BASE}/blog` },
+  openGraph: { title: BLOG_TITLE, description: BLOG_DESCRIPTION, url: `${PLATFORM_BASE}/blog`, type: 'website' },
+  twitter: { card: 'summary_large_image', title: BLOG_TITLE, description: BLOG_DESCRIPTION },
 }
 
 export default async function BlogIndexPage() {

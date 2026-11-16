@@ -43,11 +43,11 @@ export async function readSeoTenant(query: AdminMenuQuery, slug: string): Promis
 
 export async function readTenantSitemapEntries(query: AdminMenuQuery, tenantId: string) {
   const [menus, locations] = await Promise.all([
-    query('SELECT slug, is_default, updated_at FROM public.menus WHERE tenant_id=$1 AND is_active=true ORDER BY position, id LIMIT 1000', [tenantId]),
+    query('SELECT slug, is_default FROM public.menus WHERE tenant_id=$1 AND is_active=true ORDER BY position, id LIMIT 1000', [tenantId]),
     query('SELECT slug, updated_at FROM public.locations WHERE tenant_id=$1 AND is_active=true ORDER BY created_at ASC, id LIMIT 1000', [tenantId]),
   ])
   return {
-    menus: menus.rows.map(row => ({ slug: String(row.slug), is_default: row.is_default === true, updated_at: iso(row.updated_at) })),
+    menus: menus.rows.map(row => ({ slug: String(row.slug), is_default: row.is_default === true })),
     locations: locations.rows.map(row => ({ slug: String(row.slug), updated_at: iso(row.updated_at) })),
   }
 }

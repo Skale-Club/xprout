@@ -129,7 +129,7 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
   return <section className={`mk-hero relative isolate py-10 md:py-12 ${!hasMedia && color.toLowerCase() === '#f3efe5' ? 'mk-hero-paper' : ''} ${dark ? 'mk-dark' : ''}`} style={style} aria-labelledby="hero-title">
     {bgType === 'video' && bgVideo && !videoError ? <DeferredHeroVideo src={bgVideo} poster={bgImage || undefined} onError={() => setVideoError(true)} /> : null}
     {bgImage && (bgType === 'image' || (bgType === 'video' && (!bgVideo || videoError))) ?
-      <DeliveryImage src={bgImage} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /> : null}
+      <DeliveryImage src={bgImage} alt="" aria-hidden="true" fill priority sizes="100vw" className="object-cover" /> : null}
     {hasMedia ? <div className="absolute inset-0 bg-[#14271d]/85" aria-hidden="true" /> : null}
     <div className="mk-container relative grid min-w-0 items-center gap-8 md:grid-cols-[1.1fr_1fr] md:gap-10 lg:gap-12">
       <div className="mk-hero-copy min-w-0">

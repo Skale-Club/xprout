@@ -192,7 +192,7 @@ describe('public SEO reads', () => {
     expect(result.posts.map(p => p.slug)).toEqual(['a', 'b'])
   })
   it('every SEO entry point checks owned mode before reading Supabase', () => {
-    for (const file of ['src/app/sitemap.ts', 'src/app/(public)/[slug]/sitemap.xml/route.ts', 'src/app/(public)/[slug]/robots.txt/route.ts', 'src/app/(public)/[slug]/opengraph-image.tsx']) {
+    for (const file of ['src/app/sitemap.xml/route.ts', 'src/app/sitemaps/platform.xml/route.ts', 'src/app/(public)/[slug]/sitemap.xml/route.ts', 'src/app/(public)/[slug]/robots.txt/route.ts', 'src/app/(public)/[slug]/opengraph-image.tsx']) {
       const source = read(file), owned = source.indexOf('ownedModeActive()'), legacy = source.indexOf('createServiceClient()', source.indexOf('export'))
       expect(owned, file).toBeGreaterThan(-1)
       expect(owned, file).toBeLessThan(legacy)
@@ -213,7 +213,7 @@ describe('legacy-only operations are closed in owned mode', () => {
     expect(demoPassword({ DEMO_OWNER_PASSWORD: 'pinned-by-operator' })).toBe('pinned-by-operator')
     vi.stubEnv('OWNED_PUBLIC_MENU_ENABLED', 'true')
     const res = await GET(new Request('http://localhost/demo'))
-    expect(res.status).toBe(307)
+    expect(res.status).toBe(308)
     expect(res.headers.get('location')).toMatch(/\/aurora$/)
   }, 30_000)
   it('migrate-webp is blocked before any credential check', async () => {
@@ -288,5 +288,49 @@ describe('terminated connections are never fatal', () => {
     expect(() => client.emit('error', new Error('terminating connection due to administrator command'))).not.toThrow()
     expect(() => pool.emit('error', new Error('idle client lost'), client)).not.toThrow()
     await pool.end()
+  })
+})
+
+describe('tenant sitemap on the owned database', () => {
+  it('never selects updated_at from menus and lists the menu URLs', async () => {
+    vi.stubEnv('OWNED_PUBLIC_MENU_ENABLED', 'true')
+    const sql: string[] = []
+    const rowsFor = (text: string): Record<string, unknown>[] => {
+      if (text.includes('FROM public.tenants')) return [{ id: 't1', slug: 'aurora', custom_domain: null, custom_domain_verified: false, subdomain: null, updated_at: new Date('2026-11-01T00:00:00Z') }]
+      if (text.includes('FROM public.menus')) return [{ slug: 'main', is_default: true }, { slug: 'drinks', is_default: false }]
+      if (text.includes('FROM public.locations')) return [{ slug: 'downtown', updated_at: new Date('2026-10-01T00:00:00Z') }]
+      return []
+    }
+    vi.doMock('@/lib/data/admin-menus-runtime', () => ({
+      ownedAdminTransaction: async (_write: boolean, op: (q: (text: string) => Promise<{ rows: Record<string, unknown>[] }>) => Promise<unknown>) =>
+        op(async text => { sql.push(text); return { rows: rowsFor(text) } }),
+    }))
+    vi.doMock('@/lib/data/tenant-pages-runtime', () => ({ ownedPublishedPageEntries: async () => [] }))
+    const { GET } = await import('@/app/(public)/[slug]/sitemap.xml/route')
+    const res = await GET(new Request('http://localhost/aurora/sitemap.xml'), { params: Promise.resolve({ slug: 'aurora' }) })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('cache-control')).toContain('s-maxage=3600')
+    const menuSql = sql.find(text => text.includes('FROM public.menus')) ?? ''
+    expect(menuSql).not.toContain('updated_at')
+    const xml = await res.text()
+    expect(xml).toContain('/aurora/drinks</loc>')
+    expect(xml).toContain('/aurora/downtown</loc><lastmod>2026-10-01</lastmod>')
+    vi.doUnmock('@/lib/data/admin-menus-runtime')
+    vi.doUnmock('@/lib/data/tenant-pages-runtime')
+  })
+
+  it('a failure is logged and answered with 503, Retry-After and noindex', async () => {
+    vi.stubEnv('OWNED_PUBLIC_MENU_ENABLED', 'true')
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.doMock('@/lib/data/admin-menus-runtime', () => ({ ownedAdminTransaction: async () => { throw new Error('boom') } }))
+    vi.resetModules()
+    const { GET } = await import('@/app/(public)/[slug]/sitemap.xml/route')
+    const res = await GET(new Request('http://localhost/aurora/sitemap.xml'), { params: Promise.resolve({ slug: 'aurora' }) })
+    expect(res.status).toBe(503)
+    expect(res.headers.get('retry-after')).toBe('300')
+    expect(res.headers.get('x-robots-tag')).toBe('noindex')
+    expect(log.mock.calls[0][0]).toContain('[sitemap] tenant aurora:')
+    vi.doUnmock('@/lib/data/admin-menus-runtime')
+    log.mockRestore()
   })
 })

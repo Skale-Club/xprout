@@ -47,19 +47,14 @@ describe('platform sitemap degrades by block and never throws',()=>{
  })
  afterEach(()=>vi.unstubAllEnvs())
  const urls=async()=>(await nativePlatformSitemap()).map(entry=>entry.url)
- it('returns tenants and blog entries when healthy',async()=>{
+ it('returns blog entries (no tenant roots) when healthy',async()=>{
   const list=await urls()
-  expect(list).toContain('https://synthetic.example');expect(list).toContain('https://synthetic.example/cafe');expect(list).toContain('https://synthetic.example/blog/first')
+  expect(list).toContain('https://synthetic.example');expect(list).not.toContain('https://synthetic.example/cafe');expect(list).toContain('https://synthetic.example/blog/first')
  })
- it('a failing blog read keeps the landing page and the tenant block',async()=>{
+ it('a failing blog read keeps the static marketing entries',async()=>{
   mocks.posts.mockRejectedValue(new Error('db down'))
   const list=await urls()
-  expect(list).toContain('https://synthetic.example/cafe');expect(list).not.toContain('https://synthetic.example/blog')
- })
- it('a failing tenant read keeps the blog block',async()=>{
-  mocks.tx.mockImplementationOnce(async()=>{throw new Error('db down')})
-  const list=await urls()
-  expect(list).not.toContain('https://synthetic.example/cafe');expect(list).toContain('https://synthetic.example/blog/first')
+  expect(list).toContain('https://synthetic.example/pricing');expect(list).not.toContain('https://synthetic.example/blog')
  })
  // The static marketing pages (landing, /pricing) never depend on the database.
  it('total database failure and a bad configuration still return the static marketing entries (never a 500)',async()=>{
