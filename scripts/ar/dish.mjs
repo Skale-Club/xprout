@@ -61,7 +61,12 @@ function prepare() {
       const food = spec.food_cm ?? (spec.plate_cm && spec.food_ratio ? spec.plate_cm * spec.food_ratio : null)
       if (!food) throw new Error(`${dish}: set food_cm, plate_cm + food_ratio, or height_cm`)
       args.push('--width-cm', String(food))
-      if (spec.plate_cm) args.push('--plate-cm', String(spec.plate_cm))
+      if (spec.plate_cm) {
+        args.push('--plate-cm', String(spec.plate_cm))
+        // Manifest-wide plate glaze (dark by default), overridable per dish.
+        const glaze = spec.plate_glaze ?? manifest.plate_glaze
+        if (glaze) args.push('--plate-glaze', glaze)
+      }
     }
   }
   args.push('--save-blend', blend, '--out-glb', file('out', 'glb'), '--out-usdz', file('out', 'usdz'), '--preview', file('out', 'png'))
