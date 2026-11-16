@@ -1207,23 +1207,65 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
             className="mt-3 px-5 pb-2 sm:px-8"
             items={clone => featured.map(p => {
               const image = getProductImages(p)[0]
+              const feature = dishFeature(p)
+              const key = buildCartKey(p.id, {})
+              const customizable = hasCustomization(p.id)
+              const qty = customizable ? 0 : cart.find(i => i.cartKey === key)?.quantity ?? 0
               return (
-                <button
+                // Same pieces as the grid card: the photo carries the tag pill and the
+                // 3D cube, and the + sits beside the price, off the photo.
+                <div
                   key={p.id}
-                  type="button"
-                  tabIndex={clone ? -1 : undefined}
                   {...(clone ? {} : { 'data-analytics-product-id': p.id, 'data-analytics-source': 'featured' })}
-                  onClick={() => openProduct(p, 'featured')}
-                  className="w-[156px] shrink-0 text-left sm:w-[220px]"
+                  className="relative w-[156px] shrink-0 sm:w-[220px]"
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-zinc-100">
+                  <button
+                    type="button"
+                    tabIndex={clone ? -1 : undefined}
+                    aria-label={p.name}
+                    onClick={() => openProduct(p, 'featured')}
+                    className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
+                  />
+                  <div className="pointer-events-none relative aspect-[4/3] overflow-hidden rounded-2xl bg-zinc-100">
                     {image
                       ? <DishPhoto src={image} alt="" fit="cover" sizes="(max-width: 640px) 156px, 220px" />
                       : <DishPlaceholder />}
+                    {feature && (
+                      <div className="absolute inset-x-2 top-2 flex">
+                        <DishFeaturePill tag={feature} lang={selectedLanguage} tone={image ? 'glass' : 'solid'} className="max-w-full" />
+                      </div>
+                    )}
+                    {productArModelByProductId[p.id] && (
+                      <ArBadge lang={selectedLanguage} className="absolute bottom-2 left-2 flex size-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm" />
+                    )}
                   </div>
-                  <p className={`mt-2 line-clamp-2 text-[14px] text-zinc-900 sm:text-[15px] ${ui.dishTitleCompact}`}>{p.name}</p>
-                  <p className="mt-0.5 text-[14px] font-bold tabular-nums" style={{ color: accentText }}>{priceOf(p).text}</p>
-                </button>
+                  <p className={`pointer-events-none mt-2 line-clamp-2 text-[14px] text-zinc-900 sm:text-[15px] ${ui.dishTitleCompact}`}>{p.name}</p>
+                  <div className="pointer-events-none mt-0.5 flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-[14px] font-bold tabular-nums" style={{ color: accentText }}>{priceOf(p).text}</p>
+                    {directOrdersEnabled && (
+                      <button
+                        type="button"
+                        tabIndex={clone ? -1 : undefined}
+                        // A dish with choices to make opens its sheet instead of
+                        // going into the order without them.
+                        onClick={() => customizable ? openProduct(p, 'featured') : addToCart(p, {}, p.price, undefined, undefined, undefined, 'featured')}
+                        aria-label={fill(copy.addNamed, { name: p.name })}
+                        className="pointer-events-auto relative z-10 flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-zinc-200 active:bg-zinc-200"
+                      >
+                        <Plus className="size-[18px] shrink-0" strokeWidth={2.5} aria-hidden="true" />
+                        {qty > 0 && (
+                          <span
+                            className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums"
+                            style={{ backgroundColor: primaryColor, color: onPrimary }}
+                            aria-hidden="true"
+                          >
+                            {qty}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
               )
             })}
           />
