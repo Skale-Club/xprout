@@ -7,6 +7,7 @@
  */
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
+import { EMAIL_MAX, normalizeEmail } from './order-contact'
 
 const uuid = z.string().uuid()
 const text = (max: number) => z.string().max(max)
@@ -60,6 +61,11 @@ export const createOrderSchema = z.object({
   promo_code: text(64).nullish(),
   // ISO time for a scheduled order; the server re-checks hours, notice and the 7-day window.
   scheduled_for: text(40).nullish(),
+  // Optional receipt email and the two marketing opt-ins (stored only for a channel the guest gave).
+  customer_email: text(EMAIL_MAX).refine((s) => !s.trim() || normalizeEmail(s) !== null, 'Enter a valid email address').nullish(),
+  customer_language: text(10).nullish(),
+  marketing_sms_opt_in: z.boolean().nullish(),
+  marketing_email_opt_in: z.boolean().nullish(),
   menu_id: uuid.nullish(),
   table_name: optionalText(80),
   table_id: z.string().max(64).nullish(),

@@ -39,7 +39,7 @@ function findMatchingZone(zipcode: string | undefined, zones: DeliveryZone[] | u
  * above the keys; Enter moves to the next field and, in the last one, places
  * the order.
  */
-export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
+export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', restaurantName = '', contact = { email: '', smsOptIn: false, emailOptIn: false }, onContactChange, onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
   cart: CartItem[]
   confirmedCart: CartItem[]
   currency: string
@@ -82,6 +82,10 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   phoneContext?: PhoneContext | null
   /** BCP 47 locale for country names in the phone field. */
   locale?: string
+  restaurantName?: string
+  /** Optional receipt email and the two marketing opt-ins (never pre-ticked). */
+  contact?: { email: string; smsOptIn: boolean; emailOptIn: boolean }
+  onContactChange?: (patch: Partial<{ email: string; smsOptIn: boolean; emailOptIn: boolean }>) => void
   onOrderTypeChange?: (t: string) => void
   onDeliveryFieldChange?: (field: 'street' | 'complement' | 'zipcode' | 'city' | 'notes', value: string) => void
   onClose: () => void
@@ -95,6 +99,9 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   const [promoInput, setPromoInput] = useState('')
   const [promoState, setPromoState] = useState<'idle' | 'checking' | 'invalid'>('idle')
   const copy = getMenuCopy(lang)
+  // A marketing channel can be ticked only once the guest gave it.
+  const hasPhone = customerPhone.replace(/\D/g, '').length >= 7
+  const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email.trim())
   const money = (value: number) => formatMoney(value, currency, lang)
   const primary = primaryColor ?? '#18181b'
   const onPrimary = computePrimaryForeground(primary)
@@ -461,6 +468,14 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                           className={FIELD_CLASS}
                         />
                       </div>
+                      <Field label={copy.emailReceipt} value={contact.email} onChange={v => onContactChange?.({ email: v })} inputMode="email" autoComplete="email" />
+                      {(hasPhone || hasEmail) && (
+                        <div className="space-y-2">
+                          {hasPhone && <OptIn label={fill(copy.optInSms, { name: restaurantName })} checked={contact.smsOptIn} onChange={v => onContactChange?.({ smsOptIn: v })} />}
+                          {hasEmail && <OptIn label={fill(copy.optInEmail, { name: restaurantName })} checked={contact.emailOptIn} onChange={v => onContactChange?.({ emailOptIn: v })} />}
+                          <p className="text-[13px] text-zinc-500">{copy.optInConsent}</p>
+                        </div>
+                      )}
                     </div>
                   </Card>
                 )}
@@ -533,6 +548,15 @@ function FieldLabel({ htmlFor, label, required = false }: { htmlFor: string; lab
   )
 }
 
+function OptIn({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return (
+    <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px] text-zinc-800">
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="size-5 shrink-0 rounded border-zinc-300" />
+      <span>{label}</span>
+    </label>
+  )
+}
+
 function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: { value: string; label: string }[] }) {
   const id = useId()
   return (
@@ -550,7 +574,7 @@ function Field({ label, value, onChange, inputMode, autoComplete, required = fal
   label: string
   value: string
   onChange: (value: string) => void
-  inputMode?: 'text' | 'numeric' | 'decimal' | 'tel'
+  inputMode?: 'text' | 'numeric' | 'decimal' | 'tel' | 'email'
   autoComplete?: string
   required?: boolean
 }) {
@@ -560,7 +584,7 @@ function Field({ label, value, onChange, inputMode, autoComplete, required = fal
       <FieldLabel htmlFor={id} label={label} required={required} />
       <input
         id={id}
-        type="text"
+        type={inputMode === 'email' ? 'email' : 'text'}
         value={value}
         onChange={e => onChange(e.target.value)}
         inputMode={inputMode}

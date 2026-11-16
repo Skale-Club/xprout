@@ -209,6 +209,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const [showHoursModal, setShowHoursModal] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
+  const [contact, setContact] = useState({ email: '', smsOptIn: false, emailOptIn: false })
   const [submittingOrder, setSubmittingOrder] = useState(false)
   const [orderSuccess, setOrderSuccess] = useState(false)
   const [orderError, setOrderError] = useState<string | null>(null)
@@ -481,6 +482,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     setSubmittingOrder(true)
     setOrderError(null)
 
+    const receiptEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email.trim()) ? contact.email.trim() : null
+
     // Same cart again (double tap, retry after a lost response) → same key,
     // so the server returns the order it already created.
     const orderPayload = {
@@ -490,6 +493,11 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       ...orderFields,
       ...(taxPromoReady && promo ? { promo_code: promo.code } : {}),
       ...(scheduling && scheduledFor != null ? { scheduled_for: new Date(scheduledFor).toISOString() } : {}),
+      // An address that is not plausible is left out rather than blocking the order.
+      ...(receiptEmail ? { customer_email: receiptEmail } : {}),
+      customer_language: selectedLanguage,
+      marketing_sms_opt_in: contact.smsOptIn,
+      marketing_email_opt_in: contact.emailOptIn && !!receiptEmail,
       location_id: location?.id ?? null,
       table_id: orderingTable ? orderingTable.id : undefined,
       menu_id: menu?.id ?? null,
@@ -1519,6 +1527,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           }}
           onCustomerNameChange={setCustomerName}
           onCustomerPhoneChange={setCustomerPhone}
+          restaurantName={tenant.name}
+          contact={contact}
+          onContactChange={patch => setContact(prev => ({ ...prev, ...patch }))}
           onSubmit={submitOrder}
           orderTypeConfig={orderTypeConfig}
           tableName={orderingTable?.name ?? null}

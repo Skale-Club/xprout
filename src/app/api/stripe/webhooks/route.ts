@@ -27,6 +27,7 @@ import { captureSecurityEvent } from '@/lib/observability'
 import { enqueueXphereSync } from '@/lib/xphere/queue'
 import { publishPendingNativeTenantEffects } from '@/lib/tenant-effects/publish-pending'
 import { applyPaymentSignal, type IntentFacts } from '@/lib/orders/payment-sync'
+import { notifyOrderEmail } from '@/lib/orders/order-email-data'
 import type { PaymentSignal } from '@/lib/orders/status-machine'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
@@ -79,6 +80,11 @@ async function handlePOST(request: NextRequest) {
 
     if(paymentsDataOwned()&&['payment_intent.succeeded','payment_intent.payment_failed','payment_intent.canceled'].includes(event.type)) {
       const result=await withOwnedPayments(true,repo=>repo.event({id:event.id,type:event.type,data:{object:event.data.object as IntentFacts}}))
+      // The payment was just confirmed: "order received" (idempotent, so a replay sends nothing).
+      if(event.type==='payment_intent.succeeded'&&!('skipped' in result)){
+        const intent=event.data.object as IntentFacts
+        await notifyOrderEmail(intent.metadata?.tenant_id,intent.metadata?.order_id,'received')
+      }
       return NextResponse.json(result)
     }
     const saasEvent = { id: event.id, type: event.type, account: event.account, livemode: event.livemode, data: { object: event.data.object } }
