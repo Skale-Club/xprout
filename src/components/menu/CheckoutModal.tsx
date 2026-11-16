@@ -15,6 +15,7 @@ import type { PhoneContext } from './showcase'
 import { ctaStyle, ui } from './menu-ui'
 import { asapBlockedReason, generateSlots, groupSlotsByDay, localDayKey, type Hours } from '@/lib/orders/scheduled-orders'
 import { formatSlotDay, formatSlotTime } from './schedule-format'
+import { deliveryRuleViolation } from '@/lib/orders/delivery-rules'
 import { discountCents as promoDiscountCents, taxCents as salesTaxCents, type PromoKind } from '@/lib/orders/tax-promo'
 
 /** What checkout needs to offer Schedule for later: the hours, the zone and the cart's notice. */
@@ -39,7 +40,7 @@ function findMatchingZone(zipcode: string | undefined, zones: DeliveryZone[] | u
  * above the keys; Enter moves to the next field and, in the last one, places
  * the order.
  */
-export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', restaurantName = '', contact = { email: '', smsOptIn: false, emailOptIn: false }, onContactChange, onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
+export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, deliveryZonesOnly = false, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', restaurantName = '', contact = { email: '', smsOptIn: false, emailOptIn: false }, onContactChange, onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
   cart: CartItem[]
   confirmedCart: CartItem[]
   currency: string
@@ -61,6 +62,8 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   deliveryCity?: string
   deliveryNotes?: string
   deliveryZones?: DeliveryZone[]
+  /** Own delivery only inside the zones (needs the delivery-rules schema step). */
+  deliveryZonesOnly?: boolean
   tipsEnabled?: boolean
   tipPercentages?: [number, number, number]
   tipCents?: number
@@ -117,6 +120,16 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   const subtotalCents = Math.round(total * 100)
   const discountCents = promo ? promoDiscountCents(subtotalCents, promo) : 0
   const taxAmountCents = salesTaxCents(subtotalCents - discountCents, taxBps)
+  // Own-delivery rules; the server enforces them again. The minimum is on the items subtotal before any discount.
+  const zipTyped = !!deliveryZipcode?.replace(/\D/g, '')
+  const activeZoneCount = (deliveryZones ?? []).filter(z => z.is_active).length
+  const ruleViolation = orderType === 'delivery' && zipTyped
+    ? deliveryRuleViolation({
+      rules: { ready: true, zonesOnly: deliveryZonesOnly, minByZone: matchedZone ? { [matchedZone.id]: matchedZone.min_order_cents ?? 0 } : {} },
+      zonesCount: activeZoneCount, matchedZoneId: matchedZone?.id ?? null, subtotalCents,
+    })
+    : null
+  const zipRequired = orderType === 'delivery' && deliveryZonesOnly && activeZoneCount > 0
   const grandTotal = (subtotalCents - discountCents + taxAmountCents + deliveryFeeCents + (tipCents ?? 0)) / 100
 
   async function applyPromo() {
@@ -366,7 +379,7 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                       <Field label={copy.street} value={deliveryStreet ?? ''} onChange={v => onDeliveryFieldChange?.('street', v)} autoComplete="address-line1" required />
                       <Field label={copy.complement} value={deliveryComplement ?? ''} onChange={v => onDeliveryFieldChange?.('complement', v)} autoComplete="address-line2" />
                       <div className="grid grid-cols-[2fr_3fr] gap-3">
-                        <Field label={copy.zipcode} value={deliveryZipcode ?? ''} onChange={v => onDeliveryFieldChange?.('zipcode', v)} autoComplete="postal-code" inputMode="numeric" />
+                        <Field label={copy.zipcode} value={deliveryZipcode ?? ''} onChange={v => onDeliveryFieldChange?.('zipcode', v)} autoComplete="postal-code" inputMode="numeric" required={zipRequired} />
                         <Field label={copy.city} value={deliveryCity ?? ''} onChange={v => onDeliveryFieldChange?.('city', v)} autoComplete="address-level2" />
                       </div>
                       <Field label={copy.deliveryNotes} value={deliveryNotes ?? ''} onChange={v => onDeliveryFieldChange?.('notes', v)} autoComplete="off" />
@@ -376,9 +389,14 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                             <MapPin className="size-3.5" />
                             {matchedZone.name} · {money(matchedZone.fee_cents / 100)}
                           </p>
+                        ) : ruleViolation?.code === 'zone_not_served' ? (
+                          <p role="alert" className="text-[14px] font-medium text-red-800">{copy.noDeliveryHere}</p>
                         ) : (
                           <p className="text-[14px] font-medium text-amber-800">{copy.noDeliveryZone}</p>
                         )
+                      )}
+                      {ruleViolation?.code === 'minimum_not_met' && (
+                        <p role="alert" className="text-[14px] font-medium text-red-800">{fill(copy.deliveryMinimum, { amount: money(ruleViolation.minOrderCents / 100) })}</p>
                       )}
                     </div>
                   </Card>
@@ -509,7 +527,7 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                   )}
                   <button
                     type="submit"
-                    disabled={submittingOrder || mustSchedule}
+                    disabled={submittingOrder || mustSchedule || ruleViolation != null || (zipRequired && !zipTyped)}
                     style={ctaStyle(primary, onPrimary)}
                     className={`${ui.cta} h-12 w-full  disabled:opacity-60`}
                   >

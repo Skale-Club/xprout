@@ -144,6 +144,7 @@ export interface TenantSettings {
   order_online_url?: string | null  // "Order online" button for menus without guest checkout (https, max 500)
   reservation_url?: string | null   // "Reserve a table" button (https, max 500)
   scheduled_orders_enabled?: boolean // Guests may schedule an order for later; absent until docs/owned-schema/20261116140000 ran
+  delivery_zones_only?: boolean     // Own delivery only inside the zones; absent until docs/owned-schema/20261116160000 ran
   tax_rate_bps?: number             // Sales tax in basis points (625 = 6.25%); absent until docs/owned-schema/20261116130000 ran
   updated_at: string
   // AI-04: New fields added in migration 022
@@ -407,6 +408,7 @@ export interface DeliveryZone {
   name: string
   fee_cents: number
   zipcode_prefixes: string[]
+  min_order_cents?: number // Minimum items subtotal for this zone (0 = none); absent until docs/owned-schema/20261116160000 ran
   is_active: boolean
   created_at: string
   updated_at: string

@@ -4,6 +4,7 @@ import { planCeiling, resolveTenantCapabilities, type ServiceSettings } from '..
 import { SERVICE_SETTINGS_KEYS, validateServiceSettingsPatch } from '../service-settings'
 import { ACTION_LINK_COLUMNS, normalizeActionUrl } from '../menu-action-links'
 import { TAX_PROMO_READY_SQL, TAX_RATE_BPS_MAX } from '../orders/tax-promo'
+import { DELIVERY_RULES_READY_SQL } from '../orders/delivery-rules'
 import { SCHEDULING_READY_SQL } from '../orders/scheduled-orders'
 
 export type AdminStoreContext = { tenantId: string; role: UserRole }
@@ -34,8 +35,12 @@ export async function taxPromoSchemaReady(query: AdminMenuQuery): Promise<boolea
 export async function schedulingSchemaReady(query: AdminMenuQuery): Promise<boolean> {
   return (await query(SCHEDULING_READY_SQL)).rows[0]?.ready === true
 }
-const storeColumns = (linksReady: boolean, taxReady: boolean, schedulingReady = false) =>
-  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}${schedulingReady ? ', scheduled_orders_enabled' : ''}`
+/** Whether the delivery-rules schema step ran (docs/owned-schema/20261116160000_delivery_rules_option_images.sql). */
+export async function deliveryRulesSchemaReady(query: AdminMenuQuery): Promise<boolean> {
+  return (await query(DELIVERY_RULES_READY_SQL)).rows[0]?.ready === true
+}
+const storeColumns = (linksReady: boolean, taxReady: boolean, schedulingReady = false, deliveryRulesReady = false) =>
+  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}${schedulingReady ? ', scheduled_orders_enabled' : ''}${deliveryRulesReady ? ', delivery_zones_only' : ''}`
 
 function assertContext(context: AdminStoreContext, write = false) {
   if (!UUID.test(context.tenantId) || !['superadmin', 'store-admin', 'store-staff'].includes(context.role)) throw new AdminMenuError(403, 'Forbidden')
@@ -62,8 +67,9 @@ export async function readAdminStorePage(query: AdminMenuQuery, context: AdminSt
   const linksReady = await actionLinkColumnsReady(query)
   const taxReady = await taxPromoSchemaReady(query)
   const schedulingReady = await schedulingSchemaReady(query)
+  const deliveryRulesReady = await deliveryRulesSchemaReady(query)
   const [settingsResult, tenantResult, stripeResult, features] = await Promise.all([
-    query(`SELECT ${storeColumns(linksReady, taxReady, schedulingReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
+    query(`SELECT ${storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
     query('SELECT custom_domain,custom_domain_verified FROM public.tenants WHERE id=$1 LIMIT 1', [context.tenantId]),
     query(`SELECT id,tenant_id,stripe_account_id,scope,connected_at,is_active,disconnected_at,created_at,updated_at
       FROM public.stripe_connections WHERE tenant_id=$1 AND is_active=true ORDER BY connected_at DESC LIMIT 2`, [context.tenantId]),
@@ -86,10 +92,10 @@ const REGIONAL_COLUMNS = [
   'price_range', 'tip_percentage_1', 'tip_percentage_2', 'tip_percentage_3', 'business_hours',
 ] as const
 
-function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, scheduling: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }) {
+function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, scheduling: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, deliveryRules: { ready: boolean; delivery: boolean } = { ready: true, delivery: true }) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AdminMenuError(400, 'Invalid settings')
   const body = input as Record<string, unknown>
-  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps', 'scheduled_orders_enabled'])
+  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps', 'scheduled_orders_enabled', 'delivery_zones_only'])
   if (Object.keys(body).length === 0 || Object.keys(body).some(key => !allowed.has(key))) throw new AdminMenuError(400, 'Invalid settings')
   const patch: Record<string, unknown> = {}
   // Menu links and the "Powered by" switch: https URLs or empty, and a boolean.
@@ -133,6 +139,18 @@ function validateRegionalPatch(input: unknown, payments: boolean, current: Recor
       patch.scheduled_orders_enabled = enabled
     }
   }
+  // Own delivery only inside the zones: a restaurant switch, part of delivery.
+  if ('delivery_zones_only' in body) {
+    const only = body.delivery_zones_only
+    if (typeof only !== 'boolean') throw new AdminMenuError(400, 'Invalid delivery_zones_only')
+    if (!deliveryRules.ready) {
+      // The schema step may not have run yet: an untouched false is ignored, switching it on is refused.
+      if (only) throw new AdminMenuError(503, 'Delivery area rules are not available yet')
+    } else {
+      if (only !== (current?.delivery_zones_only === true) && !deliveryRules.delivery) throw new AdminMenuError(403, 'Delivery is not enabled for this restaurant')
+      patch.delivery_zones_only = only
+    }
+  }
   for (const key of REGIONAL_COLUMNS) {
     if (!(key in body)) continue
     const value = body[key]
@@ -174,12 +192,14 @@ export async function mutateAdminStoreSettings(query: AdminMenuQuery, context: A
   const linksReady = await actionLinkColumnsReady(query)
   const taxReady = await taxPromoSchemaReady(query)
   const schedulingReady = await schedulingSchemaReady(query)
-  const columns = storeColumns(linksReady, taxReady, schedulingReady)
+  const deliveryRulesReady = await deliveryRulesSchemaReady(query)
+  const columns = storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady)
   const currentResult = await query(`SELECT ${columns} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1 FOR UPDATE`, [context.tenantId])
   const current = currentResult.rows[0] ?? null
   const patch = validateRegionalPatch(input, planCeiling(features).payments, current, linksReady,
     { ready: taxReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering },
-    { ready: schedulingReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering })
+    { ready: schedulingReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering },
+    { ready: deliveryRulesReady, delivery: resolveTenantCapabilities(features, current as ServiceSettings | null).delivery })
   const fields = Object.keys(patch)
   if (!fields.length) return { settings: current as unknown as TenantSettings, capabilities: resolveTenantCapabilities(features, current as ServiceSettings | null) }
   const result = await query(`INSERT INTO public.tenant_settings AS s (tenant_id,${fields.join(',')},updated_at)
