@@ -2,10 +2,16 @@ import type { Product } from '@/types/database'
 import { activeAdminMenu, AdminMenuError, readAdminMenus, type AdminMenuContext, type AdminMenuQuery } from './admin-menus'
 import { PUBLIC_MENU_COLUMNS } from './public-menu'
 import { validateDishTags } from '@/lib/menu/dish-tags'
+import { MIN_NOTICE_MAX, SCHEDULING_READY_SQL } from '../orders/scheduled-orders'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const projection = `to_jsonb((SELECT projected FROM (SELECT ${PUBLIC_MENU_COLUMNS.product.split(' ').map(key => `p.${key}`).join(',')}) projected))
+const projectionFor = (noticeReady: boolean) => `to_jsonb((SELECT projected FROM (SELECT ${PUBLIC_MENU_COLUMNS.product.split(' ').map(key => `p.${key}`).join(',')}) projected))
+  ${noticeReady ? "|| jsonb_build_object('min_notice_minutes',p.min_notice_minutes)" : ''}
   || jsonb_build_object('category',CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object('id',c.id,'name',c.name) END) AS row`
+/** Whether products.min_notice_minutes exists yet (docs/owned-schema/20261116140000_scheduled_orders.sql). */
+async function noticeColumnReady(query: AdminMenuQuery) {
+  return (await query(SCHEDULING_READY_SQL)).rows[0]?.ready === true
+}
 const categoryJoin = 'LEFT JOIN public.categories c ON c.id=p.category_id AND c.tenant_id=p.tenant_id AND c.menu_id IS NOT DISTINCT FROM p.menu_id'
 export type ProductMutation = { kind: 'create'; body: unknown; selectedMenuId?: string }
   | { kind: 'patch'; id: string; body: unknown } | { kind: 'delete'; id: string }
@@ -31,9 +37,9 @@ function validImage(value: unknown) {
   try { const parsed = new URL(value); return ['https:', 'http:'].includes(parsed.protocol) && !parsed.username && !parsed.password }
   catch { return false }
 }
-export function productPatch(input: unknown, creating = false) {
+export function productPatch(input: unknown, creating = false, noticeReady = true) {
   const body = object(input), patch: Record<string, unknown> = {}
-  const allowed = ['name', 'description', 'price', 'original_price', 'category_id', 'image_url', 'image_urls', 'feed_image_url', 'is_available', 'is_featured', 'show_in_feed', 'tags']
+  const allowed = ['name', 'description', 'price', 'original_price', 'category_id', 'image_url', 'image_urls', 'feed_image_url', 'is_available', 'is_featured', 'show_in_feed', 'tags', 'min_notice_minutes']
   if (Object.keys(body).some(key => !allowed.includes(key))) throw new AdminMenuError(400, 'Invalid product fields')
   for (const key of allowed) if (Object.hasOwn(body, key)) patch[key] = body[key]
   if (creating || 'name' in patch) {
@@ -50,16 +56,26 @@ export function productPatch(input: unknown, creating = false) {
   for (const key of ['is_available', 'is_featured', 'show_in_feed']) if (key in patch && typeof patch[key] !== 'boolean') throw new AdminMenuError(400, 'Invalid product setting')
   for (const key of ['image_url', 'feed_image_url']) if (key in patch && patch[key] !== null && !validImage(patch[key])) throw new AdminMenuError(400, 'Invalid image URL')
   if ('image_urls' in patch && (!Array.isArray(patch.image_urls) || patch.image_urls.length > 20 || !patch.image_urls.every(validImage))) throw new AdminMenuError(400, 'Invalid images')
+  if ('min_notice_minutes' in patch) {
+    const notice = patch.min_notice_minutes
+    if (typeof notice !== 'number' || !Number.isInteger(notice) || notice < 0 || notice > MIN_NOTICE_MAX) throw new AdminMenuError(400, 'Minimum notice must be a whole number of minutes from 0 to 10080')
+    if (!noticeReady) {
+      // The schema step may not have run yet: an untouched 0 is ignored, a real notice is refused.
+      if (notice !== 0) throw new AdminMenuError(503, 'Minimum notice is not available yet')
+      delete patch.min_notice_minutes
+    }
+  }
   if ('tags' in patch) {
     try { patch.tags = validateDishTags(patch.tags) }
     catch { throw new AdminMenuError(400, 'Invalid product tags') }
   }
   return patch
 }
-export async function findAdminProduct(query: AdminMenuQuery, context: AdminMenuContext, id: string, lock = false) {
+export async function findAdminProduct(query: AdminMenuQuery, context: AdminMenuContext, id: string, lock = false, noticeReady?: boolean) {
   scope(context, lock)
   if (!uuid.test(id)) throw new AdminMenuError(404, 'Product not found')
-  const product = resultRows(await query(`SELECT ${projection} FROM public.products p ${categoryJoin}
+  const ready = noticeReady ?? await noticeColumnReady(query)
+  const product = resultRows(await query(`SELECT ${projectionFor(ready)} FROM public.products p ${categoryJoin}
     WHERE p.tenant_id=$1 AND p.id=$2${lock ? ' FOR UPDATE OF p' : ''}`, [context.tenantId, id]))[0]
   if (!product) throw new AdminMenuError(404, 'Product not found')
   return product
@@ -73,7 +89,8 @@ export async function readProductsPage(query: AdminMenuQuery, context: AdminMenu
   scope(context)
   const menu = activeAdminMenu(await readAdminMenus(query, context), selectedMenuId)
   const settings = (await query('SELECT currency,custom_tags FROM public.tenant_settings WHERE tenant_id=$1', [context.tenantId])).rows[0]
-  const products = menu ? resultRows(await query(`SELECT ${projection} FROM public.products p ${categoryJoin}
+  const ready = await noticeColumnReady(query)
+  const products = menu ? resultRows(await query(`SELECT ${projectionFor(ready)} FROM public.products p ${categoryJoin}
     WHERE p.tenant_id=$1 AND p.menu_id=$2 ORDER BY p.position,p.id LIMIT 2001`, [context.tenantId, menu.id])) : []
   const categories = menu ? (await query('SELECT id,name FROM public.categories WHERE tenant_id=$1 AND menu_id=$2 AND is_active=true ORDER BY position,id LIMIT 1001', [context.tenantId, menu.id])).rows : []
   if (categories.length > 1000) throw new AdminMenuError(409, 'Category catalog exceeds the supported limit')
@@ -113,7 +130,8 @@ export async function mutateAdminProduct(query: AdminMenuQuery, context: AdminMe
   await query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`xmartmenu-admin-menus:${context.tenantId}`])
   if (mutation.kind === 'create') {
     const { expectedMenuId: expected, ...fields } = object(mutation.body)
-    const patch = productPatch(fields, true)
+    const noticeReady = 'min_notice_minutes' in fields ? await noticeColumnReady(query) : false
+    const patch = productPatch(fields, true, noticeReady)
     const menu = activeAdminMenu(await readAdminMenus(query, context), mutation.selectedMenuId)
     if (!menu || typeof expected !== 'string' || expected !== menu.id) throw new AdminMenuError(409, 'The selected menu changed; reload before creating the product')
     const parent = await query('SELECT id FROM public.menus WHERE tenant_id=$1 AND id=$2 FOR SHARE', [context.tenantId, menu.id])
@@ -134,7 +152,8 @@ export async function mutateAdminProduct(query: AdminMenuQuery, context: AdminMe
     await query('DELETE FROM public.products WHERE tenant_id=$1 AND id=$2', [context.tenantId, mutation.id])
     return { ok: true }
   }
-  const patch = productPatch(mutation.body)
+  const noticeReady = mutation.body && typeof mutation.body === 'object' && 'min_notice_minutes' in mutation.body ? await noticeColumnReady(query) : false
+  const patch = productPatch(mutation.body, false, noticeReady)
   await validateCategory(query, context, patch.category_id, current.menu_id)
   const entries = Object.entries(patch)
   if (entries.length) await query(`UPDATE public.products SET ${entries.map(([key], index) => `${key}=$${index + 3}`).join(',')},updated_at=now()

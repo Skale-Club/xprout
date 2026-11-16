@@ -31,6 +31,7 @@ export function previewCapabilities(capabilities: TenantCapabilities): TenantCap
     dineIn: false,
     pickup: false,
     delivery: false,
+    scheduledOrders: false,
     upsell: false,
     itemNotes: false,
   }

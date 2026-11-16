@@ -1,6 +1,7 @@
 import { BRAND_NAME } from '@/lib/brand'
 import { ACTION_LINK_COLUMNS } from '../menu-action-links'
 import { TAX_PROMO_READY_SQL } from '../orders/tax-promo'
+import { SCHEDULING_READY_SQL } from '../orders/scheduled-orders'
 import type { CachedPublicMenu } from '../menu/public-menu-data'
 import { arModelsByProductId, buildOptionGroupsByProductId, groupByProductId, pickDefaultMenu, pickSectionMenu } from '../menu/public-menu-model'
 import { resolveTenantCapabilities, type ServiceSettings } from '../service-modes'
@@ -101,6 +102,9 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       const taxReady = one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${TAX_PROMO_READY_SQL}) r`, [], 1))?.ready === true
       if (taxReady) Object.assign(settings, one(await rows<Row>(query, "SELECT jsonb_build_object('tax_rate_bps', s.tax_rate_bps) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2", [tenantId], 1)))
     }
+    // Scheduled orders: the restaurant's switch (and each dish's notice, below) once the schema step ran.
+    const schedulingReady = settings ? one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${SCHEDULING_READY_SQL}) r`, [], 1))?.ready === true : false
+    if (settings && schedulingReady) Object.assign(settings, one(await rows<Row>(query, "SELECT jsonb_build_object('scheduled_orders_enabled', s.scheduled_orders_enabled) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2", [tenantId], 1)))
     const footer = one(await rows<Row>(query, 'SELECT jsonb_build_object(\'menu_footer_brand\', menu_footer_brand) AS row FROM public.platform_settings LIMIT 2', [], 1))
     const footerBrand = typeof footer?.menu_footer_brand === 'string' ? footer.menu_footer_brand : BRAND_NAME
     // A preview reads exactly one hidden staging menu, the token matched within
@@ -149,6 +153,12 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       `JOIN public.menus m ON m.id=c.menu_id AND m.tenant_id=c.tenant_id WHERE c.tenant_id=$1 AND c.menu_id=$2 AND c.is_active=true${live}`, 'c.position, c.id', 1000), [tenantId, menu.id], 1000) : []
     const products = menu?.id ? await rows<Row & { id: string }>(query, publicSelect('products', 'p', PUBLIC_MENU_COLUMNS.product,
       `JOIN public.menus m ON m.id=p.menu_id AND m.tenant_id=p.tenant_id WHERE p.tenant_id=$1 AND p.menu_id=$2 AND p.is_available=true${live}`, 'p.position, p.id', 2000), [tenantId, menu.id], 2000) : []
+    if (schedulingReady && products.length) {
+      const notice = await rows<Row & { id: string; min_notice_minutes: number }>(query,
+        "SELECT jsonb_build_object('id', p.id, 'min_notice_minutes', p.min_notice_minutes) AS row FROM public.products p WHERE p.tenant_id=$1 AND p.id=ANY($2::uuid[]) LIMIT 2001", [tenantId, products.map(product => product.id)], 2000)
+      const byId = new Map(notice.map(item => [item.id, item.min_notice_minutes]))
+      for (const product of products) product.min_notice_minutes = byId.get(product.id) ?? 0
+    }
     let groups: GroupWithOptions[] = [], ingredients: ProductIngredientWithIngredient[] = [], media: ProductMedia[] = [], arModels: PublicProductArModel[] = []
     if (products.length && menu?.id) {
       const ids = products.map(product => product.id)

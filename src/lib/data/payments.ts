@@ -4,6 +4,7 @@ import { planCeiling } from '../service-modes'
 import { isOrderStatus, paymentTransition, type PaymentSignal } from '../orders/status-machine'
 import { currencyMinorFactor, toStripeAmount } from '../orders/payment-money'
 import { TAX_PROMO_READY_SQL } from '../orders/tax-promo'
+import { SCHEDULING_READY_SQL, schedulingTimeZone } from '../orders/scheduled-orders'
 export type PaymentQuery=(text:string,values?:unknown[])=>Promise<{rows:Record<string,unknown>[]}>
 export class PaymentDataError extends Error { constructor(public status:number,message:string){super(message)} }
 export const paymentsDataOwned=(env:Record<string,string|undefined>=process.env)=>env.OWNED_PAYMENT_DATA_ENABLED==='true'
@@ -15,7 +16,7 @@ export type PaymentOrder={id:string;tenant_id:string;customer_id:string|null;sta
 export type PaymentConfiguration={currency:string|null;stripe_account_id:string|null;payments:boolean;stripe:boolean;fee:number}
 export type PaymentSnapshot={order:PaymentOrder;config:PaymentConfiguration}
 export type PaymentFacts={id:string;amount:number;currency:string;metadata?:{order_id?:string;tenant_id?:string}|null}
-export type CheckoutOrder=PaymentOrder&{discount_cents?:number;tax_cents?:number;promo_code?:string|null;order_items:Array<Record<string,unknown>>;tenants:{slug:string;name:string;tenant_settings:{currency:string|null;primary_color:string|null;accent_color:string|null}}}
+export type CheckoutOrder=PaymentOrder&{scheduled_for?:string|null;schedule_zone?:string|null;discount_cents?:number;tax_cents?:number;promo_code?:string|null;order_items:Array<Record<string,unknown>>;tenants:{slug:string;name:string;tenant_settings:{currency:string|null;primary_color:string|null;accent_color:string|null}}}
 export function assertPayable(order:PaymentOrder){if(!payable.has(order.status))throw new PaymentDataError(409,'Order is not awaiting payment')}
 export function paymentMoney(snapshot:PaymentSnapshot){
   const {order,config}=snapshot,currency=(order.currency??config.currency??'usd').toLowerCase()||'usd'
@@ -83,7 +84,13 @@ export class OwnedPaymentRepository {
       const row=(await this.query('SELECT discount_cents,tax_cents,promo_code FROM public.orders WHERE tenant_id=$1 AND id=$2 LIMIT 1',[order.tenant_id,id])).rows[0]
       if(row)breakdown={discount_cents:Number(row.discount_cents??0),tax_cents:Number(row.tax_cents??0),promo_code:typeof row.promo_code==='string'?row.promo_code:null}
     }
-    return{...order,...breakdown,order_items:items.rows,tenants:{slug:String(tenant.slug),name:String(tenant.name),tenant_settings:{currency:tenant.currency===null?null:String(tenant.currency),primary_color:typeof tenant.primary_color==='string'?tenant.primary_color:null,accent_color:typeof tenant.accent_color==='string'?tenant.accent_color:null}}}
+    // The time the guest scheduled the order for, once the scheduled-orders schema step ran.
+    let schedule:{scheduled_for?:string|null;schedule_zone?:string|null}={}
+    if((await this.query(SCHEDULING_READY_SQL)).rows[0]?.ready===true){
+      const row=(await this.query('SELECT o.scheduled_for,s.country,s.region,s.currency FROM public.orders o LEFT JOIN public.tenant_settings s ON s.tenant_id=o.tenant_id WHERE o.tenant_id=$1 AND o.id=$2 LIMIT 1',[order.tenant_id,id])).rows[0]
+      if(row&&row.scheduled_for)schedule={scheduled_for:new Date(row.scheduled_for as string|Date).toISOString(),schedule_zone:schedulingTimeZone({country:row.country as string|null,region:row.region as string|null,currency:row.currency as string|null})}
+    }
+    return{...order,...breakdown,...schedule,order_items:items.rows,tenants:{slug:String(tenant.slug),name:String(tenant.name),tenant_settings:{currency:tenant.currency===null?null:String(tenant.currency),primary_color:typeof tenant.primary_color==='string'?tenant.primary_color:null,accent_color:typeof tenant.accent_color==='string'?tenant.accent_color:null}}}
   }
   async claim(snapshot:PaymentSnapshot,intentId:string){
     if(!/^pi_[A-Za-z0-9]+$/.test(intentId))throw new PaymentDataError(503,'Payment provider response is unavailable')

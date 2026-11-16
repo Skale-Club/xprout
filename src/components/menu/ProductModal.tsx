@@ -14,6 +14,7 @@ import { getProductImages, type CartEditorState } from './menu-utils'
 import { fill, formatMoney, getMenuCopy } from './menu-i18n'
 import { dishFeature } from '@/lib/menu/dish-tags'
 import DishFeaturePill from './DishFeaturePill'
+import NoticePill from './NoticePill'
 import { ctaStyle, ui } from './menu-ui'
 import { readableTextColor, computePrimaryForeground } from '@/lib/color-utils'
 import { baseName } from '@/lib/menu-translations'
@@ -78,7 +79,9 @@ function VideoSlide({ url }: { url: string }) {
   )
 }
 
-export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, contact = null, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart }: {
+export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, contact = null, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart, noticeMinutes = 0 }: {
+  /** Notice this dish needs, in minutes (0 = none); shown only when the restaurant takes scheduled orders. */
+  noticeMinutes?: number
   /** Adds one of this dish from the AR camera without closing the sheet (no upsell). */
   onAddToCartFromAr?: (selectedOptions: Record<string, unknown>, unitPrice: number, note?: string, ingredientModifications?: IngredientModifications | null, editorState?: CartEditorState | null) => void
   /** Items in the order, for the confirmation inside the camera. */
@@ -652,6 +655,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                   )}
                 </>} />
               {product.description && <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">{product.description}</p>}
+              {noticeMinutes > 0 && <div className="mt-3 flex"><NoticePill minutes={noticeMinutes} lang={lang} /></div>}
               <DishDetails details={details} />
               {feature && mediaSlides.length === 0 && !showing3d && (
                 <div className="mt-3 flex"><DishFeaturePill tag={feature} lang={lang} /></div>

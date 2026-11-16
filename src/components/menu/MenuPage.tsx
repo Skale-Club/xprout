@@ -17,6 +17,7 @@ import { getGuestCopy } from './guest-copy'
 import WaiterCallButtons from './WaiterCallButtons'
 import { fill, formatMoney, formatWeekday, getMenuCopy, localeFor, matchDeviceLanguage } from './menu-i18n'
 import { computeOpenState, resolveTimeZone } from '@/lib/chat-context'
+import NoticePill from './NoticePill'
 import { NO_CAPABILITIES, type TenantCapabilities } from '@/lib/service-modes'
 import { contactLinks, displayPrice, whatsappUrl } from './showcase'
 import { resolveMenuActionLinks, visibleFooterBrand } from '@/lib/menu-action-links'
@@ -221,6 +222,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const [deliveryNotes, setDeliveryNotes] = useState('')
   const [tipCents, setTipCents] = useState(0)
   const [promo, setPromo] = useState<AppliedPromo | null>(null)
+  // The time chosen for a scheduled order (epoch ms); null = as soon as possible.
+  const [scheduledFor, setScheduledFor] = useState<number | null>(null)
+  const [confirmedScheduledFor, setConfirmedScheduledFor] = useState<number | null>(null)
   const [analyticsTracker, setAnalyticsTracker] = useState<MenuAnalyticsTracker | null>(null)
   const [analyticsDebug, setAnalyticsDebug] = useState(false)
   const categoryRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -244,6 +248,16 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   // Sales tax and the promo field exist for guest checkout once the schema step ran (the rate is then a number).
   const taxPromoReady = capabilities.guestOrdering && typeof settings?.tax_rate_bps === 'number'
   const taxBps = taxPromoReady ? settings?.tax_rate_bps ?? 0 : 0
+  // Scheduled orders exist once the schema step ran (the switch is then a boolean), the restaurant turned them on
+  // and its time zone is known; the dishes' notice only shows then too.
+  const schedulingZone = capabilities.scheduledOrders && typeof settings?.scheduled_orders_enabled === 'boolean'
+    ? resolveTimeZone({ country: settings?.country, region: settings?.region, currency: settings?.currency })
+    : null
+  const cartMaxNotice = Math.max(0, ...cart.map(item => item.product.min_notice_minutes ?? 0))
+  const scheduling = useMemo(() => schedulingZone
+    ? { hours: settings?.business_hours as Record<string, string | null | undefined> | null | undefined, timeZone: schedulingZone, prepMinutes: settings?.pickup_eta_minutes ?? 0, maxNoticeMinutes: cartMaxNotice }
+    : null, [schedulingZone, settings?.business_hours, settings?.pickup_eta_minutes, cartMaxNotice])
+  const noticeFor = (product: { min_notice_minutes?: number }) => capabilities.scheduledOrders ? product.min_notice_minutes ?? 0 : 0
   const analyticsEnabled = settings?.analytics_enabled ?? true
   const feedAutoplayVideos = settings?.feed_autoplay_videos ?? true
   const tipPercentages: [number, number, number] = [
@@ -475,6 +489,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       customer_phone: customerPhone.trim(),
       ...orderFields,
       ...(taxPromoReady && promo ? { promo_code: promo.code } : {}),
+      ...(scheduling && scheduledFor != null ? { scheduled_for: new Date(scheduledFor).toISOString() } : {}),
       location_id: location?.id ?? null,
       table_id: orderingTable ? orderingTable.id : undefined,
       menu_id: menu?.id ?? null,
@@ -507,6 +522,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           setPromo(null)
           throw new Error(copy.promoInvalid)
         }
+        if (data?.code === 'schedule_invalid' && typeof data.error === 'string') throw new Error(data.error)
         throw new Error(copy.errSubmit)
       }
       // Placed: an identical cart later is a new order.
@@ -527,6 +543,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       }
 
       setConfirmedCart([...cart])
+      setConfirmedScheduledFor(scheduling ? scheduledFor : null)
       setOrderId(data.id)
       setOrderSuccess(true)
       setCart([])
@@ -540,6 +557,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       setOrderType(defaultOrderType)
       setTipCents(0)
       setPromo(null)
+      setScheduledFor(null)
     } catch (error) {
       setOrderError(error instanceof Error && error.message ? error.message : copy.errSubmit)
     } finally {
@@ -1236,6 +1254,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                         accentText={accentText}
                         price={priceOf(p)}
                         hasArModel={!!productArModelByProductId[p.id]}
+                        noticeMinutes={noticeFor(p)}
                         onOpen={() => openProduct(p, 'grid')}
                         {...(directOrdersEnabled ? {
                           cartQuantity: customizable ? 0 : qty,
@@ -1341,6 +1360,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           productIngredients={productIngredientsByProductId[selectedProduct.id] ?? []}
           productMedia={productMediaByProductId[selectedProduct.id] ?? []}
           arModel={productArModelByProductId[selectedProduct.id] ?? null}
+          noticeMinutes={noticeFor(shownProduct)}
           cartCount={cartCount}
           arCart={directOrdersEnabled ? arCartFor(selectedProduct.id, () => { closeProductModal(); setCartOpen(true) }) : undefined}
           arSequence={arSequence}
@@ -1526,6 +1546,10 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           promoEnabled={taxPromoReady}
           promo={taxPromoReady ? promo : null}
           onPromoChange={setPromo}
+          scheduling={scheduling}
+          scheduledFor={scheduledFor}
+          onScheduledForChange={setScheduledFor}
+          confirmedScheduledFor={confirmedScheduledFor}
         />
       )}
     </div>
@@ -1588,7 +1612,9 @@ function ContactCard({ href, icon, caption, value, color, external, numeric, wra
  * quantity stepper; narrow columns wrap the slot below the price before adding, so it stays put.
  * Larger screens put the photo on top. Choices still open the dish sheet. Controls are 44px high.
  */
-function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQuantity, onAdd, onIncrement, onDecrement, hasArModel = false }: {
+function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQuantity, onAdd, onIncrement, onDecrement, hasArModel = false, noticeMinutes = 0 }: {
+  /** Notice the dish needs, in minutes (0 = none); shown as a small pill. */
+  noticeMinutes?: number
   product: Product; lang: string; currency: string; primaryColor: string; onOpen: () => void
   /** The dish has a 3D model: a small cube in the photo's corner says it can be seen on the table. */
   hasArModel?: boolean
@@ -1622,6 +1648,7 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
         {product.description && (
           <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">{product.description}</p>
         )}
+        {noticeMinutes > 0 && <div className="mt-2 flex"><NoticePill minutes={noticeMinutes} lang={lang} /></div>}
       </div>
       {/* Unit price and ordering controls share a footer, never the photo. */}
       <div className="pointer-events-none col-start-1 row-start-2 flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2 px-5 pt-3 pb-5 sm:order-3 sm:mt-auto">

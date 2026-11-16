@@ -1,11 +1,11 @@
 'use client'
 
 import Image from 'next/image'
-import { useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { X, ChevronLeft, Check, UtensilsCrossed, Package, Truck, MapPin } from 'lucide-react'
 import type { CartItem } from './menu-utils'
 import { getProductImages, summarizeOptions, summarizeIngredientMods } from './menu-utils'
-import { formatMoney, getMenuCopy } from './menu-i18n'
+import { fill, formatMoney, getMenuCopy } from './menu-i18n'
 import type { DeliveryZone } from '@/types/database'
 import { computePrimaryForeground } from '@/lib/color-utils'
 import BottomSheet from '@/components/ui/BottomSheet'
@@ -13,7 +13,12 @@ import PhoneField from '@/components/ui/PhoneField'
 import { keepFieldVisible, nextFieldOnEnter, useVisibleBox } from '@/components/ui/keyboard-fields'
 import type { PhoneContext } from './showcase'
 import { ctaStyle, ui } from './menu-ui'
+import { asapBlockedReason, generateSlots, groupSlotsByDay, localDayKey, type Hours } from '@/lib/orders/scheduled-orders'
+import { formatSlotDay, formatSlotTime } from './schedule-format'
 import { discountCents as promoDiscountCents, taxCents as salesTaxCents, type PromoKind } from '@/lib/orders/tax-promo'
+
+/** What checkout needs to offer Schedule for later: the hours, the zone and the cart's notice. */
+export type CheckoutScheduling = { hours: Hours; timeZone: string; prepMinutes: number; maxNoticeMinutes: number }
 
 /** A promo code the server accepted, kept to preview its discount; the order only carries the code. */
 export type AppliedPromo = { code: string; kind: PromoKind; value: number }
@@ -34,7 +39,7 @@ function findMatchingZone(zipcode: string | undefined, zones: DeliveryZone[] | u
  * above the keys; Enter moves to the next field and, in the last one, places
  * the order.
  */
-export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, phoneContext = null, locale = 'en', onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
+export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
   cart: CartItem[]
   confirmedCart: CartItem[]
   currency: string
@@ -66,6 +71,13 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   promoEnabled?: boolean
   promo?: AppliedPromo | null
   onPromoChange?: (promo: AppliedPromo | null) => void
+  /** Scheduled orders: only guest checkout with the schema in place and the restaurant's switch on. */
+  scheduling?: CheckoutScheduling | null
+  /** The chosen time (epoch ms), or null for ASAP. */
+  scheduledFor?: number | null
+  onScheduledForChange?: (ms: number | null) => void
+  /** The time the order just placed was scheduled for (shown instead of the ready-in estimate). */
+  confirmedScheduledFor?: number | null
   /** The restaurant's country: the phone field starts on its calling code. */
   phoneContext?: PhoneContext | null
   /** BCP 47 locale for country names in the phone field. */
@@ -157,6 +169,22 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   const showForm = !orderSuccess && cart.length > 0
   const box = useVisibleBox()
 
+  // Bookable slots and whether ASAP is possible, from the hours and the cart's longest notice.
+  const slotInfo = useMemo(() => {
+    if (!scheduling) return null
+    const input = { now: new Date(), hours: scheduling.hours, timeZone: scheduling.timeZone, prepMinutes: scheduling.prepMinutes, maxNoticeMinutes: scheduling.maxNoticeMinutes }
+    const slots = generateSlots(input)
+    return { slots, days: groupSlotsByDay(slots, scheduling.timeZone), blocked: asapBlockedReason(input) }
+  }, [scheduling])
+  // ASAP not possible: start on the first slot; a slot that is no longer bookable (the cart changed) moves to the first one.
+  useEffect(() => {
+    if (!slotInfo || !onScheduledForChange) return
+    if (scheduledFor == null) { if (slotInfo.blocked && slotInfo.slots.length) onScheduledForChange(slotInfo.slots[0]) }
+    else if (!slotInfo.slots.includes(scheduledFor)) onScheduledForChange(slotInfo.slots[0] ?? null)
+  }, [slotInfo, scheduledFor, onScheduledForChange])
+  const mustSchedule = !!slotInfo?.blocked && scheduledFor == null
+  const selectedDay = scheduling && scheduledFor != null ? localDayKey(scheduledFor, scheduling.timeZone) : null
+
   return (
     <BottomSheet open onClose={onClose} ariaLabel={copy.checkoutTitle} widthClassName="sm:max-w-xl" frameStyle={box.style}>
           {/* Header */}
@@ -183,6 +211,12 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                 <p className="mt-4 rounded-full bg-white px-4 py-2 font-mono text-sm font-semibold text-zinc-700 shadow-card">
                   {copy.orderNumber} #{orderId.slice(0, 8).toUpperCase()}
                 </p>
+                {scheduling && confirmedScheduledFor != null && (
+                  <p className="mt-3 text-[15px] font-medium text-zinc-800">{copy.scheduledFor}: {formatSlotDay(confirmedScheduledFor, scheduling.timeZone, lang)}, {formatSlotTime(confirmedScheduledFor, scheduling.timeZone, lang)}</p>
+                )}
+                {scheduling && confirmedScheduledFor == null && scheduling.prepMinutes > 0 && (
+                  <p className="mt-3 text-[15px] text-zinc-600">{fill(copy.readyIn, { min: scheduling.prepMinutes })}</p>
+                )}
               </div>
               <Card className="mt-6">
                 <div className="divide-y divide-zinc-100">
@@ -268,6 +302,53 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                           )
                         })}
                       </div>
+                    </div>
+                  </Card>
+                )}
+
+                {showForm && scheduling && slotInfo && (slotInfo.slots.length > 0 || slotInfo.blocked) && (
+                  <Card title={copy.scheduleLater}>
+                    <div className="space-y-3 px-4 pb-4">
+                      <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1">
+                        {([false, true] as const).map(later => {
+                          const active = later ? scheduledFor != null : scheduledFor == null
+                          const disabled = later ? slotInfo.slots.length === 0 : !!slotInfo.blocked
+                          return (
+                            <button
+                              key={String(later)}
+                              type="button"
+                              aria-pressed={active}
+                              disabled={disabled}
+                              onClick={() => onScheduledForChange?.(later ? (slotInfo.slots[0] ?? null) : null)}
+                              className={`h-11 rounded-lg text-[14px] font-medium transition-colors disabled:opacity-40 ${active ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}
+                            >
+                              {later ? copy.scheduleLater : copy.asap}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {scheduledFor == null && !slotInfo.blocked && scheduling.prepMinutes > 0 && (
+                        <p className="text-[14px] text-zinc-600">{fill(copy.readyIn, { min: scheduling.prepMinutes })}</p>
+                      )}
+                      {slotInfo.blocked === 'notice' && <p className="text-[14px] font-medium text-amber-800">{copy.noticeRequired}</p>}
+                      {slotInfo.blocked === 'closed' && <p className="text-[14px] font-medium text-amber-800">{copy.closedScheduleOnly}</p>}
+                      {slotInfo.slots.length === 0 && slotInfo.blocked && <p role="alert" className="text-[14px] font-medium text-red-700">{copy.noSlots}</p>}
+                      {scheduledFor != null && selectedDay && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <SelectField
+                            label={copy.scheduleDay}
+                            value={selectedDay}
+                            onChange={day => onScheduledForChange?.(slotInfo.days.find(d => d.day === day)?.slots[0] ?? null)}
+                            options={slotInfo.days.map(d => ({ value: d.day, label: formatSlotDay(d.slots[0], scheduling.timeZone, lang) }))}
+                          />
+                          <SelectField
+                            label={copy.scheduleTime}
+                            value={String(scheduledFor)}
+                            onChange={ms => onScheduledForChange?.(Number(ms))}
+                            options={(slotInfo.days.find(d => d.day === selectedDay)?.slots ?? []).map(ms => ({ value: String(ms), label: formatSlotTime(ms, scheduling.timeZone, lang) }))}
+                          />
+                        </div>
+                      )}
                     </div>
                   </Card>
                 )}
@@ -413,7 +494,7 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                   )}
                   <button
                     type="submit"
-                    disabled={submittingOrder}
+                    disabled={submittingOrder || mustSchedule}
                     style={ctaStyle(primary, onPrimary)}
                     className={`${ui.cta} h-12 w-full  disabled:opacity-60`}
                   >
@@ -449,6 +530,18 @@ function FieldLabel({ htmlFor, label, required = false }: { htmlFor: string; lab
     <label htmlFor={htmlFor} className="mb-1.5 block text-[14px] font-medium text-zinc-700">
       {label}{required && <span aria-hidden="true" className="text-zinc-500"> *</span>}
     </label>
+  )
+}
+
+function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: { value: string; label: string }[] }) {
+  const id = useId()
+  return (
+    <div>
+      <FieldLabel htmlFor={id} label={label} />
+      <select id={id} value={value} onChange={e => onChange(e.target.value)} className={FIELD_CLASS}>
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
   )
 }
 

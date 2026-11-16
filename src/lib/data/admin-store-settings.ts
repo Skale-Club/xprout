@@ -4,6 +4,7 @@ import { planCeiling, resolveTenantCapabilities, type ServiceSettings } from '..
 import { SERVICE_SETTINGS_KEYS, validateServiceSettingsPatch } from '../service-settings'
 import { ACTION_LINK_COLUMNS, normalizeActionUrl } from '../menu-action-links'
 import { TAX_PROMO_READY_SQL, TAX_RATE_BPS_MAX } from '../orders/tax-promo'
+import { SCHEDULING_READY_SQL } from '../orders/scheduled-orders'
 
 export type AdminStoreContext = { tenantId: string; role: UserRole }
 export class LockedServiceSettingsError extends AdminMenuError {
@@ -29,8 +30,12 @@ export async function actionLinkColumnsReady(query: AdminMenuQuery): Promise<boo
 export async function taxPromoSchemaReady(query: AdminMenuQuery): Promise<boolean> {
   return (await query(TAX_PROMO_READY_SQL)).rows[0]?.ready === true
 }
-const storeColumns = (linksReady: boolean, taxReady: boolean) =>
-  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}`
+/** Whether the scheduled-orders schema step ran (docs/owned-schema/20261116140000_scheduled_orders.sql). */
+export async function schedulingSchemaReady(query: AdminMenuQuery): Promise<boolean> {
+  return (await query(SCHEDULING_READY_SQL)).rows[0]?.ready === true
+}
+const storeColumns = (linksReady: boolean, taxReady: boolean, schedulingReady = false) =>
+  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}${schedulingReady ? ', scheduled_orders_enabled' : ''}`
 
 function assertContext(context: AdminStoreContext, write = false) {
   if (!UUID.test(context.tenantId) || !['superadmin', 'store-admin', 'store-staff'].includes(context.role)) throw new AdminMenuError(403, 'Forbidden')
@@ -56,8 +61,9 @@ export async function readAdminStorePage(query: AdminMenuQuery, context: AdminSt
   assertContext(context)
   const linksReady = await actionLinkColumnsReady(query)
   const taxReady = await taxPromoSchemaReady(query)
+  const schedulingReady = await schedulingSchemaReady(query)
   const [settingsResult, tenantResult, stripeResult, features] = await Promise.all([
-    query(`SELECT ${storeColumns(linksReady, taxReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
+    query(`SELECT ${storeColumns(linksReady, taxReady, schedulingReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
     query('SELECT custom_domain,custom_domain_verified FROM public.tenants WHERE id=$1 LIMIT 1', [context.tenantId]),
     query(`SELECT id,tenant_id,stripe_account_id,scope,connected_at,is_active,disconnected_at,created_at,updated_at
       FROM public.stripe_connections WHERE tenant_id=$1 AND is_active=true ORDER BY connected_at DESC LIMIT 2`, [context.tenantId]),
@@ -80,10 +86,10 @@ const REGIONAL_COLUMNS = [
   'price_range', 'tip_percentage_1', 'tip_percentage_2', 'tip_percentage_3', 'business_hours',
 ] as const
 
-function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }) {
+function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, scheduling: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AdminMenuError(400, 'Invalid settings')
   const body = input as Record<string, unknown>
-  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps'])
+  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps', 'scheduled_orders_enabled'])
   if (Object.keys(body).length === 0 || Object.keys(body).some(key => !allowed.has(key))) throw new AdminMenuError(400, 'Invalid settings')
   const patch: Record<string, unknown> = {}
   // Menu links and the "Powered by" switch: https URLs or empty, and a boolean.
@@ -113,6 +119,18 @@ function validateRegionalPatch(input: unknown, payments: boolean, current: Recor
     } else {
       if (bps !== Number(current?.tax_rate_bps ?? 0) && !tax.guestOrdering) throw new AdminMenuError(403, 'Sales tax is part of ordering from the menu')
       patch.tax_rate_bps = bps
+    }
+  }
+  // Scheduled orders: a restaurant switch, part of guest ordering.
+  if ('scheduled_orders_enabled' in body) {
+    const enabled = body.scheduled_orders_enabled
+    if (typeof enabled !== 'boolean') throw new AdminMenuError(400, 'Invalid scheduled_orders_enabled')
+    if (!scheduling.ready) {
+      // The schema step may not have run yet: an untouched false is ignored, switching it on is refused.
+      if (enabled) throw new AdminMenuError(503, 'Scheduled orders are not available yet')
+    } else {
+      if (enabled !== (current?.scheduled_orders_enabled === true) && !scheduling.guestOrdering) throw new AdminMenuError(403, 'Scheduled orders are part of ordering from the menu')
+      patch.scheduled_orders_enabled = enabled
     }
   }
   for (const key of REGIONAL_COLUMNS) {
@@ -155,11 +173,13 @@ export async function mutateAdminStoreSettings(query: AdminMenuQuery, context: A
   const features = await loadPlan(query, context.tenantId, true)
   const linksReady = await actionLinkColumnsReady(query)
   const taxReady = await taxPromoSchemaReady(query)
-  const columns = storeColumns(linksReady, taxReady)
+  const schedulingReady = await schedulingSchemaReady(query)
+  const columns = storeColumns(linksReady, taxReady, schedulingReady)
   const currentResult = await query(`SELECT ${columns} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1 FOR UPDATE`, [context.tenantId])
   const current = currentResult.rows[0] ?? null
   const patch = validateRegionalPatch(input, planCeiling(features).payments, current, linksReady,
-    { ready: taxReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering })
+    { ready: taxReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering },
+    { ready: schedulingReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering })
   const fields = Object.keys(patch)
   if (!fields.length) return { settings: current as unknown as TenantSettings, capabilities: resolveTenantCapabilities(features, current as ServiceSettings | null) }
   const result = await query(`INSERT INTO public.tenant_settings AS s (tenant_id,${fields.join(',')},updated_at)
