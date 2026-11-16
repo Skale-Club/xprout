@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import DishPhoto from './DishPhoto'
-import { Box, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, MessageCircle, Minus, Phone, Plus, ShoppingBag, X } from 'lucide-react'
+import { Box, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, MessageCircle, Minus, Phone, Plus, Share2, ShoppingBag, X } from 'lucide-react'
 import ArButton, { useIsComputer, type ArCart, type ArSequenceItem } from '@/components/ar/ArButton'
 import ModelViewer from '@/components/ar/ModelViewer'
 import { getArCopy } from '@/components/ar/ar-copy'
@@ -19,6 +19,7 @@ import { ctaStyle, ui } from './menu-ui'
 import { readableTextColor, computePrimaryForeground } from '@/lib/color-utils'
 import { baseName } from '@/lib/menu-translations'
 import { getGuestCopy } from './guest-copy'
+import { dishShareUrl } from '@/lib/menu/dish-link'
 import { contactLinks, displayPrice, optionPriceList, orderedItemText, showcaseItemText } from './showcase'
 import ModalPortal from '@/components/ui/ModalPortal'
 import { keepFieldVisible, useVisibleBox } from '@/components/ui/keyboard-fields'
@@ -476,6 +477,44 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
   const contactRow = { ...contactDetails, whatsapp: whatsapp && onWhatsApp ? null : contactDetails.whatsapp }
   const hasContactRow = !!(contactRow.whatsapp || contactRow.phone || contactRow.instagram)
 
+  // Share: the native sheet when the browser has one, else copy the link.
+  const [linkCopied, setLinkCopied] = useState(false)
+  useEffect(() => {
+    if (!linkCopied) return
+    const timer = window.setTimeout(() => setLinkCopied(false), 2000)
+    return () => window.clearTimeout(timer)
+  }, [linkCopied])
+  async function shareDish() {
+    const url = dishShareUrl(window.location.href, product.id)
+    try {
+      if (typeof navigator.share === 'function') {
+        await navigator.share({ title: product.name, url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setLinkCopied(true)
+    } catch {
+      // A cancelled share sheet or a blocked clipboard is not an error to show.
+    }
+  }
+  const shareButton = (
+    <>
+      <button
+        type="button"
+        onClick={shareDish}
+        aria-label={copy.share}
+        className="flex size-10 items-center justify-center rounded-full bg-white/95 text-zinc-900 shadow-sm transition-colors hover:bg-white"
+      >
+        <Share2 className="size-5" />
+      </button>
+      {linkCopied && (
+        <div role="status" className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[70] mx-auto max-w-sm rounded-2xl bg-zinc-900 px-4 py-3 text-center text-sm text-white shadow-float">
+          {copy.linkCopied}
+        </div>
+      )}
+    </>
+  )
+
   const closeButton = (
     <button
       type="button"
@@ -603,7 +642,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                 />
               )}
               {view3dButton && <div className={`absolute left-3 z-10 ${hasManySlides && !showing3d ? 'bottom-9' : 'bottom-3'}`}>{view3dButton}</div>}
-              <div className="absolute top-3 right-3 z-10">{closeButton}</div>
+              <div className="absolute top-3 right-3 z-10 flex gap-2">{shareButton}{closeButton}</div>
               {feature && !showing3d && (
                 <div className="pointer-events-none absolute top-3 left-3 right-16 flex">
                   <DishFeaturePill tag={feature} lang={lang} tone="glass" />
@@ -642,7 +681,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
               )}
             </div>
           ) : (
-            <div className={`flex px-3 pt-3 ${view3dButton ? 'justify-between' : 'justify-end'}`}>{view3dButton}{closeButton}</div>
+            <div className={`flex px-3 pt-3 ${view3dButton ? 'justify-between' : 'justify-end'}`}>{view3dButton}<div className="flex gap-2">{shareButton}{closeButton}</div></div>
           )}
 
           <div className="space-y-4 px-5 pt-4 pb-6" onTouchStart={handleBodyTouchStart} onTouchEnd={handleBodyTouchEnd}>
