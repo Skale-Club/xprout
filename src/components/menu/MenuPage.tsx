@@ -25,6 +25,7 @@ import FeaturedCarousel from './FeaturedCarousel'
 import { GuestAccountButton } from './GuestSignIn'
 import { feedSizes } from './feed-sizes'
 import { contactEmailFor } from '@/lib/public-contacts'
+import PageLinksMenu from '@/components/pages/PageLinksMenu'
 import { dishDetailsFor } from '@/lib/public-dish-details'
 import { extraDishImagesFor } from '@/lib/public-dish-media'
 import { describeOpenState, menuTimeZone, type OpenLabel } from './open-label'
@@ -115,6 +116,8 @@ interface Props {
   initialLanguage?: string
   initialView?: 'list' | 'feed'
   footerBrand?: string
+  /** The restaurant's published website pages that show in the navigation ("More" menu and footer links). */
+  pageLinks?: ReadonlyArray<{ slug: string; title: string }>
   optionGroupsByProductId?: Record<string, GroupWithOptions[]>
   productIngredientsByProductId?: Record<string, ProductIngredientWithIngredient[]>
   deliveryZones?: DeliveryZone[]
@@ -148,7 +151,7 @@ function getTranslatedMenuField(
   return typeof value === 'string' && value.trim() ? value : fallback
 }
 
-export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
+export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
   const router = useRouter()
   const [feedPreview, setFeedPreview] = useState(false)
   const feedEnabled = (tenant.tenant_settings?.visual_feed_enabled ?? true) || feedPreview
@@ -1026,7 +1029,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   ]
   const activeTab = visibleCategory ?? tabs[0]?.id ?? null
   const showOrderBar = directOrdersEnabled && cart.length > 0 && !cartOpen && !checkoutOpen && activeMenuView === 'list'
-  const showContactFooter = activeMenuView === 'list' && !!(hasContact || shownFooterBrand)
+  const showContactFooter = activeMenuView === 'list' && !!(hasContact || pageLinks.length > 0 || shownFooterBrand)
 
   return (
     <div className="menu-root min-h-screen bg-menu text-zinc-900" lang={localeFor(selectedLanguage)}>
@@ -1056,6 +1059,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
               <span>{copy.viewFeed}</span>
             </button>
           )}
+          <PageLinksMenu tenantSlug={tenant.slug} links={pageLinks} label={copy.pagesMore} />
           {supportedLanguages.length > 1 && (
             <LanguagePicker languages={supportedLanguages} value={selectedLanguage} onChange={changeLanguage} label={copy.language} />
           )}
@@ -1387,8 +1391,17 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                 </ul>
               </>
             )}
+            {pageLinks.length > 0 && (
+              <nav aria-label={copy.pagesMore} className={hasContact ? 'mt-6' : ''}>
+                <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">
+                  {pageLinks.map(link => (
+                    <li key={link.slug}><a href={`/${tenant.slug}/${link.slug}`} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>
+                  ))}
+                </ul>
+              </nav>
+            )}
             {shownFooterBrand && (
-              <p className={`text-[12px] text-zinc-500 ${hasContact ? 'mt-8' : ''}`}>
+              <p className={`text-[12px] text-zinc-500 ${hasContact || pageLinks.length > 0 ? 'mt-8' : ''}`}>
                 {copy.poweredBy} <a href="/" className="font-medium text-zinc-600 hover:text-zinc-900">{shownFooterBrand}</a>
               </p>
             )}

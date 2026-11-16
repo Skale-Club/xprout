@@ -32,6 +32,9 @@ export async function GET(
       const owned = [urlEntry(getCanonicalUrl(tenant, '/'), tenant.updated_at?.slice(0, 10), '1.0')]
       for (const menu of menus) if (!menu.is_default) owned.push(urlEntry(getCanonicalUrl(tenant, `/${menu.slug}`), menu.updated_at?.slice(0, 10)))
       for (const loc of locations) owned.push(urlEntry(getCanonicalUrl(tenant, `/${loc.slug}`), loc.updated_at?.slice(0, 10)))
+      // Published website pages (none until the schema step ran or while the plan lacks them).
+      const { ownedPublishedPageEntries } = await import('@/lib/data/tenant-pages-runtime')
+      for (const page of await ownedPublishedPageEntries(tenant.id).catch(() => [])) owned.push(urlEntry(getCanonicalUrl(tenant, `/${page.slug}`), page.updated_at.slice(0, 10)))
       return new NextResponse(urlset(owned), { headers: { 'Content-Type': 'application/xml; charset=utf-8' } })
     } catch { return new NextResponse('Service unavailable', { status: 503 }) }
   }
