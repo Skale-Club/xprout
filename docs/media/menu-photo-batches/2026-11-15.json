@@ -1,0 +1,1381 @@
+{
+  "recipe": "feed-v2-main-v1",
+  "recipeDocument": "docs/product/menu-photo-recipe.md",
+  "engine": "built-in image_gen",
+  "publishedAt": "2026-11-16T04:30:04.126Z",
+  "scope": {
+    "products": 39,
+    "newProducts": 20,
+    "existingBellaProducts": 19,
+    "mainImages": 39,
+    "feedImages": 39,
+    "visibleAssignedAfter": 31,
+    "retiredBellaProducts": 8,
+    "bytes": 6633966,
+    "identityGenerations": 20,
+    "totalGenerationCalls": 120,
+    "rejectedRoleCandidates": 22
+  },
+  "constraints": {
+    "format": "webp",
+    "maxBytes": 102400,
+    "maxLongEdge": 1200,
+    "mainAspect": "1:1",
+    "feedAspect": "9:20",
+    "portraitObjectPosition": "center 65%"
+  },
+  "privateArchive": "N:/My Drive/Xprout/Media/2026-11-15-showcase-photos",
+  "note": "Raw sources are private working assets, never public delivery. Separate main/feed edits originate from the clean identity photo. 17 existing main images and 5 portraits were retried for framing. Owner authorized publishing photos independently of deferred 3D. Prices, translations, other product fields and 16 existing Aurora AR records were preserved. Exact prompts are retained; generative output is not pixel-deterministic.",
+  "verification": {
+    "localProducts": 39,
+    "localScreenshots": 195,
+    "localFeedViewports": 117,
+    "viewportSizes": [
+      [
+        360,
+        640
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        430,
+        932
+      ]
+    ],
+    "publicMenus": 3,
+    "publicFeedRenders": 31,
+    "responsiveThumbnails": 39,
+    "publicDetailChecks": 3
+  },
+  "products": [
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "d29a20e0-e3b3-4b15-b929-56653da0da76",
+      "name": "Affogato al Caffè",
+      "slug": "affogato-al-caffe",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "9c21781675b532cf72393ddea9151955e5d37da44e7a689ba7dcd5fea86bcdff",
+        "archiveRelativePath": "bella-vista/identity/affogato-al-caffe.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Affogato al Caffè for menu photo and food-to-3D authoring. Exact dish description: Vanilla gelato drowned in a shot of hot espresso.. Two small scoops vanilla gelato with espresso in one small ivory ceramic dessert cup on matching saucer. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "961937e566b42e2b5b2af07c06a34120f02eafe4817456ac909f4d1d7f6cb225"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/affogato-al-caffe-main-c4126b5bcb2445ef.webp",
+        "sha256": "c4126b5bcb2445ef96a63edc9817494463d73a05fb9fe6f20af49e8571eaf9cf",
+        "bytes": 85782,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Affogato al Caffè, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "d61522f82a30a703791a84ea79bffc15856d70dff2ef174e9fef29064c715afe"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/affogato-al-caffe-feed-bd915b092d4ec421.webp",
+        "sha256": "bd915b092d4ec421ee579954969dde3e1d7f2796c77c6df5d6c6f2b13dbb023b",
+        "bytes": 72868,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Affogato al Caffè. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "22f3abc4b27ccf3e2131ac2b86babeefbb399a3e1e8dc68fb68f4478b3374669"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "09e49c8d-4fbc-44df-9edb-ce4d50518075",
+      "name": "Arancini Siciliani",
+      "slug": "arancini-siciliani",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "1d33179d04e054af4acc7568438ff09f94236e9e069c971b9001e633d3162dcd",
+        "archiveRelativePath": "bella-vista/identity/arancini-siciliani.png",
+        "prompt": "Use case: photorealistic-natural. Asset type: clean identity source photograph for Bella Vista menu and subsequent food-to-3D. Generate one square 1:1 professional restaurant photograph of Arancini Siciliani. Subject: three crisp golden saffron risotto balls, one broken open to reveal beef ragù, a few green peas and melted mozzarella; realistic delicious texture, modest Italian appetizer portion. Serve on one round ivory speckled ceramic plate with a fine rustic brown rim. Scene: authentic restrained Italian trattoria, dark warm rustic wood tabletop, warm natural side light from left, softly blurred background, muted linen placed well behind plate. Match the Bella Vista reference scene described, no borrowed bruschetta. Camera three-quarter elevated angle. Complete plate centered both horizontally and vertically, width around 65% of canvas, serving height under 58%, all rim and food visible, generous coherent natural scene margins. No other food, hands, utensils, bottle, text, labels, logos, signs, menus, graphics or watermark. Output one clean square photograph only.",
+        "promptSha256": "1420c4d12a4a83996689171580098d395476bab97ba69a1cff3cdb88e1d7f5a9"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/arancini-siciliani-main-3f11e90989f62168.webp",
+        "sha256": "3f11e90989f6216801370b3ed5d1a10a348ce21f75670f11908416199425fa53",
+        "bytes": 97976,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Arancini Siciliani, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "40c260872fbcd2e73872ede18f0628cbfe0c09cc85bf43c6a2cd26ffc97d991f"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/arancini-siciliani-feed-c3fa2fcf604a1417.webp",
+        "sha256": "c3fa2fcf604a14170c2843de40f7455ba1b09301b5c94c181fc7b8bafb80ed8d",
+        "bytes": 87086,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Arancini Siciliani. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "b975d069d27022201918a443035a3502c4690810cef05a7199013d7b61b381a9"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "75eee63e-de22-4344-9354-377aa574080e",
+      "name": "Bistecca alla Fiorentina",
+      "slug": "bistecca-alla-fiorentina",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/bistecca-alla-fiorentina.webp",
+        "sha256": "9dc257c1bbe80b29d71b0df002f9bd804717fbc13fd5b7d95541691cf613ecab",
+        "archiveRelativePath": "bella-vista/identity/bistecca-alla-fiorentina.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/bistecca-alla-fiorentina-main-ad06915a8d85a311.webp",
+        "sha256": "ad06915a8d85a311087f213bd7655e10c8b242b1d81692abfc42022288f428dd",
+        "bytes": 88382,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Bistecca alla Fiorentina, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "60a2e3f017975f0d28510f90ddbdbb42cac6ed19f0beaf42f18eb0ebd712956f"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/bistecca-alla-fiorentina-feed-1b03f108345ac701.webp",
+        "sha256": "1b03f108345ac7011df700957c6ddb9b8dde9c0d6fd0e962924a6bf8c928954b",
+        "bytes": 78802,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create ONE full-bleed 9:20 portrait Bella Vista restaurant feed photograph of Bistecca alla Fiorentina, editing the attached CLEAN ORIGINAL. Preserve the same exact food, ingredients, quantities, arrangement, vessel and natural proportions. Warm rustic Italian trattoria, dark wooden tabletop, warm natural light. Reconstruct the ENTIRE same vessel if the original clips its rim. WIDE COMPLETE-RIM COMPOSITION: the complete plate/bowl including outer rim must occupy ONLY 80% of the image width, horizontally centered, with clear 10% real tabletop margin on BOTH sides. Move the camera BACK; do not repeat the original tight crop. Keep the full vessel within x=10–90%, y=24–54%, centered around y=40%. No food or plate edge may touch the frame. Bottom 40% is uninterrupted subdued actual tabletop for captions. Extend the actual restaurant scene continuously above and below with coherent perspective and light; no inset, seam, blurred duplicate, bands or artificial padding. Every side of the plate/bowl and all food fully visible. Do not add staging props, other dishes, labels, text, logos, signs, printed menus or watermark. Output only this one wider-framed portrait photograph.",
+        "promptSha256": "e50a713ad7a8474eac0e27f946dfd59b0149e0407da837244b894ba0a46940cb"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "91cf391d-f714-448d-a1a9-67e561718bb4",
+      "name": "Bruschetta al Pomodoro",
+      "slug": "bruschetta-al-pomodoro",
+      "shape": "plate",
+      "availableAfter": false,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/bruschetta-al-pomodoro.webp",
+        "sha256": "76a1c0aacbaf3183c5f05456e8f9023dfd4b972c23ec98376ea0a3c616a371d3",
+        "archiveRelativePath": "bella-vista/identity/bruschetta-al-pomodoro.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/bruschetta-al-pomodoro-main-356126806c44255d.webp",
+        "sha256": "356126806c44255d51df85344747bdc9dad38a7758839fccab5375ce4f67235d",
+        "bytes": 94394,
+        "width": 911,
+        "height": 911,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Bruschetta al Pomodoro, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "0bd773d14a4fe7b66bf173b0a872cfcee4e08ddd558cae3e26c2f4b1a47f067c"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/bruschetta-al-pomodoro-feed-9cd472d6b540f65a.webp",
+        "sha256": "9cd472d6b540f65a2996ec43f5371184b55843c6504f80a4d8b3008a7d6d0e89",
+        "bytes": 83350,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create ONE full-bleed 9:20 portrait Bella Vista restaurant feed photograph of Bruschetta al Pomodoro, editing the attached CLEAN ORIGINAL. Preserve the same exact food, ingredients, quantities, arrangement, vessel and natural proportions. Warm rustic Italian trattoria, dark wooden tabletop, warm natural light. Reconstruct the ENTIRE same vessel if the original clips its rim. WIDE COMPLETE-RIM COMPOSITION: the complete plate/bowl including outer rim must occupy ONLY 80% of the image width, horizontally centered, with clear 10% real tabletop margin on BOTH sides. Move the camera BACK; do not repeat the original tight crop. Keep the full vessel within x=10–90%, y=24–54%, centered around y=40%. No food or plate edge may touch the frame. Bottom 40% is uninterrupted subdued actual tabletop for captions. Extend the actual restaurant scene continuously above and below with coherent perspective and light; no inset, seam, blurred duplicate, bands or artificial padding. Every side of the plate/bowl and all food fully visible. Do not add staging props, other dishes, labels, text, logos, signs, printed menus or watermark. Output only this one wider-framed portrait photograph.",
+        "promptSha256": "7904f0aefb8cccf19022cdf197c4d7402cdaebbb0050dc39aae30b667a64dc55"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "bc6cdfa3-df77-4b06-ac75-1d706ed7b5c6",
+      "name": "Chianti Classico (glass)",
+      "slug": "chianti-classico-glass",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "9e8482dfe802556c9c28bc2cffc7abd006903638758a874d22d91c70791fc5ae",
+        "archiveRelativePath": "bella-vista/identity/chianti-classico-glass.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Chianti Classico (glass) for menu photo and food-to-3D authoring. Exact dish description: Tuscan Sangiovese red wine, 150ml glass.. One clear stemmed wine glass containing 150ml Tuscan red wine. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "e61b062a20e67d1406a5da4ceb404406fd8811813ae9ce8f1915800ea6a1bb28"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/chianti-classico-glass-main-545b6522c24c54dd.webp",
+        "sha256": "545b6522c24c54ddd42e9af56ebd68a9956cc102772c9e5add34bcfebeef2008",
+        "bytes": 99780,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Chianti Classico (glass), editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "d5c8ac30e70c9f70062ca8decc358a01fcc335d1d34fa6b094a76ebd64ebe1ec"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/chianti-classico-glass-feed-2e39dc78765ed8f9.webp",
+        "sha256": "2e39dc78765ed8f91e4aceb6eeb2458905d9b0bc729701b3d2443488a8999224",
+        "bytes": 63920,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Chianti Classico (glass). EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "ebb41a7ed6c66d35924d58327203df13d1650f31eda32202ce42a5464ef7c146"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "2fec829d-6c8f-42f0-9c06-f06356e63342",
+      "name": "Fresh Orange Juice",
+      "slug": "fresh-orange-juice",
+      "shape": "tall",
+      "availableAfter": false,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/fresh-orange-juice.webp",
+        "sha256": "96213bd7d40bc1fd457f695fd06664d9173bbce152607644e2f64c13f66523d5",
+        "archiveRelativePath": "bella-vista/identity/fresh-orange-juice.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/fresh-orange-juice-main-cfa13a8e3a6637af.webp",
+        "sha256": "cfa13a8e3a6637af5ba80736fba7f39b1280c54786d3822d0ee9c9d8685959d9",
+        "bytes": 89372,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Fresh Orange Juice, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nIf the original clips a vessel edge, reconstruct the entire same vessel. Keep every rim and all food complete with the generous centered margins above.",
+        "promptSha256": "209730f0a12a7f02e3efeaef59b2437ac44a47e57f4dd63d66c06975c9b4a220"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/fresh-orange-juice-feed-54470800cc0d6e37.webp",
+        "sha256": "54470800cc0d6e370572036557c9eb03b09a454c4d4d66b4eab146efee48e87f",
+        "bytes": 54794,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create ONE 9:20 full-bleed portrait restaurant feed photograph of Fresh Orange Juice, editing the attached clean original. Preserve the exact same straight glass, fresh orange juice, orange wedge garnish and natural proportions. Bella Vista Italian trattoria, same rustic dark wood tabletop, warm natural light, restrained softly blurred background. IMPORTANT TALL SAFE COMPOSITION: move the camera back. The ENTIRE glass INCLUDING the highest orange garnish and its base must occupy ONLY 30% of total IMAGE HEIGHT, centered at x=50%, y=40%. All of the serving must lie INSIDE y=25–55%; leave the top quarter completely clear of any glass or garnish for header controls. The glass is deliberately modest in size within the tall scene; do not enlarge it to fill the frame. Bottom 40% remains continuous subdued real tabletop. Extend the same restaurant naturally to every image edge, coherent perspective and light, one continuous photograph. No plate, other dishes, additional props, text, logos, labels, printed menus, borders, bands, padding, collage or watermark. Output only this one portrait photograph.",
+        "promptSha256": "2d733583adb1d0a215abcf426b745f6dcf36274f04e45b7f5c8afb59bbc25c50"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "7ef3a31c-b457-41c6-8128-aad3110a8139",
+      "name": "Spaghetti Carbonara",
+      "slug": "spaghetti-carbonara",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/spaghetti-carbonara.webp",
+        "sha256": "277728e0a70401ed063ce40f397d1f3b62a6db3dfc4849ee901598a3a02a24dc",
+        "archiveRelativePath": "bella-vista/identity/spaghetti-carbonara.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/spaghetti-carbonara-main-4e00bd5e18abf1bb.webp",
+        "sha256": "4e00bd5e18abf1bb5c97856aa994e483154082b0a86e8c0cecb16153894b6625",
+        "bytes": 96526,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Spaghetti Carbonara, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "e5857fc447bbf44d9c61f38ec69cb914a49557d1f8a46d8dec1d75290cea8049"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/spaghetti-carbonara-feed-93382f8606ab7b0e.webp",
+        "sha256": "93382f8606ab7b0edd97295a5168f5a8f2f3487fab0d0d61dd740500ea0f20a1",
+        "bytes": 72726,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create ONE full-bleed 9:20 portrait Bella Vista restaurant feed photograph of Spaghetti Carbonara, editing the attached CLEAN ORIGINAL. Preserve the same exact food, ingredients, quantities, arrangement, vessel and natural proportions. Warm rustic Italian trattoria, dark wooden tabletop, warm natural light. Reconstruct the ENTIRE same vessel if the original clips its rim. WIDE COMPLETE-RIM COMPOSITION: the complete plate/bowl including outer rim must occupy ONLY 80% of the image width, horizontally centered, with clear 10% real tabletop margin on BOTH sides. Move the camera BACK; do not repeat the original tight crop. Keep the full vessel within x=10–90%, y=24–54%, centered around y=40%. No food or plate edge may touch the frame. Bottom 40% is uninterrupted subdued actual tabletop for captions. Extend the actual restaurant scene continuously above and below with coherent perspective and light; no inset, seam, blurred duplicate, bands or artificial padding. Every side of the plate/bowl and all food fully visible. Do not add staging props, other dishes, labels, text, logos, signs, printed menus or watermark. Output only this one wider-framed portrait photograph.",
+        "promptSha256": "0b775706906071f3a8390e25f7fd363e7644acefaa17d5e9b53e8ab11a2ac7f6"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "03c7d0e7-2f1a-4cc2-81de-208fe5ae8163",
+      "name": "Tiramisu",
+      "slug": "tiramisu",
+      "shape": "plate",
+      "availableAfter": false,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/tiramisu.webp",
+        "sha256": "866857bc2b23eeda63bf06b8a6a601e2dda31e1128547c74254d408c565483f5",
+        "archiveRelativePath": "bella-vista/identity/tiramisu.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/tiramisu-main-8137c0fa87f7c1a8.webp",
+        "sha256": "8137c0fa87f7c1a8f47e43ecd5c6eb3797ec254094cb5d5ef93fdc36ef9a5000",
+        "bytes": 89734,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Tiramisu, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "0d4c1ef1c26ba44caa19178e2a17d5432108fa0f915d59940eb85f99667ae791"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/tiramisu-feed-a9a9588065cdb307.webp",
+        "sha256": "a9a9588065cdb307472cd68bf0254f7b3c969b51701ec6c3ffb0dc1bd4f9b048",
+        "bytes": 87016,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Tiramisu. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "bdd5f43f8b7d6bed472dd570f4eaf724eafde692aecf13a3ead0af7e3160d813"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "e14db01d-180c-41aa-aff4-be965cd12114",
+      "name": "Aperol Spritz",
+      "slug": "aperol-spritz",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/aperol-spritz.webp",
+        "sha256": "3b91cf0cd335258a619517d3804d640401655ec7825890c21cdb5573bd1a2b02",
+        "archiveRelativePath": "bella-vista/identity/aperol-spritz.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/aperol-spritz-main-5df5ad917ba1899f.webp",
+        "sha256": "5df5ad917ba1899f21fdb5048655eaeb11236432c2726882a7a501e33a4401d1",
+        "bytes": 85820,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Aperol Spritz, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nIf the original clips a vessel edge, reconstruct the entire same vessel. Keep every rim and all food complete with the generous centered margins above.",
+        "promptSha256": "a25d59c5c99a70ed997f011baeb5ebf66b45c325cb2cc95eb2d8ebb0b7992652"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/aperol-spritz-feed-58aed170c210905f.webp",
+        "sha256": "58aed170c210905fe9abb486b79aaeeec211cc8d325874f3120960b44c7b0901",
+        "bytes": 74458,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Aperol Spritz. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "ba05f780461211c603ba3051b054451075938383c2e2fa6583fd6d929362d149"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "835e7a79-7391-4a06-a6b8-f971aaf72bee",
+      "name": "Burrata & Prosciutto",
+      "slug": "burrata-prosciutto",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/burrata-prosciutto.webp",
+        "sha256": "c32dd257fa31f8b77cc987fc2b53fa3028f1ae27e77b53fbfdbcd3d5e034ac3f",
+        "archiveRelativePath": "bella-vista/identity/burrata-prosciutto.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/burrata-prosciutto-main-605f69df633ed361.webp",
+        "sha256": "605f69df633ed36150dd9b7a09e69ad28b9cbc503225a43f26528e34b4bedd4f",
+        "bytes": 101666,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Burrata & Prosciutto, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "ce6e469c782fdc4ad7ac8edea68fae5cf09ce90361d7686fba23868a8268d652"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/burrata-prosciutto-feed-140f28833e77f7fa.webp",
+        "sha256": "140f28833e77f7fa825ad49754fe7dffca3b72bc3624397a58d7565810b0ab43",
+        "bytes": 84186,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Burrata & Prosciutto. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "5bbb4e5638a739bdeabf5c49e9bc1e6dd1dcd617dbb27e82c8dabebea2b8fc23"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "58b7fdad-13d8-49f5-bef5-7adee3c2b787",
+      "name": "Filetto al Madeira",
+      "slug": "filetto-al-madeira",
+      "shape": "plate",
+      "availableAfter": false,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/filetto-al-madeira.webp",
+        "sha256": "7f60ba0048ca39ee176c2e1e0d5a46eea6839977202a25266077a6ff83e55510",
+        "archiveRelativePath": "bella-vista/identity/filetto-al-madeira.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/filetto-al-madeira-main-651de6849d5882cf.webp",
+        "sha256": "651de6849d5882cf47fcecccc12c5f8bd08f584bc68c67bb167b2885fc8d33d2",
+        "bytes": 101288,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Filetto al Madeira, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "3ecbacb7f20d506704bcffa3eab4667c19bcf52716d194b2243b3819683d6c00"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/filetto-al-madeira-feed-eba7fb2ee5234045.webp",
+        "sha256": "eba7fb2ee52340451b9190a84e44242b52446fec0c0fb3cc9166cc68a363d898",
+        "bytes": 87058,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Filetto al Madeira. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "7f31a4f71d2142142cfd5dc601eafe4b887db196d3e4e545c940a644152c42fe"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "9a102ad8-1fae-4c36-a697-f9de7a826b6e",
+      "name": "Molten Chocolate Cake",
+      "slug": "molten-chocolate-cake",
+      "shape": "plate",
+      "availableAfter": false,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/molten-chocolate-cake.webp",
+        "sha256": "307571dc7953d9f00431044557df8db42545fe70f857944314552daf6dd1e906",
+        "archiveRelativePath": "bella-vista/identity/molten-chocolate-cake.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/molten-chocolate-cake-main-0120108137655bf5.webp",
+        "sha256": "0120108137655bf5627014f6949c8ef29d86782d094999861539dfbd733095c7",
+        "bytes": 102104,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Molten Chocolate Cake, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "d57b926d6105ee2e837be267af5d16e74c210804fc4a73bfd1689075b2e1f4ec"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/molten-chocolate-cake-feed-7a2239cdd903fa39.webp",
+        "sha256": "7a2239cdd903fa39e1626613b1225803d29e6b94f72bde8bfda3ede8cd5c9103",
+        "bytes": 62590,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Molten Chocolate Cake. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "7cce8a706955a9b057459f981037f44565130081b6247a8a7833b0450f1a3a40"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "cb3264f9-ab00-4434-abc9-cddc584a08bd",
+      "name": "Ossobuco alla Milanese",
+      "slug": "ossobuco-alla-milanese",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "cba7f61cd7aaf9441f15259987840ec4855cd4b07d9da335de842a6e5f7998a5",
+        "archiveRelativePath": "bella-vista/identity/ossobuco-alla-milanese.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Ossobuco alla Milanese for menu photo and food-to-3D authoring. Exact dish description: Slow-braised veal shank with gremolata and saffron risotto.. One restaurant serving on a round ivory speckled ceramic plate. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "672c7ab9e86caac3322b5b5174ca050eed23635ee024e91219175969c5fdd191"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/ossobuco-alla-milanese-main-9009cbd6665ff4ee.webp",
+        "sha256": "9009cbd6665ff4eebb12e5aa3cb9bdb51d3dc3e4bf4513c23b0c4a8988319bba",
+        "bytes": 97762,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Ossobuco alla Milanese, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "26e80b28c52c77ab95cd6a3c1d7030812e82d808839f6047331acbeb44c60ef1"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/ossobuco-alla-milanese-feed-4b4784e568fe51c2.webp",
+        "sha256": "4b4784e568fe51c256c5b42d71de37162b7a5e50cc49387fdf8d46e428661f22",
+        "bytes": 74026,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Ossobuco alla Milanese. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "0563a7419895e5eb909a79f61a154d3c457a90c8ee54b2919a578185dc8bae3a"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "28bd2bf3-2aaf-4b62-b761-9e580645c857",
+      "name": "Tagliatelle al Ragu",
+      "slug": "tagliatelle-al-ragu",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/tagliatelle-al-ragu.webp",
+        "sha256": "bdf80f0a34c27875cb9cab57ddb6ac02ef336f07b1991098024cb77420620d8e",
+        "archiveRelativePath": "bella-vista/identity/tagliatelle-al-ragu.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/tagliatelle-al-ragu-main-6434b6acf90f9efa.webp",
+        "sha256": "6434b6acf90f9efa52cde2378f9770e533c86b86ecdcc0448fe73220a433d3dd",
+        "bytes": 96412,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Tagliatelle al Ragu, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "04142edf90d94c729de53f2bf28576aa405856e0bd4e446df9aafdc0976e8431"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/tagliatelle-al-ragu-feed-845175a916826c4c.webp",
+        "sha256": "845175a916826c4c69a7e6d541ba660ae20dcf5a77214696d6937b8bcaf1138b",
+        "bytes": 96478,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Tagliatelle al Ragu. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "195619a9ec21e2b28874ae48355f376429aee3e4be297450a94fb7cd13dcb1e1"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "e4bf8748-e37f-4e7f-88a1-a961da9f5be1",
+      "name": "Torta della Nonna",
+      "slug": "torta-della-nonna",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "20779483465f8f99da99444ae21c3c3d37b7bf309d1c872f78990e3c0b3e972d",
+        "archiveRelativePath": "bella-vista/identity/torta-della-nonna.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Torta della Nonna for menu photo and food-to-3D authoring. Exact dish description: Shortcrust tart with lemon custard, pine nuts and powdered sugar.. One restaurant serving on a round ivory speckled ceramic plate. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "793391307aa4c257d79013dc8e6959501f9edb9d40e95666b5ceed40faa9b914"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/torta-della-nonna-main-b64f2bddbf0c4050.webp",
+        "sha256": "b64f2bddbf0c4050cb6394bd85eff489f8e06d9b5b4fd5b0855eeb91811a0e59",
+        "bytes": 100574,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Torta della Nonna, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "80045e99419e7f7c5c1bf584e2420fc24916ad9e9b712fe8f772ecd6a63c8ce2"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/torta-della-nonna-feed-dea7024e09d42018.webp",
+        "sha256": "dea7024e09d42018e43e686cb4f5886e7ebfafc4c153ad64e6c8a40d0acc559b",
+        "bytes": 99944,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Torta della Nonna. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "92b501878d94119ade6a0cf672efe6951ccfe9e099476c97e85fbb2086011860"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "ce1960f3-7295-4793-ad42-3c3efa973d55",
+      "name": "Beef Carpaccio",
+      "slug": "beef-carpaccio",
+      "shape": "plate",
+      "availableAfter": false,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/beef-carpaccio.webp",
+        "sha256": "22144b72be45cd9eff5b6dcb99fd595ef564c6526c4249b986689686c662dd48",
+        "archiveRelativePath": "bella-vista/identity/beef-carpaccio.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/beef-carpaccio-main-2059922cc6c0dd9f.webp",
+        "sha256": "2059922cc6c0dd9fcf869f5b9583aaed586ff3bb90e9345889161bdd818c9858",
+        "bytes": 88682,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Beef Carpaccio, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "343f673e13f49d9ce95025ba47af1b904252b9e1d4c740ce8cdf496e5fd5b5ae"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/beef-carpaccio-feed-73bf97c7cbf50212.webp",
+        "sha256": "73bf97c7cbf5021296558e44f30ca98755623c1f72f89a576478d5b3e7f0921b",
+        "bytes": 80558,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Beef Carpaccio. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "a89ce7eac5ff9f1b7beb5993da0cf707a605bdd8b46878fc83135b6e2a90f0da"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "9d1c8667-a1f3-4047-97e3-8fed67f5616c",
+      "name": "Branzino al Forno",
+      "slug": "branzino-al-forno",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "34587f2210b69b648dcd5368cd05c254b1399ac1f38c6f3ffd8568bbe24391af",
+        "archiveRelativePath": "bella-vista/identity/branzino-al-forno.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Branzino al Forno for menu photo and food-to-3D authoring. Exact dish description: Whole roasted Mediterranean sea bass with lemon, capers and cherry tomatoes.. One restaurant serving on a round ivory speckled ceramic plate. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "504967b38744e1c3f2a5af92b612d12b0b7a84da31c704db0e2927ea90647cfc"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/branzino-al-forno-main-0a249692a1a94302.webp",
+        "sha256": "0a249692a1a9430202d5126e1d06899d870710f0e15bcdb9811a5c137340c135",
+        "bytes": 101512,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Branzino al Forno, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "2e18c90e6ca54d96934c06717febf974d306994dd1732b7fb1dd99fca55823dd"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/branzino-al-forno-feed-c781aa86359745e1.webp",
+        "sha256": "c781aa86359745e1c1db00a4266a409c8986ebdf752a508231063f5ec48aa0b1",
+        "bytes": 76166,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Branzino al Forno. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "19e5e9fde8a3a8d1c57d1d81a07a2f9d44cb88b7123a3f53b9e5b335f988e942"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "531fad52-d7d7-4a70-9719-68e7f17f4f5f",
+      "name": "Grilled Salmon",
+      "slug": "grilled-salmon",
+      "shape": "plate",
+      "availableAfter": false,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/grilled-salmon.webp",
+        "sha256": "52628be74accd9fd4ac3874bf7fee48cf4f3f2079dc7de69fc112f8981ee20b2",
+        "archiveRelativePath": "bella-vista/identity/grilled-salmon.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/grilled-salmon-main-c4c21991ff62c05d.webp",
+        "sha256": "c4c21991ff62c05d993a926542b86752df9ac9adb8fea00f6cccfec04a8f85d9",
+        "bytes": 100166,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Grilled Salmon, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "680f04272a79cd4130f4b238ced39902df777f4e7e601da8be62f331f453d719"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/grilled-salmon-feed-83b43c16674e563d.webp",
+        "sha256": "83b43c16674e563db9bc850000eff5bcb6aaed8e9f7e2f299cdc303aa2b14220",
+        "bytes": 85370,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Grilled Salmon. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "8ba60a9ff297df2f964531d33a68ed0b317ea92a6b09dbd98094c2fe8a93f000"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "8112e689-061c-45d9-9a21-12108b80a882",
+      "name": "Panna Cotta",
+      "slug": "panna-cotta",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/panna-cotta.webp",
+        "sha256": "3c44fea410ea00ba5043b430e11f21d70c5d3f3149391a5efe84ecb3623a6beb",
+        "archiveRelativePath": "bella-vista/identity/panna-cotta.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/panna-cotta-main-ab441257ab858faa.webp",
+        "sha256": "ab441257ab858faad15996896d996c9616d7daab633f12ae0bed11d1587a8b18",
+        "bytes": 94856,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Panna Cotta, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "b153f7821229844d61adedec54e18d1d531df513b4d1fbdf12e8c4661450af0f"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/panna-cotta-feed-fea5ede742dd651e.webp",
+        "sha256": "fea5ede742dd651e5fc8eaf7731f5692b5b2a1798f1029ed14485728fe2d8ede",
+        "bytes": 76680,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Panna Cotta. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "0d20012502fcdfd96664a63cccb4a96ae68984ad3b648f1021d4b30b0e29b636"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "fa916e25-06f0-42db-81ea-4e875d0955c3",
+      "name": "Penne Arrabbiata",
+      "slug": "penne-arrabbiata",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/penne-arrabbiata.webp",
+        "sha256": "401108ecc9c6330f2019f367c798ff48bead8452261fdca619a223e1eae56850",
+        "archiveRelativePath": "bella-vista/identity/penne-arrabbiata.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/penne-arrabbiata-main-46d7edfc4397f69a.webp",
+        "sha256": "46d7edfc4397f69ab9edad3d0893c528bd4ef24216ebf67f42e9e0a934d9cc2f",
+        "bytes": 88760,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Penne Arrabbiata, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "e6795b4884395fa99eb04b1e9139b4d2b717ef1763fce86111d83dcde6a6c603"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/penne-arrabbiata-feed-31375abad5d2846f.webp",
+        "sha256": "31375abad5d2846f6d0e6025d996ab1de7cd85da45dc964ca150ca0e5e3eb42b",
+        "bytes": 88666,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Penne Arrabbiata. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "622882d64a50ebbfc366aa188b2d3d37b7708fc04a448c6d474cb986fe950365"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "cecc3701-744b-467b-9c02-461e9c473ebb",
+      "name": "Prosecco (glass)",
+      "slug": "prosecco-glass",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "70ddf191aed4420ae8662a64fb0e403013a37d25bab5b3be6a305a4b29cf792b",
+        "archiveRelativePath": "bella-vista/identity/prosecco-glass.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Prosecco (glass) for menu photo and food-to-3D authoring. Exact dish description: Dry Italian sparkling wine, 150ml glass.. One tall clear flute containing 150ml pale sparkling prosecco. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "8dbc748bb39eb5257c8603e0e830f275013faf4209e5940d1bde3f4169dbd37e"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/prosecco-glass-main-2c16553b412b69c3.webp",
+        "sha256": "2c16553b412b69c372754e97958027779ca53f369a583495ee36beab80153c4d",
+        "bytes": 97538,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Prosecco (glass), editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "c8bb0992fb43cc25afb401a29585df9c5aad89ac44ebea4a135eb0cd81f10e5d"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/prosecco-glass-feed-b745f34c78485649.webp",
+        "sha256": "b745f34c784856491abc4be1cf6a792f2a4bde372079c068f88de59faad150cb",
+        "bytes": 80952,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Prosecco (glass). EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "0ff104b21af2133a143984dac4c80597c55570290c28bad58ccf55769ef08112"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "575f1a29-aa6d-4b03-a15e-bdab523c8770",
+      "name": "Vitello Tonnato",
+      "slug": "vitello-tonnato",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "e25517bd0f0948d3228b0a5f3ed5a9d1c1509125d7238d10146db3810c8caafd",
+        "archiveRelativePath": "bella-vista/identity/vitello-tonnato.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Vitello Tonnato for menu photo and food-to-3D authoring. Exact dish description: Chilled slices of slow-roasted veal with a creamy tuna and caper sauce.. One restaurant serving on a round ivory speckled ceramic plate. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "3d61a8cadd1f761db0a3f11e7a58e43beae14d6c8ee067e47b10f2d7896e2d6f"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/vitello-tonnato-main-8c7db98e96ae7291.webp",
+        "sha256": "8c7db98e96ae7291dfddc5aab50d2da4d9fe530dde0ed3b1db04f080d6439b08",
+        "bytes": 100220,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Vitello Tonnato, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "81558be114a9c7d12567ad671daccf0a683053799b44b31fcc4a4a741dd44ee8"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/vitello-tonnato-feed-462ad29074650963.webp",
+        "sha256": "462ad29074650963750507c1bd709321f955ad2873434bfb0818400b4b1fc698",
+        "bytes": 90612,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Vitello Tonnato. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "079c33ed9a28c5a61eb86401da2f7c5cda260dcefa670f409117d02c3ccc7f07"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "d29392e9-180b-4331-94ba-972f1f33e982",
+      "name": "Calamari Fritti",
+      "slug": "calamari-fritti",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/calamari-fritti.webp",
+        "sha256": "1520d2e08e91469e75ba7b9f34bfdd1c575990ec3be526ebeb97a98bc3c00af7",
+        "archiveRelativePath": "bella-vista/identity/calamari-fritti.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/calamari-fritti-main-ded09ab10e0aa019.webp",
+        "sha256": "ded09ab10e0aa01948c4c1424413e7ab15b218d959904243cc9db933d076cc15",
+        "bytes": 86498,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Calamari Fritti, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "a6fe5f501905a28ab6a599615a812d347a75377764eb0d94a1ea8179c128bd84"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/calamari-fritti-feed-73e466dcc0a4ab31.webp",
+        "sha256": "73e466dcc0a4ab318c144c32695a98e8d31aad47b39c0f19ab802e8a6219abc7",
+        "bytes": 100998,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create ONE full-bleed 9:20 portrait Bella Vista restaurant feed photograph of Calamari Fritti, editing the attached CLEAN ORIGINAL. Preserve the same exact food, ingredients, quantities, arrangement, vessel and natural proportions. Warm rustic Italian trattoria, dark wooden tabletop, warm natural light. Reconstruct the ENTIRE same vessel if the original clips its rim. WIDE COMPLETE-RIM COMPOSITION: the complete plate/bowl including outer rim must occupy ONLY 80% of the image width, horizontally centered, with clear 10% real tabletop margin on BOTH sides. Move the camera BACK; do not repeat the original tight crop. Keep the full vessel within x=10–90%, y=24–54%, centered around y=40%. No food or plate edge may touch the frame. Bottom 40% is uninterrupted subdued actual tabletop for captions. Extend the actual restaurant scene continuously above and below with coherent perspective and light; no inset, seam, blurred duplicate, bands or artificial padding. Every side of the plate/bowl and all food fully visible. Do not add staging props, other dishes, labels, text, logos, signs, printed menus or watermark. Output only this one wider-framed portrait photograph.",
+        "promptSha256": "dd2ed3d309310fbec89ba5f9a11164d08232ef0bd85eff4b64e02ac50f539455"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "759f88d9-c89d-4392-89e0-0885b2313bba",
+      "name": "Cannoli Siciliani",
+      "slug": "cannoli-siciliani",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/cannoli-siciliani.webp",
+        "sha256": "a42fe08bf8745ea365985b53af15f3590bb909742121d5fab5b7eff68bad06f5",
+        "archiveRelativePath": "bella-vista/identity/cannoli-siciliani.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/cannoli-siciliani-main-03e56faff3e3ec61.webp",
+        "sha256": "03e56faff3e3ec611b688bd8d4606eede6129e722ee9a077eaf6606390bc197c",
+        "bytes": 94656,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Cannoli Siciliani, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "1d690fc408a66425e73574b1b2b657932b9c8f84b67fead3d99ed1edb00a5303"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/cannoli-siciliani-feed-5c23e3a38b33b15d.webp",
+        "sha256": "5c23e3a38b33b15df3b2b88f68f982effcb942608e0c12f98b0269c0a5b36731",
+        "bytes": 81046,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Cannoli Siciliani. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "b7f9cb8a8c58bc61758ddaf55b57603b8ef7a85dc2660c09673024296923c074"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "eb29aabd-f383-499b-ac3b-95a5fe71a701",
+      "name": "Chicken Milanese",
+      "slug": "chicken-milanese",
+      "shape": "plate",
+      "availableAfter": false,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/chicken-milanese.webp",
+        "sha256": "7f6cb756992b0fe1665ddcaed2780c6a82b01dd0f01742f8b4f754e74f547e8e",
+        "archiveRelativePath": "bella-vista/identity/chicken-milanese.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/chicken-milanese-main-5a8585437d39aa24.webp",
+        "sha256": "5a8585437d39aa24118098a8882b8d0eb2c7e5735fe86a8b4450d18329418b80",
+        "bytes": 97914,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Chicken Milanese, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "8e037353a94db0636cbc05a2467e76f4d46ae793f8b07b1a5484d3851a7c623d"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/chicken-milanese-feed-14e3b064fdcf3381.webp",
+        "sha256": "14e3b064fdcf3381a9bb320f96c469c5990bd212b7830a3b059e469f116268e5",
+        "bytes": 92618,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Chicken Milanese. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "6f2c29b1839568414ebdd5485b1e6d092732895f3fff037c15bf484838616226"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "a3fcb51e-95c8-4bf9-8997-e56dba100ca9",
+      "name": "Cotoletta alla Milanese",
+      "slug": "cotoletta-alla-milanese",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "bf0a52962ec026da8aec3e3e78a1bfcf4e9b736bff2bf65b468bb9aa9d0292c5",
+        "archiveRelativePath": "bella-vista/identity/cotoletta-alla-milanese.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Cotoletta alla Milanese for menu photo and food-to-3D authoring. Exact dish description: Bone-in veal cutlet pan-fried in butter, with rocket and cherry tomatoes.. One restaurant serving on a round ivory speckled ceramic plate. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "a7f2d008b023f87389c86962f99e5336bc35defcb6d0bcc655fa5c46baa8dfe9"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/cotoletta-alla-milanese-main-87f5a95b36c120f7.webp",
+        "sha256": "87f5a95b36c120f778d40b0bdbbbaaaa9b71481d564a960f6695c1a207e8bb99",
+        "bytes": 90914,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Cotoletta alla Milanese, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "077f7e4773d3847d5188163809f370d14f5f1f6a75071b4d054b1d65e8639638"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/cotoletta-alla-milanese-feed-0f5c7c28a405cb89.webp",
+        "sha256": "0f5c7c28a405cb89d18d1e89503db52c72df6196cb3668b60c6c5b9fc0a48a41",
+        "bytes": 89066,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Cotoletta alla Milanese. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "4059e289d8a1e9fa23b967663f7217a28e3351f5d6c2f0144b357f4540823cb0"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "15855586-355e-45d4-8893-ab82ae0a3038",
+      "name": "Espresso",
+      "slug": "espresso",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "b31ec9c3cb2e59579baf583996d7dd48cf8643be8a20fe8378a8594f80e47fc7",
+        "archiveRelativePath": "bella-vista/identity/espresso.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Espresso for menu photo and food-to-3D authoring. Exact dish description: A single shot of Italian-roast espresso.. One single shot with rich crema in a small ivory espresso demitasse with matching saucer. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "1092df973c9f5c610a624b966aa266d311eb32da82875a5da2c2ea08d957e6cd"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/espresso-main-f8cc11a5edd5a081.webp",
+        "sha256": "f8cc11a5edd5a0814a9a1a09d409d799dc5aba763586bec65f58078d7e051aa2",
+        "bytes": 93736,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Espresso, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "0cf897f1816544bfb6979d058afa7c20f435a5fedba962db856398bc544e7d8f"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/espresso-feed-058c3310f4095ba5.webp",
+        "sha256": "058c3310f4095ba52e9fc436c6344bc862c0d0943dd4d6e914582e347a7e56cd",
+        "bytes": 68974,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Espresso. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "5211f98cf7116077f961a4f5aa05601bf5ff4b8d5e681e66f9fd81208dafc400"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "05f8c785-ad01-4234-a8a8-700ce3434b6d",
+      "name": "Lobster Ravioli",
+      "slug": "lobster-ravioli",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/lobster-ravioli.webp",
+        "sha256": "43de2f3ca3ee384b4a5cf8c57cba6ce077f35a10a01652e977c496135e723756",
+        "archiveRelativePath": "bella-vista/identity/lobster-ravioli.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/lobster-ravioli-main-3704cfca71f73c6b.webp",
+        "sha256": "3704cfca71f73c6b1c05cce0328b1b84714253ce24a127af3dce17382012effa",
+        "bytes": 90286,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Lobster Ravioli, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "e17666d7975dc5c82f2ff4b406441b47bbca2a13962083253209e1923125f61f"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/lobster-ravioli-feed-208219e17e6117fd.webp",
+        "sha256": "208219e17e6117fd3a6d325077b767c6c4c349f604e31c3445165f2ab0f68f1b",
+        "bytes": 88162,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Lobster Ravioli. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "54ef0ebb1bffa624252544bd76a4227f8c6d908145702142aba9d52e16a5e977"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "250b8bb7-0c2a-4106-a189-798d1207aa2e",
+      "name": "Cacio e Pepe",
+      "slug": "cacio-e-pepe",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "f55920f37b1b5b92dfc08d5e537f359d45baa2803688904e7eca8fc80bc4df51",
+        "archiveRelativePath": "bella-vista/identity/cacio-e-pepe.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Cacio e Pepe for menu photo and food-to-3D authoring. Exact dish description: Tonnarelli tossed with pecorino romano and freshly cracked black pepper.. One restaurant serving on a round ivory speckled ceramic plate. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "282767d5198e38f8d79ae5e1a00e1ee6bae0c9163f77702c9e668de52c674d08"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/cacio-e-pepe-main-d8b211e4f44ce1ea.webp",
+        "sha256": "d8b211e4f44ce1ea203b86554e572495cb54de8d1f4f439d9ae05932e09b9d46",
+        "bytes": 101602,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Cacio e Pepe, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "6d2dba760f83750d200a80240f52698cca31cd2e9195802c80e205b9ee362a59"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/cacio-e-pepe-feed-45082d44203c82d8.webp",
+        "sha256": "45082d44203c82d8eb139c44a232c46e8c1ec22618ed128283f053918ab7bf9d",
+        "bytes": 92122,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Cacio e Pepe. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "6c73697ccc556b9aa4d5ba635e8f84ea8238adc36be16eee0b4bb6a5094acebc"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "69f5e3b7-0caa-4abb-8f36-597fed51436d",
+      "name": "Parmigiana di Melanzane",
+      "slug": "parmigiana-di-melanzane",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "existing-public-photo",
+        "url": "https://xprout.app/brands/bella-vista/eggplant-parmigiana.webp",
+        "sha256": "32bee8f72a83f7895e01f58f03b370b5f1604ef347291d0bca9b2a944ac07420",
+        "archiveRelativePath": "bella-vista/identity/parmigiana-di-melanzane.webp"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/parmigiana-di-melanzane-main-f27aa95d3181ab58.webp",
+        "sha256": "f27aa95d3181ab582b6eb1f437767a04552d870e47226e83ab2696f895338ed1",
+        "bytes": 92086,
+        "width": 960,
+        "height": 960,
+        "prompt": "Create ONE square 1:1 restaurant menu photograph of Parmigiana di Melanzane, editing the attached CLEAN ORIGINAL as food identity reference. Preserve exact ingredients, serving quantity, arrangement, vessel material and natural proportions. Bella Vista authentic Italian trattoria, rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling. REFRAME WIDER: move the camera back so the ENTIRE plate or bowl occupies ONLY 60% of the full square canvas width, centered at x=50%, y=50%. Leave at least 20% of the actual coherent wooden tabletop visible on EACH side of the complete vessel. The plate must NOT look close-up. Keep the whole serving inside x=20–80%, y=25–75%; reconstruct any clipped original rim completely. Every plate edge, garnish and all food must remain inside a central 3:4 crop, with extra margin, as well as square and central 4:3 crops. Complete centered serving with generous real scene margins is the priority. No stretching, flat padding, inset, collage, border, added unrelated dishes or hands. No staging props, signs, printed menus, logos, labels, text, letters or watermark. Output only the single wider-framed square photograph.",
+        "promptSha256": "b732fb203d7a224cbedb47f6ee441de81061cb0a6acbfe95c56f1e38282e1ab1"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/parmigiana-di-melanzane-feed-c8cda8e304fdf577.webp",
+        "sha256": "c8cda8e304fdf577d23d0282e3468272e1f930677556885f36a2065b6380d2e8",
+        "bytes": 88858,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Parmigiana di Melanzane. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.\nCOMPLETE-RIM SAFETY PROFILE: the original may crop part of its vessel. Reconstruct the entire SAME plate/bowl/board/glass, preserving exact food identity. This overrides the width target above: serving width 80–84% of canvas, leave 8–10% natural tabletop margin on EACH side, keep complete rim/base/garnish within x=8–92%, y=22–56%. Do not zoom the food toward the viewer; no vessel edge may touch the frame.",
+        "promptSha256": "8b7f71a2f09d3e8d1fff80cc70ba94fa7523787d008012472c5d263cbaaab6b1"
+      }
+    },
+    {
+      "tenant": "bella-vista",
+      "tenantId": "0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db",
+      "productId": "56795770-7aa6-404c-8dde-26d01f24dd71",
+      "name": "San Pellegrino 500ml",
+      "slug": "san-pellegrino-500ml",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "e87e7be3a6596c52919610ea6849e613a5ff8a869896fa4096d27e5aa2a4271e",
+        "archiveRelativePath": "bella-vista/identity/san-pellegrino-500ml.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of San Pellegrino 500ml for menu photo and food-to-3D authoring. Exact dish description: Sparkling Italian mineral water, 500ml bottle.. One transparent green 500ml sparkling mineral water bottle, completely blank, no labels, writing or logo. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "28c7ba4700662b8ffa0372683fd2b7a929fcc5c13228a0959d7d00913e5d1fb9"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/san-pellegrino-500ml-main-45ce1045ff78fc1b.webp",
+        "sha256": "45ce1045ff78fc1bada7790b1dd671b20eaf5e43ab07f836cb9e8b0519afb75b",
+        "bytes": 90538,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of San Pellegrino 500ml, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "1158aaccf3c4cd608e6df1ec80411e764587f3bc771f3b5baa2544cf7fc307ae"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/0e62fa0c-b4c6-460c-bf29-f2d1f93fa2db/menu-images/2026-11-15-feed-v2/san-pellegrino-500ml-feed-7856d1fb511d5417.webp",
+        "sha256": "7856d1fb511d54176ef06d3da5bdf60cd241c52905ad4821621bf8e407b6f4a7",
+        "bytes": 66882,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of San Pellegrino 500ml. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Bella Vista authentic Italian trattoria: rustic warm dark wooden tabletop, warm natural side light, restrained Italian styling, softly blurred background with muted ivory linen far behind the serving. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "ab4aef3a1e0db1bb88d0b57be4f7b5820042cc94ea6dfc39aad4a37d5b454be6"
+      }
+    },
+    {
+      "tenant": "aurora",
+      "tenantId": "b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808",
+      "productId": "9b73274f-bc5b-4932-9cba-14b5a9f70511",
+      "name": "Truffle Parmesan Fries",
+      "slug": "truffle-parmesan-fries",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "92b87e347a761a6bc1a0c4a9ac5f315c04bb7b1e345a591a3619ec46765557eb",
+        "archiveRelativePath": "aurora/identity/truffle-parmesan-fries.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Truffle Parmesan Fries for menu photo and food-to-3D authoring. Exact dish description: Crispy fries tossed with truffle oil, Parmesan and parsley. One restaurant serving on a round charcoal stoneware plate. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "f29ac8053c18ecb728108e3756b690971baa3a0ef13bd4cda5f5373686ac9750"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/truffle-parmesan-fries-main-412fdede41d63901.webp",
+        "sha256": "412fdede41d6390182925272aa246c47742d379e46afae19429cadd92515eddc",
+        "bytes": 99992,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Truffle Parmesan Fries, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "26e073f5177a2d595678948e97711565d4726ce033ce4e44b66ebb18014d7156"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/truffle-parmesan-fries-feed-0a3e484281fa05c1.webp",
+        "sha256": "0a3e484281fa05c14fe8f8193b34aa8bce6654a0fc3d125b090fa1bc8489066d",
+        "bytes": 71544,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Truffle Parmesan Fries. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "4ad3aafe0c89f1af056132246c7ac3b7feb6b0f0ccc5ea239d78d015fbf4b01a"
+      }
+    },
+    {
+      "tenant": "aurora",
+      "tenantId": "b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808",
+      "productId": "e94062af-1897-4150-8783-850628a0aefd",
+      "name": "Pão de Queijo",
+      "slug": "pao-de-queijo",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "c88ed7adb25907b636d182b3a079e54a3c23a89dad65209f28dbc6dba151fbe5",
+        "archiveRelativePath": "aurora/identity/pao-de-queijo.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Pão de Queijo for menu photo and food-to-3D authoring. Exact dish description: Warm Brazilian cheese bread puffs (6 pieces). Exactly six Brazilian cheese bread puffs in a shallow charcoal ceramic bowl. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "d0bdd8531002cbba5ea0ced37a054d1c398bd93906e9aec96a8c8cfbb9ddc4c7"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/pao-de-queijo-main-a2c6b467475ab888.webp",
+        "sha256": "a2c6b467475ab888771c3eef946e5dfd0acc9e62f91a93c254b2887f10ce6321",
+        "bytes": 82028,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Pão de Queijo, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "1b9ff3d463e1892c38e917cd3a07abe86869c83adef2e232443894dcefcf37ee"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/pao-de-queijo-feed-6e5f40da85fb88bf.webp",
+        "sha256": "6e5f40da85fb88bf44e532d1eb873e5100de214679639aa6f08bb068f3c65626",
+        "bytes": 68496,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Pão de Queijo. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "6d242f6f568b093d2df059e06d4783cd0c4c6730de99df6d3b83c98e778950a3"
+      }
+    },
+    {
+      "tenant": "aurora",
+      "tenantId": "b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808",
+      "productId": "fc29487c-526d-4f63-a5d4-8e737c251185",
+      "name": "Crispy Chicken Wings",
+      "slug": "crispy-chicken-wings",
+      "shape": "plate",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "b8c511643ff7f85251ac4bd49d3e32a9641d57249299547a17d1a609640b7d77",
+        "archiveRelativePath": "aurora/identity/crispy-chicken-wings.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Crispy Chicken Wings for menu photo and food-to-3D authoring. Exact dish description: Crispy wings glazed in smoky barbecue sauce, with ranch dip. One restaurant serving on a round charcoal stoneware plate. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "d4c99bca57a7024f872027c56249c556d625ff05dd9e961d5cf3460186e55851"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/crispy-chicken-wings-main-07626f94572276d3.webp",
+        "sha256": "07626f94572276d305f1ce06757d3104b174742e1e6b834b3718f69f8ee1b1e8",
+        "bytes": 89154,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Crispy Chicken Wings, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "4bcfb9a4c5a969e9f0bcfcc87fd3a7a4677dc1bff27e5d92821ba017c7f3fa1d"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/crispy-chicken-wings-feed-de19e4e3ce9ab37b.webp",
+        "sha256": "de19e4e3ce9ab37bf1dcbafb3c96079bcaaadefec77a0dab5bcecaebca4ffc44",
+        "bytes": 86602,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Crispy Chicken Wings. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nPLATE PROFILE: show the complete plate/bowl/board/tray including its rim and all food, about 88–90% of canvas width and centered horizontally around 41% down the canvas. Reduce scale only as needed to include the entire serving.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "bc41fe66c67243f8cc5e02decce205f9effc46fabacdc336acbbeeb445dfe460"
+      }
+    },
+    {
+      "tenant": "aurora",
+      "tenantId": "b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808",
+      "productId": "49c0d90d-ddca-447e-a532-1f2016fbda45",
+      "name": "Caipirinha",
+      "slug": "caipirinha",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "a41d177fd3c86588980c781196edd68c7870f629b16a9d5d7d891d04633518cd",
+        "archiveRelativePath": "aurora/identity/caipirinha.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Caipirinha for menu photo and food-to-3D authoring. Exact dish description: Cachaça, fresh lime, sugar and ice. One clear short rocks glass with muddled lime wedges, cachaça and crushed ice. No mint. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "ed78036ce32a06738144854a7ea9ecc9eabb16cf4b5ba6f0254d2477ddc47582"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/caipirinha-main-c10bc24adc74e689.webp",
+        "sha256": "c10bc24adc74e689692d81b6ad8b2eab85b5771ce0e9831b693b018e9998ecc9",
+        "bytes": 80212,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Caipirinha, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "b834524a67ce3796cbea67d6b5c883f88a16fc7d1b35147291619d38a1ccfadb"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/caipirinha-feed-98f473aa89b54759.webp",
+        "sha256": "98f473aa89b54759d741b1c8de2c73ece23a48e8e67bebeffa77661c2b7d1369",
+        "bytes": 54996,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Caipirinha. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "5d52e903ea8079ebe85dfec4ff65e9fa2aac8a375a7af2e5c59b97c6ebd574d0"
+      }
+    },
+    {
+      "tenant": "aurora",
+      "tenantId": "b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808",
+      "productId": "2ecdbe6a-312d-4c7b-a2b3-e5c7c7c4cb50",
+      "name": "Gin & Tonic",
+      "slug": "gin-tonic",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "fcab8737d1fd442f579b41022aee7a708dd8f56c911548d5ae745e36d5498e70",
+        "archiveRelativePath": "aurora/identity/gin-tonic.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Gin & Tonic for menu photo and food-to-3D authoring. Exact dish description: London dry gin, premium tonic, lime and juniper. One clear balloon gin glass with gin tonic, ice, lime and a few juniper berries. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "347b14bb2e46d88b08b67f6d69a5072db5aeda12855fd116b051040e3b17a120"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/gin-tonic-main-ed126907818a8f3a.webp",
+        "sha256": "ed126907818a8f3a2143dc9685b98eec306147929f87dc7eb86ffbd052b26c5f",
+        "bytes": 80542,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Gin & Tonic, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "47afce63a664f10a56a5cb4f24f4dc141c8c348557c6337f1c71ddebcb53ea66"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/gin-tonic-feed-4f63f7dba72d0d78.webp",
+        "sha256": "4f63f7dba72d0d78f5fdfdd94ffe4f7574d15fda2666563ff95809c22af3cc6e",
+        "bytes": 57128,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Gin & Tonic. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "48b0172c0962904ed81c39ed54ba4527e3071e874ff720f67d212e38652226e5"
+      }
+    },
+    {
+      "tenant": "aurora",
+      "tenantId": "b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808",
+      "productId": "9ae68c54-c131-4289-ae77-a7425979ea13",
+      "name": "Old Fashioned",
+      "slug": "old-fashioned",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "92307845c2d18d2f1d8d861c4c021645adafbcf26608e1a4ca55edc676e29297",
+        "archiveRelativePath": "aurora/identity/old-fashioned.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Old Fashioned for menu photo and food-to-3D authoring. Exact dish description: Bourbon, Angostura bitters, sugar and orange peel. One clear short rocks glass with bourbon, one large ice cube and orange peel. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "7b63036a3d6f3954c365baa5601a9a94906d2c3e485e7288ceac6c06ca4bc309"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/old-fashioned-main-589e86cc8867f9d7.webp",
+        "sha256": "589e86cc8867f9d7f44c8541b8af753eac7b739678c5f829303b76748c037726",
+        "bytes": 80290,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Old Fashioned, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "83df528718da338cde6d99d642cdf2fbb5476e8edab0620141494a6595a0ea47"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/old-fashioned-feed-81f27860d5611120.webp",
+        "sha256": "81f27860d56111206028e1d089dd060ba8374516dfaa469c6ce078b751f92852",
+        "bytes": 45088,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Old Fashioned. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "1daf3eee1d233af99060d4f1f529ecef1438f8c149d13bfff050336f95ac7cd7"
+      }
+    },
+    {
+      "tenant": "aurora",
+      "tenantId": "b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808",
+      "productId": "fb6ed817-e4ea-471d-adf2-6a85b5052230",
+      "name": "Craft IPA Draft",
+      "slug": "craft-ipa-draft",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "f1173506f00ba9603b950d6c98440d931f6b69316bbeb29abb25105c30a14bfc",
+        "archiveRelativePath": "aurora/identity/craft-ipa-draft.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of Craft IPA Draft for menu photo and food-to-3D authoring. Exact dish description: Local craft India Pale Ale, 16oz pint. One clear 16oz pub pint glass of amber India Pale Ale with modest white foam head. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "8bad729a22454f9665b9728fd62e2ceb47c5eea1ad72ef46f22fedab9cc2ba9e"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/craft-ipa-draft-main-b3602350441e7742.webp",
+        "sha256": "b3602350441e7742c6adf10e35afae33e31d2c1efe2c11cd59b421fbf08b9df3",
+        "bytes": 92824,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of Craft IPA Draft, editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "786b4f9fc010d0da9e1d18d7e01f55bcc4bef14995e33d39f189ec2618aa995a"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/craft-ipa-draft-feed-30b4d7adca583dc5.webp",
+        "sha256": "30b4d7adca583dc54e2681c71b6412c4f9f0df6b7466b42cc1f3d2cb1bc867fe",
+        "bytes": 50250,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of Craft IPA Draft. EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "15e2ff5042b01cc1b6f812ac973bf4fff786df2cc734fe57d8785f356a70ed0c"
+      }
+    },
+    {
+      "tenant": "aurora",
+      "tenantId": "b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808",
+      "productId": "69f612fe-7163-4912-93cc-510d0bc0eb0b",
+      "name": "House Red Wine (glass)",
+      "slug": "house-red-wine-glass",
+      "shape": "tall",
+      "availableAfter": true,
+      "identitySource": {
+        "kind": "generated-private-photo",
+        "url": null,
+        "sha256": "ac708ca4a96827f04ecfe75644b1d4fe598b94f7a811f7f1b60ae27f057c0e3d",
+        "archiveRelativePath": "aurora/identity/house-red-wine-glass.png",
+        "prompt": "Use case: photorealistic-natural. Generate one square clean restaurant identity photograph of House Red Wine (glass) for menu photo and food-to-3D authoring. Exact dish description: Cabernet Sauvignon, 6oz glass. One clear stemmed wine glass containing 6oz Cabernet Sauvignon. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Three-quarter elevated camera, realistic natural proportions, crisp appetizing textures. Complete serving horizontally AND vertically centered at canvas center, serving width at most 70% and height at most 58%, generous natural scene margin. No clipped food, rim, glass base, cap or garnish. No other food, hands, utensils, text, labels, logos, signs, printed menus or watermark. Only one coherent restaurant photograph.",
+        "promptSha256": "cb59014220c77545f45d522b3c557883debe2429fccfb80d219ed59f40df93de"
+      },
+      "main": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/house-red-wine-glass-main-2d75329535d1f91f.webp",
+        "sha256": "2d75329535d1f91f177bd307ef4d3eb6d159bf6437ff7a812c1e708edf8c3d8e",
+        "bytes": 85324,
+        "width": 1200,
+        "height": 1200,
+        "prompt": "Create one square 1:1 main restaurant menu photograph of House Red Wine (glass), editing the attached original. Preserve exact food ingredients, serving quantity, vessel, natural proportions and identity. Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. The complete serving including rim/base/garnish must be horizontally AND vertically centered at canvas center, with generous natural scene margin: width at most 70% and height at most 58%. It must stay complete in square, portrait-card and central 4:3 crops. Naturally extend the same setting to every edge without stretching food. Crisp appetizing food, coherent perspective, soft realistic light. No text, borders, flat padding, collage, watermark or added unrelated dishes. Output only the square photo.\nSTRICT OUTPUT: Do not add staging props, signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "f078f770ba6e2b04464bb1d00e348398992fc2e1810665585c0d33d59d1c2b0f"
+      },
+      "feed": {
+        "url": "https://xmartmenu-product-images.skale.club/b5f74b1e-4d7f-4d17-8ea0-c3a1a42ae808/menu-images/2026-11-15-feed-v2/house-red-wine-glass-feed-e9a7d19884c4a0ff.webp",
+        "sha256": "e9a7d19884c4a0ff4efd2825597332c7a80f540a10466a9ff43bd43a38de80d2",
+        "bytes": 44928,
+        "width": 540,
+        "height": 1200,
+        "prompt": "Create a single full-bleed 9:20 portrait restaurant menu feed photograph of House Red Wine (glass). EDIT TARGET: attached original dish photograph. Preserve the exact ingredients, serving quantity, vessel, natural proportions and food identity. Restaurant scene: Aurora evening bar: charcoal stone tabletop, warm side light, restrained copper details and petroleum-teal linen far behind the serving, softly blurred dark bar. Never borrow food from another product.\n\nExtend the actual environment naturally above and below to all four image edges, with coherent perspective, materials, lighting and depth of field. One real continuous photograph. No inset panel, seams, horizontal bands, collage, duplicated blurry backdrop, text, UI or watermarks.\n\nTALL PROFILE: show the complete glass/bottle including garnish and base, at natural proportions, no more than 34% of canvas height, centered horizontally and around 39% down the canvas.\n\nKeep the complete serving inside x=4–96%, y=22–56%. Give it strong readable presence, with only a modest gap of tabletop below the serving before the lower-caption region. The bottom 40% continues the actual subdued tabletop; the upper region continues the venue. Preserve every edge of the serving. This is a repeatable composition, not a custom design. Output only the one portrait photograph.\nSTRICT OUTPUT: Do not add any signs, printed menus, brand cards, logos, labels, letters or readable text anywhere in the scene.",
+        "promptSha256": "ec7dff214a4cde4c48ec776c32a69f177eedf845024124c16a30a7eec4ed4e70"
+      }
+    }
+  ]
+}
