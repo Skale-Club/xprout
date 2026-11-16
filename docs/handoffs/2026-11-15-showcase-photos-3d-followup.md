@@ -5,6 +5,14 @@ This handoff records the revised owner scope and remaining 3D work.
 
 **CURRENT STATUS: photos published and verified on 2026-11-15. 3D is deferred to Claude.**
 
+**SCOPE CORRECTION — 2026-11-16:** The earlier 11-food count covered only new
+products and incorrectly omitted ten retained Bella Vista food dishes. The
+owner's approval of Bella Vista 3D applies to its visible food menu. The corrected
+baseline is **21 food models: 18 Bella Vista + three new Aurora**, plus the
+separate optional ceramic Espresso prototype. Reconcile current catalog/model
+state before generation: Claude may already have started some of these products.
+Do not regenerate an existing accepted model or include retired hidden products.
+
 The guarded transactions updated 31 Bella Vista products and eight Aurora products.
 All 20 new products are available; exactly eight replaced Bella Vista products are
 hidden, not deleted. Bella Vista has 23 visible items and Aurora 28. Readback
@@ -27,8 +35,9 @@ translations, were preserved. No new model was assigned.
   derivative. The final 78 WebP images total 6,633,966 bytes; each is at most
   1200px and 102,400 bytes. Local component review captured 195 final screenshots
   and 117 feed viewports; the corrected orange-juice portrait was recaptured.
-- Food model scope is **11 dishes**: eight Bella Vista, including Affogato, and
-  three Aurora. Use the final approved main image for the matching product only.
+- Food model scope is **21 dishes**: 18 visible Bella Vista foods, including
+  Affogato, and three new Aurora foods. Use the final approved main image for the
+  matching product only. The former 11 count was an incomplete new-products list.
 - An opaque ceramic espresso prototype script and README were authored at
   `output/demo-menus-2026-11-15/build-showcase-drinks.py` and
   `output/demo-menus-2026-11-15/README-showcase-drinks.md`. They were syntax checked,
@@ -68,10 +77,12 @@ latest handoff reported normal mode with approximately **2.6 GB free**; that is 
 point-in-time observation, not permission to skip a fresh machine check. Run one
 bounded model operation at a time on this machine. Preserve unrelated sessions.
 
-## Remaining food models
+## Food model baseline — 21 products
 
 All IDs below come from this batch's `jobs.json`. These main photos were published
 and hash verified; resolve the exact public URL and hash from the final manifest.
+This is the scope baseline, not a claim that 21 models remain unfinished after
+Claude's subsequent work. Check current assignments and local artifacts first.
 
 | Tenant | Product / ID | Expected local main source under the working directory |
 | --- | --- | --- |
@@ -83,6 +94,16 @@ and hash verified; resolve the exact public URL and hash from the final manifest
 | Bella Vista | Cotoletta alla Milanese — `a3fcb51e-95c8-4bf9-8997-e56dba100ca9` | `bella-vista/main/cotoletta-alla-milanese.webp` |
 | Bella Vista | Affogato al Caffè — `d29a20e0-e3b3-4b15-b929-56653da0da76` | `bella-vista/main/affogato-al-caffe.webp` |
 | Bella Vista | Torta della Nonna — `e4bf8748-e37f-4e7f-88a1-a961da9f5be1` | `bella-vista/main/torta-della-nonna.webp` |
+| Bella Vista | Bistecca alla Fiorentina — `75eee63e-de22-4344-9354-377aa574080e` | `bella-vista/main/bistecca-alla-fiorentina.webp` |
+| Bella Vista | Spaghetti Carbonara — `7ef3a31c-b457-41c6-8128-aad3110a8139` | `bella-vista/main/spaghetti-carbonara.webp` |
+| Bella Vista | Burrata & Prosciutto — `835e7a79-7391-4a06-a6b8-f971aaf72bee` | `bella-vista/main/burrata-prosciutto.webp` |
+| Bella Vista | Tagliatelle al Ragu — `28bd2bf3-2aaf-4b62-b761-9e580645c857` | `bella-vista/main/tagliatelle-al-ragu.webp` |
+| Bella Vista | Panna Cotta — `8112e689-061c-45d9-9a21-12108b80a882` | `bella-vista/main/panna-cotta.webp` |
+| Bella Vista | Penne Arrabbiata — `fa916e25-06f0-42db-81ea-4e875d0955c3` | `bella-vista/main/penne-arrabbiata.webp` |
+| Bella Vista | Calamari Fritti — `d29392e9-180b-4331-94ba-972f1f33e982` | `bella-vista/main/calamari-fritti.webp` |
+| Bella Vista | Cannoli Siciliani — `759f88d9-c89d-4392-89e0-0885b2313bba` | `bella-vista/main/cannoli-siciliani.webp` |
+| Bella Vista | Lobster Ravioli — `05f8c785-ad01-4234-a8a8-700ce3434b6d` | `bella-vista/main/lobster-ravioli.webp` |
+| Bella Vista | Parmigiana di Melanzane — `69f5e3b7-0caa-4abb-8f36-597fed51436d` | `bella-vista/main/parmigiana-di-melanzane.webp` |
 | Aurora | Truffle Parmesan Fries — `9b73274f-bc5b-4932-9cba-14b5a9f70511` | `aurora/main/truffle-parmesan-fries.webp` |
 | Aurora | Pão de Queijo — `e94062af-1897-4150-8783-850628a0aefd` | `aurora/main/pao-de-queijo.webp` |
 | Aurora | Crispy Chicken Wings — `fc29487c-526d-4f63-a5d4-8e737c251185` | `aurora/main/crispy-chicken-wings.webp` |
@@ -106,6 +127,8 @@ Use `scripts/ar/review-scene.py` and preserve the established AR export checks.
 ## Excluded glass/bottle models
 
 These products remain in the photo batch. The exclusion concerns 3D only.
+The retained Bella Vista Aperol Spritz is also a glass drink and stays excluded;
+the following table enumerates the eight **new** excluded products only.
 
 | Tenant | Product | Product ID |
 | --- | --- | --- |
