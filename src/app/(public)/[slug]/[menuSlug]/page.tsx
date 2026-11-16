@@ -6,6 +6,8 @@ export const revalidate = 60
 import { notFound, permanentRedirect } from 'next/navigation'
 import { sanitizeTenantForClient } from '@/lib/tenant-public'
 import MenuPage from '@/components/menu/MenuPage'
+import { formatWeekday, getMenuCopy } from '@/components/menu/menu-i18n'
+import { withBranchPublicFacts } from '@/lib/menu/branch-public-facts'
 import TenantPageView from '@/components/pages/TenantPageView'
 import { loadPublicPageTarget, pageMetadata } from '@/lib/pages/public-page'
 import { loadPublicPageNav } from '@/lib/data/tenant-pages-runtime'
@@ -196,10 +198,13 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
   // The session check ran in loadPublicMenuData (checkPrivateAccess).
   const privateAuthed = isPrivate && data.privateAccess
   const directionsUrl = location ? branchDirectionsUrl(location) : null
+  const branchLanguage = lang ?? site?.lang ?? tenant.tenant_settings?.language ?? 'en'
+  const branchCopy = getMenuCopy(branchLanguage)
+  const weekdays: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 }
 
   const menuPageEl = (
     <MenuPage
-      tenant={sanitizeTenantForClient(tenant)}
+      tenant={sanitizeTenantForClient(location ? withBranchPublicFacts(tenant, location) : tenant)}
       categories={categories ?? []}
       products={displayProducts}
       menu={menu}
@@ -239,10 +244,10 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
           {(location.address || location.city) && <p>{[location.address, location.city, location.region, location.postal_code, location.country].filter(Boolean).join(', ')}</p>}
           {location.phone && <p><a href={`tel:${location.phone.replace(/[^+\d]/g, '')}`} className="underline underline-offset-4">{location.phone}</a></p>}
         </address>
-        {location.business_hours && <dl className="mt-5 grid max-w-md grid-cols-2 gap-2 text-sm text-zinc-700">{Object.entries(location.business_hours).filter(([, hours]) => typeof hours === 'string' && hours.trim()).map(([day, hours]) => <div key={day} className="contents"><dt className="font-medium">{({ mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' } as Record<string, string>)[day] ?? day}</dt><dd>{String(hours)}</dd></div>)}</dl>}
+        {location.business_hours && <dl className="mt-5 grid max-w-md grid-cols-2 gap-2 text-sm text-zinc-700">{Object.entries(location.business_hours).filter(([, hours]) => typeof hours === 'string' && hours.trim()).map(([day, hours]) => <div key={day} className="contents"><dt className="font-medium capitalize">{weekdays[day] === undefined ? day : formatWeekday(weekdays[day], branchLanguage)}</dt><dd>{String(hours)}</dd></div>)}</dl>}
         <div className="mt-5 flex flex-wrap gap-4 text-sm font-semibold">
-          {directionsUrl && <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Directions and map</a>}
-          <a href="#branch-menu" className="underline underline-offset-4">View menu</a>
+          {directionsUrl && <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">{branchCopy.pageOpenMaps}</a>}
+          <a href="#branch-menu" className="underline underline-offset-4">{branchCopy.pageViewMenu}</a>
         </div>
       </section>}
       <div id="branch-menu" />

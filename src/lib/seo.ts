@@ -343,11 +343,10 @@ export function buildBranchJsonLd(
     url: branchUrl,
     menu: branchUrl,
     hasMenu: branchUrl,
-    branchOf: {
-      '@type': 'Restaurant',
-      '@id': restaurantEntityId(parentUrl),
-    },
-    parentOrganization: { '@type': 'Restaurant', '@id': restaurantEntityId(parentUrl) },
+    // Reference the parent's canonical entity without declaring an incomplete
+    // second Restaurant on this page (Google requires its own name/address).
+    branchOf: { '@id': restaurantEntityId(parentUrl) },
+    parentOrganization: { '@id': restaurantEntityId(parentUrl) },
   }
 
   if (location.phone) ld.telephone = location.phone

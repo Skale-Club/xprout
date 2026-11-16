@@ -73,6 +73,8 @@ describe('complete factual Restaurant structured data', () => {
       'https://pizza.com/downtown', 'https://pizza.com', { acceptsReservations: true, reservationUrl: settings.reservation_url, specialHours: settings.special_hours })
     expect(ld).toMatchObject({ '@id': 'https://pizza.com/downtown#restaurant',
       parentOrganization: { '@id': 'https://pizza.com#restaurant' }, acceptsReservations: settings.reservation_url })
+    expect(ld).toHaveProperty('branchOf', { '@id': 'https://pizza.com#restaurant' })
+    expect(ld).toHaveProperty('parentOrganization', { '@id': 'https://pizza.com#restaurant' })
   })
 })
 
