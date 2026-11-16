@@ -53,6 +53,7 @@ import {
 } from './menu-session'
 import BottomSheet from '@/components/ui/BottomSheet'
 import LanguagePicker from './LanguagePicker'
+import { findDishByParam, readDishParam, withDishParam } from '@/lib/menu/dish-link'
 import { dishFeature, dishTagOptions, filterByDishTags } from '@/lib/menu/dish-tags'
 import DishFeaturePill from './DishFeaturePill'
 import { ui } from './menu-ui'
@@ -888,6 +889,29 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   }, [restored, screenKey, cartOpen, checkoutOpen, selectedProduct, feedIndex, customerName, customerPhone, orderType,
     deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, tipCents, defaultOrderType,
     orderSuccess, orderId, confirmedCart])
+
+  // Shareable dish link: ?dish=<id> opens that dish once (unknown ids are
+  // ignored and dropped); while a dish is open the URL carries its id.
+  const dishLinkChecked = useRef(false)
+  useEffect(() => {
+    if (!restored) return
+    if (!dishLinkChecked.current) {
+      dishLinkChecked.current = true
+      const linked = findDishByParam(products, readDishParam(window.location.search))
+      if (linked) {
+        openProduct(linked, 'detail')
+        return
+      }
+    }
+    try {
+      const next = withDishParam(window.location.href, selectedProduct?.id ?? null)
+      if (next !== window.location.href) window.history.replaceState(window.history.state, '', next)
+    } catch {
+      // URL sync is best-effort
+    }
+    // openProduct only sets state; products are stable for a page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restored, selectedProduct])
 
   // The cart drawer's actual on-screen visibility (CartPanel uses the same
   // `cartOpen && !checkoutOpen`); the chat widget steps aside while it is open.

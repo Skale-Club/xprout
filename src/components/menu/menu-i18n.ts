@@ -101,7 +101,7 @@ export function fill(template: string, vars: Record<string, string | number>): s
 
 export interface MenuCopy {
   // Navigation
-  dietFilter: string; clearFilters: string
+  dietFilter: string; clearFilters: string; share: string; linkCopied: string
   search: string; searchOpen: string; searchClose: string; featured: string; other: string
   noItems: string; tryAnother: string; viewFeed: string; viewMenu: string; language: string
   feedEmptyTitle: string; feedEmptyDescription: string
@@ -155,7 +155,7 @@ export interface MenuCopy {
 }
 
 const en: MenuCopy = {
-  dietFilter: 'Dietary filters', clearFilters: 'Clear filters',
+  dietFilter: 'Dietary filters', clearFilters: 'Clear filters', share: 'Share', linkCopied: 'Link copied',
   search: 'Search the menu', searchOpen: 'Search the menu', searchClose: 'Close search', featured: 'Featured', other: 'Other',
   noItems: 'Nothing found', tryAnother: 'Try a different word', viewFeed: 'View feed', viewMenu: 'Menu', language: 'Language',
   feedEmptyTitle: 'The visual feed is on its way', feedEmptyDescription: 'Browse the full menu to see every dish.',
@@ -220,7 +220,7 @@ const en: MenuCopy = {
 }
 
 const pt: MenuCopy = {
-  dietFilter: 'Filtros alimentares', clearFilters: 'Limpar filtros',
+  dietFilter: 'Filtros alimentares', clearFilters: 'Limpar filtros', share: 'Compartilhar', linkCopied: 'Link copiado',
   search: 'Buscar no cardápio', searchOpen: 'Buscar no cardápio', searchClose: 'Fechar busca', featured: 'Destaques', other: 'Outros',
   noItems: 'Nada encontrado', tryAnother: 'Tente outra palavra', viewFeed: 'Ver feed', viewMenu: 'Cardápio', language: 'Idioma',
   feedEmptyTitle: 'O feed visual está a caminho', feedEmptyDescription: 'Veja o cardápio completo para conhecer todos os pratos.',
@@ -285,7 +285,7 @@ const pt: MenuCopy = {
 }
 
 const es: MenuCopy = {
-  dietFilter: 'Filtros de dieta', clearFilters: 'Quitar filtros',
+  dietFilter: 'Filtros de dieta', clearFilters: 'Quitar filtros', share: 'Compartir', linkCopied: 'Enlace copiado',
   search: 'Buscar en el menú', searchOpen: 'Buscar en el menú', searchClose: 'Cerrar búsqueda', featured: 'Destacados', other: 'Otros',
   noItems: 'No encontramos nada', tryAnother: 'Prueba con otra palabra', viewFeed: 'Ver feed', viewMenu: 'Menú', language: 'Idioma',
   feedEmptyTitle: 'El feed visual está en camino', feedEmptyDescription: 'Mira el menú completo para ver todos los platos.',
@@ -350,7 +350,7 @@ const es: MenuCopy = {
 }
 
 const fr: MenuCopy = {
-  dietFilter: 'Filtres alimentaires', clearFilters: 'Effacer les filtres',
+  dietFilter: 'Filtres alimentaires', clearFilters: 'Effacer les filtres', share: 'Partager', linkCopied: 'Lien copié',
   search: 'Rechercher dans le menu', searchOpen: 'Rechercher dans le menu', searchClose: 'Fermer la recherche', featured: 'À la une', other: 'Autres',
   noItems: 'Aucun résultat', tryAnother: 'Essayez un autre mot', viewFeed: 'Voir le feed', viewMenu: 'Menu', language: 'Langue',
   feedEmptyTitle: 'Le feed visuel arrive bientôt', feedEmptyDescription: 'Parcourez le menu complet pour voir tous les plats.',
@@ -415,7 +415,7 @@ const fr: MenuCopy = {
 }
 
 const de: MenuCopy = {
-  dietFilter: 'Ernährungsfilter', clearFilters: 'Filter löschen',
+  dietFilter: 'Ernährungsfilter', clearFilters: 'Filter löschen', share: 'Teilen', linkCopied: 'Link kopiert',
   search: 'Speisekarte durchsuchen', searchOpen: 'Speisekarte durchsuchen', searchClose: 'Suche schließen', featured: 'Empfehlungen', other: 'Weiteres',
   noItems: 'Nichts gefunden', tryAnother: 'Versuchen Sie ein anderes Wort', viewFeed: 'Feed ansehen', viewMenu: 'Speisekarte', language: 'Sprache',
   feedEmptyTitle: 'Der visuelle Feed kommt bald', feedEmptyDescription: 'In der vollständigen Speisekarte finden Sie alle Gerichte.',
@@ -480,7 +480,7 @@ const de: MenuCopy = {
 }
 
 const it: MenuCopy = {
-  dietFilter: 'Filtri alimentari', clearFilters: 'Cancella filtri',
+  dietFilter: 'Filtri alimentari', clearFilters: 'Cancella filtri', share: 'Condividi', linkCopied: 'Link copiato',
   search: 'Cerca nel menu', searchOpen: 'Cerca nel menu', searchClose: 'Chiudi ricerca', featured: 'In evidenza', other: 'Altro',
   noItems: 'Nessun risultato', tryAnother: "Prova con un'altra parola", viewFeed: 'Vedi feed', viewMenu: 'Menu', language: 'Lingua',
   feedEmptyTitle: 'Il feed visivo è in arrivo', feedEmptyDescription: 'Sfoglia il menu completo per vedere tutti i piatti.',
@@ -545,7 +545,7 @@ const it: MenuCopy = {
 }
 
 const nl: MenuCopy = {
-  dietFilter: 'Dieetfilters', clearFilters: 'Filters wissen',
+  dietFilter: 'Dieetfilters', clearFilters: 'Filters wissen', share: 'Delen', linkCopied: 'Link gekopieerd',
   search: 'Zoeken in het menu', searchOpen: 'Zoeken in het menu', searchClose: 'Zoeken sluiten', featured: 'Aanraders', other: 'Overig',
   noItems: 'Niets gevonden', tryAnother: 'Probeer een ander woord', viewFeed: 'Bekijk feed', viewMenu: 'Menu', language: 'Taal',
   feedEmptyTitle: 'De visuele feed komt eraan', feedEmptyDescription: 'Bekijk het volledige menu voor alle gerechten.',
@@ -610,7 +610,7 @@ const nl: MenuCopy = {
 }
 
 const pl: MenuCopy = {
-  dietFilter: 'Filtry żywieniowe', clearFilters: 'Wyczyść filtry',
+  dietFilter: 'Filtry żywieniowe', clearFilters: 'Wyczyść filtry', share: 'Udostępnij', linkCopied: 'Skopiowano link',
   search: 'Szukaj w menu', searchOpen: 'Szukaj w menu', searchClose: 'Zamknij wyszukiwanie', featured: 'Polecane', other: 'Inne',
   noItems: 'Nic nie znaleziono', tryAnother: 'Spróbuj innego słowa', viewFeed: 'Zobacz feed', viewMenu: 'Menu', language: 'Język',
   feedEmptyTitle: 'Feed wizualny wkrótce', feedEmptyDescription: 'Przejrzyj pełne menu, aby zobaczyć wszystkie dania.',
@@ -675,7 +675,7 @@ const pl: MenuCopy = {
 }
 
 const tr: MenuCopy = {
-  dietFilter: 'Diyet filtreleri', clearFilters: 'Filtreleri temizle',
+  dietFilter: 'Diyet filtreleri', clearFilters: 'Filtreleri temizle', share: 'Paylaş', linkCopied: 'Bağlantı kopyalandı',
   search: 'Menüde ara', searchOpen: 'Menüde ara', searchClose: 'Aramayı kapat', featured: 'Öne çıkanlar', other: 'Diğer',
   noItems: 'Sonuç bulunamadı', tryAnother: 'Başka bir kelime deneyin', viewFeed: 'Akışı gör', viewMenu: 'Menü', language: 'Dil',
   feedEmptyTitle: 'Görsel akış hazırlanıyor', feedEmptyDescription: 'Tüm yemekleri görmek için menünün tamamına göz atın.',
@@ -740,7 +740,7 @@ const tr: MenuCopy = {
 }
 
 const ru: MenuCopy = {
-  dietFilter: 'Фильтры по диете', clearFilters: 'Сбросить фильтры',
+  dietFilter: 'Фильтры по диете', clearFilters: 'Сбросить фильтры', share: 'Поделиться', linkCopied: 'Ссылка скопирована',
   search: 'Поиск по меню', searchOpen: 'Поиск по меню', searchClose: 'Закрыть поиск', featured: 'Рекомендуем', other: 'Другое',
   noItems: 'Ничего не найдено', tryAnother: 'Попробуйте другое слово', viewFeed: 'Смотреть ленту', viewMenu: 'Меню', language: 'Язык',
   feedEmptyTitle: 'Визуальная лента скоро появится', feedEmptyDescription: 'Откройте полное меню, чтобы увидеть все блюда.',
@@ -805,7 +805,7 @@ const ru: MenuCopy = {
 }
 
 const hi: MenuCopy = {
-  dietFilter: 'आहार फ़िल्टर', clearFilters: 'फ़िल्टर हटाएँ',
+  dietFilter: 'आहार फ़िल्टर', clearFilters: 'फ़िल्टर हटाएँ', share: 'शेयर करें', linkCopied: 'लिंक कॉपी हुआ',
   search: 'मेन्यू में खोजें', searchOpen: 'मेन्यू में खोजें', searchClose: 'खोज बंद करें', featured: 'ख़ास पसंद', other: 'अन्य',
   noItems: 'कुछ नहीं मिला', tryAnother: 'कोई दूसरा शब्द आज़माएँ', viewFeed: 'फ़ीड देखें', viewMenu: 'मेन्यू', language: 'भाषा',
   feedEmptyTitle: 'विज़ुअल फ़ीड जल्द आ रहा है', feedEmptyDescription: 'सभी व्यंजन देखने के लिए पूरा मेन्यू देखें।',
@@ -870,7 +870,7 @@ const hi: MenuCopy = {
 }
 
 const ja: MenuCopy = {
-  dietFilter: '食事の条件', clearFilters: '絞り込みを解除',
+  dietFilter: '食事の条件', clearFilters: '絞り込みを解除', share: '共有', linkCopied: 'リンクをコピーしました',
   search: 'メニューを検索', searchOpen: 'メニューを検索', searchClose: '検索を閉じる', featured: 'おすすめ', other: 'その他',
   noItems: '見つかりませんでした', tryAnother: '別のキーワードでお試しください', viewFeed: 'フィードを見る', viewMenu: 'メニュー', language: '言語',
   feedEmptyTitle: 'ビジュアルフィードは準備中です', feedEmptyDescription: 'すべての料理はメニューからご覧いただけます。',
@@ -935,7 +935,7 @@ const ja: MenuCopy = {
 }
 
 const ko: MenuCopy = {
-  dietFilter: '식단 필터', clearFilters: '필터 지우기',
+  dietFilter: '식단 필터', clearFilters: '필터 지우기', share: '공유', linkCopied: '링크 복사됨',
   search: '메뉴 검색', searchOpen: '메뉴 검색', searchClose: '검색 닫기', featured: '추천 메뉴', other: '기타',
   noItems: '검색 결과가 없습니다', tryAnother: '다른 단어로 검색해 보세요', viewFeed: '피드 보기', viewMenu: '메뉴', language: '언어',
   feedEmptyTitle: '비주얼 피드를 준비 중입니다', feedEmptyDescription: '전체 메뉴에서 모든 요리를 확인하세요.',
@@ -1000,7 +1000,7 @@ const ko: MenuCopy = {
 }
 
 const zh: MenuCopy = {
-  dietFilter: '饮食筛选', clearFilters: '清除筛选',
+  dietFilter: '饮食筛选', clearFilters: '清除筛选', share: '分享', linkCopied: '链接已复制',
   search: '搜索菜单', searchOpen: '搜索菜单', searchClose: '关闭搜索', featured: '推荐', other: '其他',
   noItems: '没有找到相关菜品', tryAnother: '试试其他关键词', viewFeed: '查看动态', viewMenu: '菜单', language: '语言',
   feedEmptyTitle: '图片浏览即将上线', feedEmptyDescription: '可在完整菜单中查看所有菜品。',
@@ -1065,7 +1065,7 @@ const zh: MenuCopy = {
 }
 
 const zhTW: MenuCopy = {
-  dietFilter: '飲食篩選', clearFilters: '清除篩選',
+  dietFilter: '飲食篩選', clearFilters: '清除篩選', share: '分享', linkCopied: '連結已複製',
   search: '搜尋菜單', searchOpen: '搜尋菜單', searchClose: '關閉搜尋', featured: '推薦', other: '其他',
   noItems: '找不到相關餐點', tryAnother: '試試其他關鍵字', viewFeed: '查看動態', viewMenu: '菜單', language: '語言',
   feedEmptyTitle: '圖片瀏覽即將推出', feedEmptyDescription: '可在完整菜單中查看所有餐點。',
