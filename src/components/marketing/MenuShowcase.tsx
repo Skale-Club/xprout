@@ -6,7 +6,8 @@ import { DeliveryImage } from '@/components/delivery-image'
 
 const examples = [
   {
-    name: 'Photo menu', category: 'Photo-led menu', href: '/aurora',
+    // The demo store is Aurora; /demo redirects to it (src/app/demo/route.ts).
+    name: 'Photo menu', category: 'Photo-led menu', href: '/demo',
     title: 'A closer look, before the first bite.',
     description: 'Browse a photo-led menu and open the dish details, with selected dishes to explore from every angle in 3D.',
     image: '/marketing/v3/demo-photo-menu.webp',
