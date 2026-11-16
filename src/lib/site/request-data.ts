@@ -9,8 +9,8 @@ import type { RequestSite } from './request-contract'
 
 const DEFAULT_ID = '00000000-0000-4000-8000-000000000001'
 const GLOBAL = new Set(['api','auth','oauth','identity','checkout','onboarding','staff-access','_next','.well-known','monitoring','privacy','terms','demo'])
-const MARKETING = new Set(['','pricing','blog','robots.txt','sitemap.xml','sitemaps','llms.txt','manifest.webmanifest','opengraph-image','twitter-image','favicon.ico','icon.png','apple-icon.png'])
-const DISCOVERY = new Set(['robots.txt','sitemap.xml','sitemaps','llms.txt','manifest.webmanifest','opengraph-image','twitter-image','favicon.ico','icon.png','apple-icon.png'])
+const MARKETING = new Set(['','pricing','blog','robots.txt','sitemap.xml','sitemaps','llms.txt','manifest.webmanifest','opengraph-image','twitter-image','favicon.ico','icon.png','apple-icon.png','indexnow-key.txt'])
+const DISCOVERY = new Set(['robots.txt','sitemap.xml','sitemaps','llms.txt','manifest.webmanifest','opengraph-image','twitter-image','favicon.ico','icon.png','apple-icon.png','indexnow-key.txt'])
 
 async function pagePrivate(query: AdminMenuQuery, tenant: SeoTenant, pathname: string): Promise<boolean> {
   const prefix = `/${tenant.slug}`

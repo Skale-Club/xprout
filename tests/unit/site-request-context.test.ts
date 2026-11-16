@@ -44,6 +44,10 @@ describe('request site and routing snapshot', () => {
     expect((await readRequestSite(database(), 'unknown.example', '/')).indexable).toBe(false)
     expect(await readRequestSite(database({ privateMenu: true }), 'xprout.app', '/pizza')).toMatchObject({ privatePage: true, indexable: false })
   })
+  it('keeps IndexNow host proof out of company CMS routing', async () => {
+    expect(await readRequestSite(database({ partner: true, apex: true }), 'partner.example', '/indexnow-key.txt'))
+      .toMatchObject({ kind: 'brand-apex-tenant', rewrite: null, indexable: true })
+  })
   it('rejects malformed authority/path before the database', async () => {
     const query = database()
     await expect(readRequestSite(query, 'https://evil.test', '/')).rejects.toThrow('Invalid')
