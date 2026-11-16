@@ -1,6 +1,6 @@
 export const SITEMAP_HEADERS = {
   'Content-Type': 'application/xml; charset=utf-8',
-  'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=604800',
+  'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=60',
 } as const
 
 export const xmlEscape = (s: string) =>
@@ -9,7 +9,7 @@ export const xmlEscape = (s: string) =>
 /** Response for a failure that is expected to pass: retry later, never index it. Always logged. */
 export function sitemapUnavailable(scope: string, error: unknown): Response {
   console.error(`[sitemap] ${scope}:`, error)
-  return new Response('Service unavailable', { status: 503, headers: { 'Retry-After': '300', 'X-Robots-Tag': 'noindex' } })
+  return new Response('Service unavailable', { status: 503, headers: { 'Retry-After': '300', 'X-Robots-Tag': 'noindex', 'Cache-Control': 'no-store', Vary: 'Host' } })
 }
 
 export const sitemapIndexXml = (locs: string[]) =>

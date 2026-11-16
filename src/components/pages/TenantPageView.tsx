@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import TenantPublicFooter, { type FooterLink } from './TenantPublicFooter'
 import { ctaStyle, ui } from '@/components/menu/menu-ui'
 import { formatWeekday, getMenuCopy, localeFor } from '@/components/menu/menu-i18n'
 import PageContactForm from './PageContactForm'
@@ -155,12 +156,13 @@ function Section({ section, page, tenant, locations, lang, primary, foreground }
  * page's sections, and the other pages in the footer. Text is always rendered
  * escaped; nothing is embedded.
  */
-export default function TenantPageView({ tenant, settings, page, nav, lang, baseUrl }: {
+export default function TenantPageView({ tenant, settings, page, nav, lang, baseUrl, navigationLinks = [] }: {
   tenant: { name: string; slug: string }
-  settings: { logo_url?: string | null; primary_color?: string | null; accent_color?: string | null } | null
+  settings: { logo_url?: string | null; primary_color?: string | null; accent_color?: string | null; address?: string | null; city?: string | null; phone?: string | null } | null
   page: PublicPage
   nav: ReadonlyArray<{ slug: string; title: string }>
   lang: string
+  navigationLinks?: readonly FooterLink[]
   baseUrl?: string
 }) {
   const base = (baseUrl ?? `/${tenant.slug}`).replace(/\/$/, '')
@@ -196,18 +198,11 @@ export default function TenantPageView({ tenant, settings, page, nav, lang, base
         </div>
       </main>
 
-      <footer className="mt-8 border-t border-zinc-200/70">
-        <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8">
-          <nav aria-label={tenant.name}>
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">
-              <li><a href={base || '/'} className="text-zinc-900 underline-offset-2 hover:underline">{baseUrl !== undefined ? tenant.name : copy.pageViewMenu}</a></li>
-              {nav.map(link => (
-                <li key={link.slug}><a href={`${base}/${link.slug}`} className="text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline" {...(link.slug === page.slug ? { 'aria-current': 'page' as const } : {})}>{link.title}</a></li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </footer>
+      <TenantPublicFooter name={tenant.name} settings={settings} links={[
+        { title: baseUrl !== undefined ? tenant.name : copy.pageViewMenu, href: base || '/' },
+        ...navigationLinks,
+        ...nav.map(link => ({ title: link.title, href: `${base}/${link.slug}` })),
+      ]} />
     </div>
   )
 }

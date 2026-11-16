@@ -1,7 +1,7 @@
 /**
  * A restaurant on its own verified domain (EX-05): the menu at "/", its pages
  * under the root, platform routes (orders, checkout) reaching their handlers,
- * and the canonical domain indexable by default.
+ * and the canonical identity retained on a deliberately non-indexable .test host.
  */
 import { expect, test } from '@playwright/test'
 
@@ -14,9 +14,9 @@ test.describe('custom domain', () => {
     expect(response.status()).toBe(200)
     const html = await response.text()
     expect(html).toContain('Domain Burger')
-    // Its canonical is the custom domain, and it is not noindexed for having one.
+    // Canonical identity is retained; .test is a preview host and stays noindex.
     expect(html).toContain(`https://${HOST}`)
-    expect(html).not.toMatch(/<meta name="robots" content="noindex/)
+    expect(html).toMatch(/<meta name="robots" content="noindex/)
   })
 
   test('a menu slug under the root resolves', async ({ request }) => {
@@ -38,8 +38,9 @@ test.describe('custom domain', () => {
     expect(await response.text()).toContain('Order Not Found')
   })
 
-  test('robots.txt on the custom domain allows indexing', async ({ request }) => {
+  test('robots.txt on the synthetic .test domain blocks indexing', async ({ request }) => {
     const body = await (await request.get('/robots.txt', { headers })).text()
-    expect(body).toContain('Allow: /')
+    expect(body).toContain('Disallow: /')
+    expect(body).not.toContain('Sitemap:')
   })
 })

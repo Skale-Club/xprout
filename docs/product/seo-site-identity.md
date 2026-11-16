@@ -1,6 +1,7 @@
 # SEO site identity
 
-Status: Phase 1 foundation, local implementation on `feat/seo-site-resolution`.
+Status: full SEO implementation on `feat/seo-site-resolution`; release evidence is
+tracked in [the completion checkpoint](../plans/2026-11-16-seo-completion.md).
 This is part of [the SEO execution plan](../plans/2026-11-16-seo-local-white-label-plan.md).
 
 ## Identity and indexing
@@ -35,7 +36,9 @@ robots file has no Sitemap line. Discovery responses that vary by authority use
 
 `docs/owned-schema/20261116200000_site_identity.sql` and its Supabase counterpart
 add `brands` plus `tenants.brand_id`, `is_demo` and `published_at`. The Xprout brand
-is seeded with its current identity. No new partner route or UI is activated.
+is seeded with its current identity. Later local-SEO and apex migrations add the
+optional factual settings and brand company-site assignment; no partner or apex
+tenant is assigned automatically.
 
 The first application backfills existing publication dates, marking the known
 Aurora and Bella Vista demos unpublished/demo. Existing active restaurant creation
@@ -48,38 +51,41 @@ Before the schema exists, old tenants retain their existing publication semantic
 `published_at` is authoritative. An assigned unavailable brand is an error, never
 a silent Xprout fallback. Neither schema file was applied by this task.
 
+## Request context and cache
+
+Middleware strips caller-supplied context and resolves public identity using a
+bounded loopback-only endpoint. The context contains no session or credential.
+Root HTML is explicitly dynamic so language, brand and robots headers cannot
+cross host boundaries. Eligible anonymous HTML receives the short shared-cache
+policy; cookies, authorization, parameters, RSC/prefetch, private and account
+routes remain private/no-store. Context lookups have a bounded 1,000-entry cache,
+60-second success TTL and short failure TTL. Configuration changes expire within
+the documented context/data/edge freshness windows; they are not instant across
+all processes. See [the cache runbook](cloudflare-cache.md).
+
+Partner marketing and optional company CMS pages use their assigned canonical
+origin, entities, icons, manifest, social image, analytics, login display and
+public attribution. Global identity/payment/API routes retain priority. Default
+platform marketing remains the fallback when its optional CMS home is absent;
+a partner uses a factual generic home. Missing explicit content remains 404.
+
+Tenant blog, menu, branch, dish and website discovery shares publication/privacy
+gates and plan entitlements. Empty platform blogs are excluded from discovery.
+Local fields and dish pages are documented in [local discovery](local-seo.md),
+and optional production-only effects in [the delivery contract](seo-conventions.md).
+
 ## Validation and limits
 
-Focused Vitest covers six resolver modes, malicious/alias/preview hosts, lifecycle
-flags, private menus and branches, metadata, robots and sitemaps, owned/legacy
-boundaries and schema-before-code compatibility. Tests run serially with one worker
-and bounded Node heap on the Surface. Scoped ESLint and `git diff --check` also run.
-Final validation: 197 tests passed across 11 focused files in 9.4 seconds, using
-one worker and a 256 MiB parent heap. Scoped ESLint finished with zero errors
-(19 pre-existing warnings across older menu/test code); the final changed-core
-lint run had no warnings. `git diff --check` passed. Estimated delivery was 12:25
-(about 45 minutes); implementation and local verification finished around 12:02
-(about 28 minutes), followed by Journal recording.
+Focused tests cover identity, private content, publication, metadata, discovery,
+local settings, safe cache, partner attribution, company fallback and media
+budgets. They run serially on the Surface with a bounded Node heap. Full build,
+TypeScript, PostgreSQL 17 migration/idempotence, API/browser screenshots and the
+live preview verifier run in GitHub Actions. The completion checkpoint records
+actual CI and production results; authoring a test does not prove it passed.
 
-The schema operator's offline tests passed (five); six database tests, including
-the new identity migration test, require the disposable PostgreSQL CI fixture and
-were skipped locally. The new database test applies the migration twice, verifies
-demo/publication backfill, preserves a later unpublish, checks the existing
-onboarding default, runtime privileges and the brand foreign key.
-
-Full TypeScript/build, browser, PostgreSQL and full-suite validation must run in CI
-or on the desktop. No server/build/browser was started on the critical-memory
-Surface. This task does not prove a deployed SHA or indexing in Search Console.
-
-## Remaining Phase 1 work
-
-- Set root HTML `lang` without accidentally making all marketing pages dynamic.
-- Add the corresponding dynamic HTML `X-Robots-Tag` contract.
-- Migrate brand-wide icons, manifests, OG generation and analytics to site identity.
-- Activate partner-host routing only with the later white-label integration.
-- Add tenant blog posts to sitemaps with plan and native/legacy publication gates.
-- Validate the prepared schema and full application in CI before release; apply
-  schema/backfill and verify public responses only with release authorization.
-
-Local SEO enhancements, dish pages, edge caching and company-as-tenant rendering
-remain separate later phases. Nothing here changes Cloudflare or production data.
+Schema execution and public/CDN behavior must be verified after the reviewed
+release. Custom-domain Search Console verification, real Rich Results Test
+results and eventual search indexing remain distinct from local markup checks.
+Hreflang awaits a real multilingual tenant; sibling adoption uses separate
+sessions. Existing media-policy gaps and historical dish slug redirects are not
+certified by this implementation.

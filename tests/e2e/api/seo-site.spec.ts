@@ -27,7 +27,7 @@ test.beforeAll(async () => {
     { id: demoId, slug: `demo-${token}`, name: 'Unpublished synthetic demo', is_active: true, is_demo: true, published_at: null },
     { id: partnerTenantId, slug: partnerSlug, name: 'Partner Restaurant', brand_id: brandId, is_active: true, is_demo: false, published_at: '2026-01-01T00:00:00Z' },
     { id: companyTenantId, slug: companySlug, name: partnerName, brand_id: brandId, business_kind: 'software', is_active: true, is_demo: false, published_at: '2026-01-01T00:00:00Z' },
-  ]))
+  ].map(row => ({ business_kind: 'restaurant', ...row }))))
   checked(await db().from('tenant_settings').insert({ tenant_id: tenantId, language: 'pt', currency: 'USD', visual_feed_enabled: false, menu_default_view: 'list',
     address: '10 Example Street', city: 'Example City', phone: '+1 212 555 0100', business_hours: { mon: '09:00-21:00' }, seo_noindex: false,
     orders_enabled: false, direct_orders_enabled: false, logo_url: '/brands/aurora-kitchen-bar/logo.webp' }))
@@ -60,6 +60,7 @@ test('raw tenant SSR has canonical identity, language, Restaurant data and crawl
   expect(canonical(html)).toBe(`https://${host}`)
   expect(html).toMatch(/<html[^>]+lang=["']pt(?:-BR)?["']/i)
   expect(html).toContain(`${host}#restaurant`)
+  expect(html).not.toMatch(/<meta name="robots" content="noindex/)
   expect(html).toMatch(/"@type"\s*:\s*"Restaurant"/)
   expect(html).toContain('10 Example Street')
   expect(html).toContain(`/dinner/${dish}`)

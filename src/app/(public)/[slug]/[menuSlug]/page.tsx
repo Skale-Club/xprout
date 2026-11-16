@@ -111,6 +111,8 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
     const pageSettings = target.tenant.tenant_settings as any
     const site = await loadTenantSite(slug, `/${slug}/${menuSlug}`)
     const pageCanonical = site?.canonicalUrl ?? getCanonicalUrl(target.tenant, `/${menuSlug}`)
+    const pageBaseUrl = site?.baseUrl ?? getCanonicalUrl(target.tenant, '/')
+    const pageNavigation = await loadLocalNavigation(target.tenant.id, pageBaseUrl)
     return (
       <>
         <JsonLdScript data={buildBreadcrumbJsonLd([
@@ -122,6 +124,8 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
           settings={pageSettings}
           page={target.page}
           nav={target.nav}
+          navigationLinks={pageNavigation}
+          baseUrl={pageBaseUrl}
           lang={lang ?? pageSettings?.language ?? 'en'}
         />
       </>

@@ -1,4 +1,4 @@
-import { BRAND_URL } from '@/lib/brand'
+import { loadTenantSite } from '@/lib/site/runtime'
 import {nativeBlogSelected} from '@/lib/blog/native/selected'
 import { createServiceClient } from '@/lib/supabase/server'
 import { buildFeedXml } from '@/lib/blog/feed'
@@ -6,17 +6,15 @@ import { listPublishedPosts } from '@/lib/blog/public-queries'
 import { resolveTenantBlog } from '@/lib/blog/tenant-blog-gate'
 
 /** O feed do blog de UM restaurante. */
-export const revalidate = 3600
-
-function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? BRAND_URL).replace(/\/+$/, '')
-}
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ): Promise<Response> {
   const { slug } = await params
+  const site = await loadTenantSite(slug, `/${slug}/blog/rss.xml`)
+  if (!site?.indexable) return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', Vary: 'Host' } })
 
   // O mesmo portão das páginas: existe, está ativo, e o plano carrega a
   // capacidade. Um feed não pode ser a porta das traseiras de uma
@@ -30,9 +28,9 @@ export async function GET(
     buildFeedXml({
       title: `Blog | ${blog.name}`,
       description: `Novidades e histórias do ${blog.name}.`,
-      blogUrl: `${siteUrl()}/${slug}/blog`,
+      blogUrl: `${site.baseUrl}/blog`,
       posts,
     }),
-    { headers: { 'Content-Type': 'application/rss+xml; charset=utf-8' } },
+    { headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=0, s-maxage=300', Vary: 'Host' } },
   )
 }

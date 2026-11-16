@@ -7,7 +7,8 @@ import { loadSiteIdentity } from '@/lib/site/runtime'
 import { tenantSitemapCatalog } from '@/lib/data/public-seo'
 import { loadTenantDiscoveryExtras } from '@/lib/site/discovery-extras'
 
-export const revalidate = 300
+// Host authority must never be cached by pathname alone.
+export const dynamic = 'force-dynamic'
 
 const entry = (url: string, lastModified?: string | null, priority = 0.8): SitemapUrl => ({ url, lastModified: lastModified ?? undefined, priority })
 

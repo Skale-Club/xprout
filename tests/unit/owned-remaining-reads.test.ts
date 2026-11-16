@@ -309,7 +309,7 @@ describe('tenant sitemap on the owned database', () => {
     const { GET } = await import('@/app/(public)/[slug]/sitemap.xml/route')
     const res = await GET(new Request('https://xprout.app/aurora/sitemap.xml'), { params: Promise.resolve({ slug: 'aurora' }) })
     expect(res.status).toBe(200)
-    expect(res.headers.get('cache-control')).toContain('s-maxage=3600')
+    expect(res.headers.get('cache-control')).toContain('s-maxage=300')
     const menuSql = sql.find(text => text.includes('FROM public.menus')) ?? ''
     expect(menuSql).not.toContain('updated_at')
     const xml = await res.text()

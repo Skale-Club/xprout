@@ -12,6 +12,7 @@ import { siteRobots } from '@/lib/site/indexability'
 import { buildBreadcrumbJsonLd, toPublicAssetUrl } from '@/lib/seo'
 import { computePrimaryForeground, safeCssColor } from '@/lib/color-utils'
 import { BRAND_PRIMARY } from '@/lib/brand'
+import TenantSiteFooter from '@/components/pages/TenantSiteFooter'
 
 type Props = { params: Promise<{ slug: string; menuSlug: string; dishSlug: string }> }
 
@@ -47,7 +48,7 @@ export default async function DishPage({ params }: Props) {
   const accent = safeCssColor(settings?.accent_color ?? '#18181b')
   const currency = settings?.currency ?? 'USD'
   const copy = getGuestCopy(site.lang)
-  return <main className="mx-auto max-w-5xl px-5 py-8 sm:px-8" style={{ '--primary': primary, '--primary-foreground': computePrimaryForeground(primary) } as React.CSSProperties}>
+  return <div className="menu-root"><main className="mx-auto max-w-5xl px-5 py-8 sm:px-8" style={{ '--primary': primary, '--primary-foreground': computePrimaryForeground(primary) } as React.CSSProperties}>
     <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap gap-3 text-sm text-zinc-600">
       <a href={site.baseUrl} className="underline-offset-4 hover:underline">{tenant.name}</a><span aria-hidden="true">/</span>
       <a href={menuUrl} className="underline-offset-4 hover:underline">{menu.name}</a>
@@ -65,5 +66,5 @@ export default async function DishPage({ params }: Props) {
         <a href={menuUrl} className="inline-flex min-h-11 items-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground">{menu.name}</a>
       </div>
     </article>
-  </main>
+  </main><TenantSiteFooter tenant={tenant} settings={settings} baseUrl={site.baseUrl} links={[{ title: menu.name, href: menuUrl }]} /></div>
 }

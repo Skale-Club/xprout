@@ -3,7 +3,8 @@ import { loadSiteIdentity } from '@/lib/site/runtime'
 import { resolveSite } from '@/lib/site/resolve-site'
 import { siteRobotsText } from '@/lib/site/indexability'
 
-export const revalidate = 300
+// Host authority must never be cached by pathname alone.
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params

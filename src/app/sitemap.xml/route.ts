@@ -5,7 +5,8 @@ import { resolveSite } from '@/lib/site/resolve-site'
 import { legacySiteTenant, LEGACY_SITE_COLUMNS, missingSiteColumns } from '@/lib/site/runtime'
 import { discoveryRequestSite } from '@/lib/site/discovery-request'
 
-export const revalidate = 300
+// Host authority must never be cached by pathname alone.
+export const dynamic = 'force-dynamic'
 
 async function sitemapTenants() {
   if (ownedModeActive()) {

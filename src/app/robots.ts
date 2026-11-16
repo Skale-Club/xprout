@@ -4,6 +4,8 @@ import { loadSiteBrand } from '@/lib/site/runtime'
 import { resolveSite } from '@/lib/site/resolve-site'
 import { parseRequestSite, SITE_CONTEXT_HEADER } from '@/lib/site/request-contract'
 
+export const dynamic = 'force-dynamic'
+
 // Platform-host robots.txt. Custom domains are rewritten by the middleware to
 // the per-tenant `/[slug]/robots.txt` route, so this file only governs the
 // platform domain itself.

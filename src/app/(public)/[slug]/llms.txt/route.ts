@@ -11,3 +11,4 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     return discoveryTextResponse(await siteLlmsText(site))
   } catch { return new Response('Service unavailable', { status: 503, headers: { 'Retry-After': '300', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', Vary: 'Host' } }) }
 }
+export const dynamic = 'force-dynamic'

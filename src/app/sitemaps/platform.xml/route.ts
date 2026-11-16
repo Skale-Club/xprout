@@ -8,7 +8,8 @@ import { ownedModeActive } from '@/lib/data/owned-mode'
 import { SITEMAP_HEADERS, sitemapUnavailable, urlsetXml, type SitemapUrl } from '@/lib/sitemap-xml'
 import { discoveryRequestSite } from '@/lib/site/discovery-request'
 
-export const revalidate = 300
+// Host authority must never be cached by pathname alone.
+export const dynamic = 'force-dynamic'
 
 // Platform pages only (landing, pricing, blog). Restaurants are listed by their own
 // sitemaps, which the /sitemap.xml index points to. Static pages carry no lastmod.
