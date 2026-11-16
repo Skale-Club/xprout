@@ -1,10 +1,11 @@
 export const revalidate = 300
 
-import { BRAND_URL } from '@/lib/brand'
 import { DeliveryImage } from '@/components/delivery-image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { loadTenantSite } from '@/lib/site/runtime'
+import { siteRobots } from '@/lib/site/indexability'
 
 import { createServiceClient } from '@/lib/supabase/server'
 import { getTenantPlan } from '@/lib/tenant-plan'
@@ -71,20 +72,21 @@ async function loadPost(
   return data ? { tenantName: tenant.name, post: data as PostRow } : null
 }
 
-function siteOrigin(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? BRAND_URL).replace(/\/+$/, '')
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, postSlug } = await params
   const found = await loadPost(slug, postSlug)
-  if (!found) return { title: 'Post não encontrado' }
+  if (!found) return { title: 'Post não encontrado', robots: { index: false, follow: false } }
 
   const { post, tenantName } = found
-  const canonical = `${siteOrigin()}/${slug}/blog/${post.slug}`
+  const site = await loadTenantSite(slug, `/${slug}/blog/${post.slug}`)
+  if (!site) return { title: `${post.title} · ${tenantName}`, robots: { index: false, follow: false } }
+  const canonical = site.canonicalUrl
+  const image = post.cover_image_url ? new URL(post.cover_image_url, site.origin).href : null
   return {
     title: `${post.title} · ${tenantName}`,
     description: post.meta_description ?? post.excerpt ?? undefined,
+    metadataBase: new URL(site.origin),
+    robots: siteRobots(site),
     alternates: { canonical },
     openGraph: {
       type: 'article',
@@ -92,18 +94,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post.meta_description ?? post.excerpt ?? undefined,
       publishedTime: post.published_at ?? undefined,
       url: canonical,
+      siteName: tenantName,
+      locale: site.lang.replace('-', '_'),
       // Um link compartilhado sem imagem rende um card cinza em toda rede
       // social. A URL precisa ser ABSOLUTA: o crawler não tem a origem do site.
-      ...(post.cover_image_url
-        ? {
-            images: [
-              post.cover_image_url.startsWith('http')
-                ? post.cover_image_url
-                : `${siteOrigin()}${post.cover_image_url}`,
-            ],
-          }
-        : {}),
+      ...(image ? { images: [image] } : {}),
     },
+    twitter: { card: 'summary_large_image', title: post.title,
+      description: post.meta_description ?? post.excerpt ?? undefined,
+      ...(image ? { images: [image] } : {}) },
   }
 }
 
@@ -120,7 +119,10 @@ export default async function TenantBlogPost({ params }: Props) {
   if (!found) notFound()
 
   const { post, tenantName } = found
-  const canonical = `${siteOrigin()}/${slug}/blog/${post.slug}`
+  const site = await loadTenantSite(slug, `/${slug}/blog/${post.slug}`)
+  if (!site) notFound()
+  const canonical = site.canonicalUrl
+  const image = post.cover_image_url ? new URL(post.cover_image_url, site.origin).href : null
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
@@ -149,7 +151,7 @@ export default async function TenantBlogPost({ params }: Props) {
             author: { '@type': 'Organization', name: post.author_name ?? tenantName },
             publisher: { '@type': 'Organization', name: tenantName },
             mainEntityOfPage: canonical,
-            ...(post.cover_image_url ? { image: post.cover_image_url } : {}),
+            ...(image ? { image } : {}),
           }),
         }}
       />

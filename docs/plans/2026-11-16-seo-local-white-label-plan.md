@@ -4,6 +4,27 @@ Status: **proposed**. Decision ID: XMM-D-20261116-seo-conventions. Based on the 
 "SEO audit — Xprout vs Xkedule vs X-Sites (2026-11-16)" (Notion, Projects / Xprout).
 Nothing here runs in production or Cloudflare without the owner's OK at the gate marked 🔒.
 
+## Execution status — 2026-11-16
+
+- Phase 0 is present in the integration/release history through `0d0fefb` (the
+  current task started from `dev` at `8e1b9c9`). This task did not release it.
+- Phase 1 **foundation** is implemented locally on `feat/seo-site-resolution`:
+  pure site resolution and indexability, explicit SEO identity reads, tenant/menu/
+  website/blog metadata and canonicals, platform/tenant robots and sitemaps.
+  Private menus and branches using them are excluded from discovery. Unknown,
+  noncanonical and preview hosts are denied. Database outages remain failures,
+  without fallback to the old production copy.
+- The new `20261116200000_site_identity.sql` schema and its development counterpart
+  are prepared, **not applied**. The one-time backfill marks Aurora and Bella Vista
+  as demos; applying that policy still belongs to the owner's release approval.
+- Phase 1 is **not complete**: root HTML language, per-brand icons/manifests/OG
+  generation/analytics, dynamic HTML `X-Robots-Tag`, and runtime partner-host
+  routing remain. The resolver's partner cases are tested inputs, not activated
+  partner domains. Tenant blog sitemap inclusion is still pending.
+- Focused tests and rollout details: [SEO site identity](../product/seo-site-identity.md).
+- Later local SEO, edge cache and white-label phases remain planned. No push,
+  merge, production schema application or deployment is part of this task.
+
 ## Goals
 
 1. Every public page of every site is discoverable, canonical and fast.

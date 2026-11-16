@@ -5,7 +5,9 @@ import { listArchive, listTags } from '@/lib/blog/public-queries'
 import { nativeBlogSelected } from '@/lib/blog/native/selected'
 import { nativePlatformSitemap } from '@/lib/blog/native/sitemap'
 import { ownedModeActive } from '@/lib/data/owned-mode'
-import { SITEMAP_HEADERS, urlsetXml, type SitemapUrl } from '@/lib/sitemap-xml'
+import { SITEMAP_HEADERS, sitemapUnavailable, urlsetXml, type SitemapUrl } from '@/lib/sitemap-xml'
+import { loadSiteBrand } from '@/lib/site/runtime'
+import { resolveSite } from '@/lib/site/resolve-site'
 
 export const revalidate = 300
 
@@ -28,7 +30,19 @@ async function ownedBlogEntries(entries: SitemapUrl[]) {
   } catch (error) { console.error('[sitemap] platform blog:', error) }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  try {
+    const brand = await loadSiteBrand()
+    const site = resolveSite({ host: request.headers.get('host') ?? new URL(request.url).host,
+      pathname: '/sitemaps/platform.xml', tenant: null, brand })
+    if (!site.indexable) return new Response('Not found', { status: 404,
+      headers: { 'X-Robots-Tag': 'noindex', 'Cache-Control': 'no-store', Vary: 'Host' } })
+  } catch (error) {
+    const response = sitemapUnavailable('platform identity', error)
+    response.headers.set('Cache-Control', 'no-store')
+    response.headers.set('Vary', 'Host')
+    return response
+  }
   let entries: SitemapUrl[]
   if (nativeBlogSelected()) entries = await nativePlatformSitemap()
   else {
@@ -36,7 +50,7 @@ export async function GET() {
     if (ownedModeActive()) await ownedBlogEntries(entries)
     else await legacyBlogEntries(entries)
   }
-  return new Response(urlsetXml(entries), { headers: SITEMAP_HEADERS })
+  return new Response(urlsetXml(entries), { headers: { ...SITEMAP_HEADERS, Vary: 'Host' } })
 }
 
 async function legacyBlogEntries(entries: SitemapUrl[]) {

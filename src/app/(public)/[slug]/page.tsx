@@ -9,7 +9,9 @@ import { loadPublicPageNav } from '@/lib/data/tenant-pages-runtime'
 import ScanRecorder from '@/components/menu/ScanRecorder'
 import JsonLdScript from '@/components/seo/JsonLdScript'
 import type { Metadata } from 'next'
-import { getTenantBySlug, loadPublicMenuData, withMenuPrices } from '@/lib/menu/public-menu-data'
+import { getPublicMenuBase, loadPublicMenuData, withMenuPrices } from '@/lib/menu/public-menu-data'
+import { loadTenantSite } from '@/lib/site/runtime'
+import { siteRobots } from '@/lib/site/indexability'
 import PrivateMenuWrapper from '@/components/menu/PrivateMenuWrapper'
 import { parseTableParam } from '@/lib/service-modes'
 import { computePrimaryForeground, safeCssColor } from '@/lib/color-utils'
@@ -21,7 +23,6 @@ import {
   resolveSeoDescription,
   resolveSeoKeywords,
   resolveOgImageOverride,
-  isTenantNoindex,
 } from '@/lib/seo'
 
 interface Props {
@@ -31,23 +32,18 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const tenant = await getTenantBySlug(slug)
+  const base = await getPublicMenuBase(slug, undefined)
+  const tenant = base.kind === 'not_found' ? null : base.tenant
 
-  if (!tenant) return { title: 'Menu' }
+  if (!tenant) return { title: 'Menu', robots: { index: false, follow: false } }
+  const site = await loadTenantSite(slug, `/${slug}`, { privatePage: base.kind === 'menu' && base.menu?.is_private === true })
 
   const settings = tenant.tenant_settings as any
   const title = resolveSeoTitle(tenant, settings)
   const description = resolveSeoDescription(tenant, settings)
   const keywords = resolveSeoKeywords(settings)
-  const canonicalUrl = getCanonicalUrl(tenant, '/')
+  const canonicalUrl = site?.canonicalUrl ?? getCanonicalUrl(tenant, '/')
   const ogOverride = resolveOgImageOverride(settings)
-  // On the platform-slug URL we suppress indexing when a custom domain is the
-  // canonical home; a tenant can also opt out of indexing entirely.
-  // Indexing follows the restaurant's own preference. A verified custom domain
-  // is the canonical URL (getCanonicalUrl), and the platform-slug copy points
-  // to it; noindex-ing every page of a tenant with a custom domain de-indexed
-  // the canonical site itself.
-  const noindex = isTenantNoindex(settings)
 
   return {
     title: { absolute: title },
@@ -61,6 +57,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonicalUrl,
       siteName: tenant.name,
+      ...(site ? { locale: site.lang.replace('-', '_') } : {}),
       // When no override is set, the branded opengraph-image.tsx route supplies the image.
       ...(ogOverride ? { images: [{ url: ogOverride, alt: tenant.name }] } : {}),
     },
@@ -70,7 +67,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       ...(ogOverride ? { images: [ogOverride] } : {}),
     },
-    ...(noindex ? { robots: { index: false, follow: false } } : {}),
+    robots: siteRobots(site ?? { indexable: false }),
   }
 }
 
@@ -121,7 +118,8 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
   const primaryColor = (tenant.tenant_settings as any)?.primary_color ?? BRAND_PRIMARY
   const accentColor = (tenant.tenant_settings as any)?.accent_color ?? '#09090b'
   const primaryForeground = computePrimaryForeground(primaryColor)
-  const canonicalUrl = getCanonicalUrl(tenant, '/')
+  const site = await loadTenantSite(slug, `/${slug}`, { privatePage: isPrivate })
+  const canonicalUrl = site?.canonicalUrl ?? getCanonicalUrl(tenant, '/')
   const currency = (tenant.tenant_settings as any)?.currency ?? 'USD'
 
   const localBusinessLd = buildLocalBusinessJsonLd(tenant, tenant.tenant_settings as any, canonicalUrl)

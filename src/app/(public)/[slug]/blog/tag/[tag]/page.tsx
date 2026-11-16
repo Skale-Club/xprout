@@ -6,6 +6,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { BlogPostList } from '@/components/blog/post-list'
 import { listArchive, listPostsByTag, listTags } from '@/lib/blog/public-queries'
 import { resolveTenantBlog } from '@/lib/blog/tenant-blog-gate'
+import { loadTenantSite } from '@/lib/site/runtime'
+import { siteRobots } from '@/lib/site/indexability'
 
 export const revalidate = 300
 
@@ -14,16 +16,22 @@ type Props = { params: Promise<{ slug: string; tag: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, tag: tagSlugParam } = await params
   const blog = await resolveTenantBlog(slug)
-  if (!blog) return {}
+  if (!blog) return { robots: { index: false, follow: false } }
 
   const tag = (await listTags((nativeBlogSelected()?null:createServiceClient()), blog.tenantId)).find(
     (t) => t.slug === tagSlugParam,
   )
-  if (!tag) return {}
+  if (!tag) return { robots: { index: false, follow: false } }
+  const site = await loadTenantSite(slug, `/${slug}/blog/tag/${tagSlugParam}`)
+  const title = `${tag.name} | Blog ${blog.name}`
+  const description = `Posts sobre ${tag.name}.`
 
   return {
-    title: `${tag.name} | Blog ${blog.name}`,
-    description: `Posts sobre ${tag.name}.`,
+    title, description,
+    robots: siteRobots(site ?? { indexable: false }),
+    ...(site ? { metadataBase: new URL(site.origin), alternates: { canonical: site.canonicalUrl },
+      openGraph: { type: 'website', title, description, siteName: blog.name, url: site.canonicalUrl, locale: site.lang.replace('-', '_') },
+      twitter: { card: 'summary_large_image', title, description } } : {}),
   }
 }
 

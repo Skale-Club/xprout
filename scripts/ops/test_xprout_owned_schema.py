@@ -144,6 +144,31 @@ GRANT SELECT ON public.products, public.tenants TO xmartmenu_runtime;""", 'xmart
         self.files = ops.load_bundle(make_bundle(self.tmp / 'bundle', {AR_FILE: text}))
         self.text = text
 
+    def test_site_identity_backfills_once_and_preserves_unpublished_state(self):
+        self.psql("""SET ROLE xmartmenu_owner;
+ALTER TABLE public.tenants ADD COLUMN slug text, ADD COLUMN created_at timestamptz NOT NULL DEFAULT now();
+INSERT INTO public.tenants(slug) VALUES ('aurora'), ('bella-vista'), ('real-restaurant');""", 'xmartmenu')
+        pg = ops.Pg(self.cfg)
+        name = '20261116200000_site_identity.sql'
+        text = (REPO / 'docs/owned-schema' / name).read_text()
+        files = ops.load_bundle(make_bundle(self.tmp / 'site', {name: text}))
+        self.assertEqual(ops.Operator(self.cfg, pg, files, 'site1').apply(), 0)
+        self.assertEqual(pg.sql("SELECT count(*) FROM public.brands WHERE primary_host='xprout.app';"), '1')
+        self.assertEqual(pg.sql("SELECT count(*) FROM public.tenants WHERE is_demo AND published_at IS NULL;"), '2')
+        self.assertEqual(pg.sql("SELECT published_at IS NOT NULL FROM public.tenants WHERE slug='real-restaurant';"), 't')
+        pg.sql("UPDATE public.tenants SET published_at=NULL WHERE slug='real-restaurant';", role='xmartmenu_owner')
+        pg.sql(text, role='xmartmenu_owner')
+        self.assertEqual(pg.sql("SELECT published_at IS NULL FROM public.tenants WHERE slug='real-restaurant';"), 't')
+        pg.sql("INSERT INTO public.tenants(slug, published_at) VALUES ('new-draft', NULL);", role='xmartmenu_owner')
+        self.assertEqual(pg.sql("SELECT published_at IS NULL AND NOT is_demo FROM public.tenants WHERE slug='new-draft';"), 't')
+        pg.sql("INSERT INTO public.tenants(slug) VALUES ('new-live');", role='xmartmenu_owner')
+        self.assertEqual(pg.sql("SELECT published_at IS NOT NULL FROM public.tenants WHERE slug='new-live';"), 't')
+        self.assertEqual(pg.sql("SELECT has_table_privilege('xmartmenu_runtime','public.brands','SELECT');"), 't')
+        self.assertEqual(pg.sql("SELECT has_table_privilege('xmartmenu_runtime','public.brands','INSERT,UPDATE,DELETE');"), 'f')
+        self.assertEqual(pg.sql("SELECT relrowsecurity FROM pg_class WHERE oid='public.brands'::regclass;"), 't')
+        bad = self.psql("SET ROLE xmartmenu_owner; UPDATE public.tenants SET brand_id=gen_random_uuid() WHERE slug='new-draft';", 'xmartmenu', check=False)
+        self.assertNotEqual(bad.returncode, 0)
+
     def test_real_size_file_adds_columns_and_the_ar_source_once(self):
         pg = ops.Pg(self.cfg)
         texts = {name: (REPO / 'docs/owned-schema' / name).read_text() for name in (AR_FILE, REAL_SIZE_FILE)}

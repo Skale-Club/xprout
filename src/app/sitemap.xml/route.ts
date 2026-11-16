@@ -1,32 +1,38 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { PLATFORM_BASE, tenantOwnHost } from '@/lib/seo'
 import { ownedModeActive } from '@/lib/data/owned-mode'
 import { SITEMAP_HEADERS, sitemapIndexXml, sitemapUnavailable } from '@/lib/sitemap-xml'
+import { resolveSite } from '@/lib/site/resolve-site'
+import { legacySiteTenant, LEGACY_SITE_COLUMNS, loadSiteBrand, missingSiteColumns } from '@/lib/site/runtime'
 
 export const revalidate = 300
 
-// Index of the platform sitemap plus one sitemap per restaurant served on the platform host.
-// A restaurant on its own host (custom domain or subdomain) serves its own sitemap there.
-async function platformTenantSlugs(): Promise<string[]> {
+async function sitemapTenants() {
   if (ownedModeActive()) {
     const { ownedSitemapTenants } = await import('@/lib/data/public-seo-runtime')
-    return (await ownedSitemapTenants()).filter(t => !tenantOwnHost(t)).map(t => t.slug)
+    return ownedSitemapTenants()
   }
-  const { data, error } = await createServiceClient()
-    .from('tenants')
-    .select('slug, custom_domain, custom_domain_verified')
-    .eq('is_active', true)
-    .order('updated_at', { ascending: false })
-    .limit(5000)
+  const client = createServiceClient()
+  const { data, error } = await client.from('tenants').select(LEGACY_SITE_COLUMNS)
+    .eq('is_active', true).order('updated_at', { ascending: false }).limit(5000)
   if (error) throw error
-  return (data ?? []).filter(t => !(t.custom_domain && t.custom_domain_verified)).map(t => t.slug as string)
+  const flags = await client.from('tenants').select('id,brand_id,is_demo,published_at').eq('is_active', true).limit(5000)
+  if (flags.error && !missingSiteColumns(flags.error)) throw flags.error
+  const lifecycle = new Map((flags.data ?? []).map(row => [String(row.id), row]))
+  return (data ?? []).map(row => legacySiteTenant(row, flags.error ? null : lifecycle.get(String(row.id)) ?? {}))
 }
 
-export async function GET() {
+// Each tenant must pass exactly the same gate as its own robots and metadata.
+export async function GET(request: Request) {
   try {
-    const slugs = await platformTenantSlugs()
-    const locs = [`${PLATFORM_BASE}/sitemaps/platform.xml`, ...slugs.map(slug => `${PLATFORM_BASE}/${slug}/sitemap.xml`)]
-    return new Response(sitemapIndexXml(locs), { headers: SITEMAP_HEADERS })
+    const host = request.headers.get('host') ?? new URL(request.url).host
+    const brand = await loadSiteBrand()
+    const platform = resolveSite({ host, pathname: '/sitemap.xml', tenant: null, brand })
+    if (!platform.indexable) return new Response('Not found', { status: 404, headers: { 'X-Robots-Tag': 'noindex', Vary: 'Host' } })
+    const tenants = await sitemapTenants()
+    const sites = tenants.map(tenant => resolveSite({ host, pathname: `/${tenant.slug}`, tenant, brand }))
+      .filter(site => site.indexable && site.kind === 'tenant-path')
+    const locs = [`${platform.origin}/sitemaps/platform.xml`, ...sites.map(site => `${site.baseUrl}/sitemap.xml`)]
+    return new Response(sitemapIndexXml(locs), { headers: { ...SITEMAP_HEADERS, Vary: 'Host' } })
   } catch (error) {
     return sitemapUnavailable('index', error)
   }

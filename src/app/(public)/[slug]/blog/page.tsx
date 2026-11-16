@@ -4,6 +4,8 @@ import { DeliveryImage } from '@/components/delivery-image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { loadTenantSite } from '@/lib/site/runtime'
+import { siteRobots } from '@/lib/site/indexability'
 
 import { createServiceClient } from '@/lib/supabase/server'
 import { getTenantPlan } from '@/lib/tenant-plan'
@@ -65,10 +67,17 @@ async function loadBlog(slug: string): Promise<{ tenantId: string; name: string;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const blog = await loadBlog(slug)
-  if (!blog) return { title: 'Blog' }
+  if (!blog) return { title: 'Blog', robots: { index: false, follow: false } }
+  const site = await loadTenantSite(slug, `/${slug}/blog`)
+  const title = `Blog · ${blog.name}`
+  const description = `Novidades, pratos e dicas do ${blog.name}.`
   return {
-    title: `Blog · ${blog.name}`,
-    description: `Novidades, pratos e dicas do ${blog.name}.`,
+    title,
+    description,
+    robots: siteRobots(site ?? { indexable: false }),
+    ...(site ? { metadataBase: new URL(site.origin), alternates: { canonical: site.canonicalUrl },
+      openGraph: { type: 'website', title, description, siteName: blog.name, url: site.canonicalUrl, locale: site.lang.replace('-', '_') },
+      twitter: { card: 'summary_large_image', title, description } } : {}),
   }
 }
 

@@ -15,6 +15,8 @@ import { getPublicMenuBase, loadPublicMenuData, withMenuPrices } from '@/lib/men
 import { parseTableParam } from '@/lib/service-modes'
 import { computePrimaryForeground, safeCssColor } from '@/lib/color-utils'
 import JsonLdScript from '@/components/seo/JsonLdScript'
+import { loadTenantSite } from '@/lib/site/runtime'
+import { siteRobots } from '@/lib/site/indexability'
 import {
   getCanonicalUrl,
   buildLocalBusinessJsonLd,
@@ -26,7 +28,6 @@ import {
   resolveSeoDescription,
   resolveSeoKeywords,
   resolveOgImageOverride,
-  isTenantNoindex,
 } from '@/lib/seo'
 
 interface Props {
@@ -41,9 +42,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (base.kind === 'not_found') {
     // Not a menu or a branch: it may be one of the restaurant's website pages.
     const target = await loadPublicPageTarget(slug, menuSlug)
-    return target && resolveSlugTarget(base.kind, true) === 'page' ? pageMetadata(target.tenant, target.page) : { title: 'Menu' }
+    if (!target || resolveSlugTarget(base.kind, true) !== 'page') return { title: 'Menu', robots: { index: false, follow: false } }
+    const site = await loadTenantSite(slug, `/${slug}/${menuSlug}`)
+    return { ...pageMetadata(target.tenant, target.page, site), robots: siteRobots(site ?? { indexable: false }) }
   }
   const tenant = base.tenant
+  const site = await loadTenantSite(slug, `/${slug}/${menuSlug}`, { privatePage: base.kind === 'menu' && base.menu?.is_private === true })
 
   const sectionName = (base.kind === 'menu' ? base.location?.name ?? base.menu?.name : null) ?? 'Menu'
   const settings = tenant.tenant_settings as any
@@ -51,13 +55,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = resolveSeoDescription(tenant, settings, `View the ${sectionName} menu`)
   const keywords = resolveSeoKeywords(settings)
   const canonicalPath = `/${menuSlug}`
-  const canonicalUrl = getCanonicalUrl(tenant, canonicalPath)
+  const canonicalUrl = site?.canonicalUrl ?? getCanonicalUrl(tenant, canonicalPath)
   const ogOverride = resolveOgImageOverride(settings)
-  // Indexing follows the restaurant's own preference. A verified custom domain
-  // is the canonical URL (getCanonicalUrl), and the platform-slug copy points
-  // to it; noindex-ing every page of a tenant with a custom domain de-indexed
-  // the canonical site itself.
-  const noindex = isTenantNoindex(settings)
 
   return {
     title: { absolute: title },
@@ -71,6 +70,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: canonicalUrl,
       siteName: tenant.name,
+      ...(site ? { locale: site.lang.replace('-', '_') } : {}),
       ...(ogOverride ? { images: [{ url: ogOverride, alt: tenant.name }] } : {}),
     },
     twitter: {
@@ -79,7 +79,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       ...(ogOverride ? { images: [ogOverride] } : {}),
     },
-    ...(noindex ? { robots: { index: false, follow: false } } : {}),
+    robots: siteRobots(site ?? { indexable: false }),
   }
 }
 
@@ -103,11 +103,12 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
     const target = await loadPublicPageTarget(slug, menuSlug)
     if (resolveSlugTarget(data.kind, !!target) !== 'page' || !target) notFound()
     const pageSettings = target.tenant.tenant_settings as any
-    const pageCanonical = getCanonicalUrl(target.tenant, `/${menuSlug}`)
+    const site = await loadTenantSite(slug, `/${slug}/${menuSlug}`)
+    const pageCanonical = site?.canonicalUrl ?? getCanonicalUrl(target.tenant, `/${menuSlug}`)
     return (
       <>
         <JsonLdScript data={buildBreadcrumbJsonLd([
-          { name: target.tenant.name, url: getCanonicalUrl(target.tenant, '/') },
+          { name: target.tenant.name, url: site?.baseUrl ?? getCanonicalUrl(target.tenant, '/') },
           { name: target.page.title, url: pageCanonical },
         ])} />
         <TenantPageView
@@ -133,14 +134,15 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
   const accentColor = (tenant.tenant_settings as any)?.accent_color ?? '#09090b'
   const primaryForeground = computePrimaryForeground(primaryColor)
   const canonicalPath = `/${menuSlug}`
-  const canonicalUrl = getCanonicalUrl(tenant, canonicalPath)
+  const site = await loadTenantSite(slug, `/${slug}/${menuSlug}`, { privatePage: menu?.is_private === true })
+  const canonicalUrl = site?.canonicalUrl ?? getCanonicalUrl(tenant, canonicalPath)
   const currency = (tenant.tenant_settings as any)?.currency ?? 'USD'
 
   const displayProducts = priced.products ?? []
 
   const isPrivate = (menu as any)?.is_private ?? false
 
-  const parentUrl = getCanonicalUrl(tenant, '/')
+  const parentUrl = site?.baseUrl ?? getCanonicalUrl(tenant, '/')
   const tenantSettings = tenant.tenant_settings as any
   // SEO-08: when rendering a branch, use branch-specific LocalBusiness with branchOf.
   // Branches inherit price range and social profiles from the parent tenant.

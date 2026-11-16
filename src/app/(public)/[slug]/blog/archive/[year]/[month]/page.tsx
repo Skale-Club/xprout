@@ -6,6 +6,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { BlogPostList, monthName } from '@/components/blog/post-list'
 import { listArchive, listPostsByMonth, listTags } from '@/lib/blog/public-queries'
 import { resolveTenantBlog } from '@/lib/blog/tenant-blog-gate'
+import { loadTenantSite } from '@/lib/site/runtime'
+import { siteRobots } from '@/lib/site/indexability'
 
 export const revalidate = 300
 
@@ -22,10 +24,15 @@ function parseYearMonth(rawYear: string, rawMonth: string): { year: number; mont
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, year: rawYear, month: rawMonth } = await params
   const parsed = parseYearMonth(rawYear, rawMonth)
-  if (!parsed) return {}
+  if (!parsed) return { robots: { index: false, follow: false } }
   const blog = await resolveTenantBlog(slug)
-  if (!blog) return {}
-  return { title: `${monthName(parsed.month)} de ${parsed.year} | Blog ${blog.name}` }
+  if (!blog) return { robots: { index: false, follow: false } }
+  const site = await loadTenantSite(slug, `/${slug}/blog/archive/${parsed.year}/${String(parsed.month).padStart(2, '0')}`)
+  const title = `${monthName(parsed.month)} de ${parsed.year} | Blog ${blog.name}`
+  return { title, robots: siteRobots(site ?? { indexable: false }),
+    ...(site ? { metadataBase: new URL(site.origin), alternates: { canonical: site.canonicalUrl },
+      openGraph: { type: 'website', title, siteName: blog.name, url: site.canonicalUrl, locale: site.lang.replace('-', '_') },
+      twitter: { card: 'summary_large_image', title } } : {}) }
 }
 
 export default async function TenantBlogMonthPage({ params }: Props) {

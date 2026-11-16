@@ -1,10 +1,15 @@
 import type { MetadataRoute } from 'next'
-import { PLATFORM_BASE } from '@/lib/seo'
+import { headers } from 'next/headers'
+import { loadSiteBrand } from '@/lib/site/runtime'
+import { resolveSite } from '@/lib/site/resolve-site'
 
 // Platform-host robots.txt. Custom domains are rewritten by the middleware to
 // the per-tenant `/[slug]/robots.txt` route, so this file only governs the
 // platform domain itself.
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const [requestHeaders, brand] = await Promise.all([headers(), loadSiteBrand()])
+  const site = resolveSite({ host: requestHeaders.get('host') ?? '', pathname: '/robots.txt', tenant: null, brand })
+  if (!site.indexable) return { rules: [{ userAgent: '*', disallow: '/' }] }
   return {
     rules: [
       {
@@ -27,6 +32,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${PLATFORM_BASE}/sitemap.xml`,
+    sitemap: `${site.origin}/sitemap.xml`,
   }
 }

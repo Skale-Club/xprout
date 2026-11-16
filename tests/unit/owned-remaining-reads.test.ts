@@ -192,7 +192,7 @@ describe('public SEO reads', () => {
     expect(result.posts.map(p => p.slug)).toEqual(['a', 'b'])
   })
   it('every SEO entry point checks owned mode before reading Supabase', () => {
-    for (const file of ['src/app/sitemap.xml/route.ts', 'src/app/sitemaps/platform.xml/route.ts', 'src/app/(public)/[slug]/sitemap.xml/route.ts', 'src/app/(public)/[slug]/robots.txt/route.ts', 'src/app/(public)/[slug]/opengraph-image.tsx']) {
+    for (const file of ['src/app/sitemap.xml/route.ts', 'src/app/sitemaps/platform.xml/route.ts', 'src/app/(public)/[slug]/sitemap.xml/route.ts', 'src/lib/site/runtime.ts', 'src/app/(public)/[slug]/opengraph-image.tsx']) {
       const source = read(file), owned = source.indexOf('ownedModeActive()'), legacy = source.indexOf('createServiceClient()', source.indexOf('export'))
       expect(owned, file).toBeGreaterThan(-1)
       expect(owned, file).toBeLessThan(legacy)
@@ -296,7 +296,7 @@ describe('tenant sitemap on the owned database', () => {
     vi.stubEnv('OWNED_PUBLIC_MENU_ENABLED', 'true')
     const sql: string[] = []
     const rowsFor = (text: string): Record<string, unknown>[] => {
-      if (text.includes('FROM public.tenants')) return [{ id: 't1', slug: 'aurora', custom_domain: null, custom_domain_verified: false, subdomain: null, updated_at: new Date('2026-11-01T00:00:00Z') }]
+      if (text.includes('FROM public.tenants')) return [{ id: 't1', slug: 'aurora', is_active: true, is_demo: false, published_at: '2026-11-01T00:00:00Z', custom_domain: null, custom_domain_verified: false, subdomain: null, updated_at: new Date('2026-11-01T00:00:00Z') }]
       if (text.includes('FROM public.menus')) return [{ slug: 'main', is_default: true }, { slug: 'drinks', is_default: false }]
       if (text.includes('FROM public.locations')) return [{ slug: 'downtown', updated_at: new Date('2026-10-01T00:00:00Z') }]
       return []
@@ -307,7 +307,7 @@ describe('tenant sitemap on the owned database', () => {
     }))
     vi.doMock('@/lib/data/tenant-pages-runtime', () => ({ ownedPublishedPageEntries: async () => [] }))
     const { GET } = await import('@/app/(public)/[slug]/sitemap.xml/route')
-    const res = await GET(new Request('http://localhost/aurora/sitemap.xml'), { params: Promise.resolve({ slug: 'aurora' }) })
+    const res = await GET(new Request('https://xprout.app/aurora/sitemap.xml'), { params: Promise.resolve({ slug: 'aurora' }) })
     expect(res.status).toBe(200)
     expect(res.headers.get('cache-control')).toContain('s-maxage=3600')
     const menuSql = sql.find(text => text.includes('FROM public.menus')) ?? ''
