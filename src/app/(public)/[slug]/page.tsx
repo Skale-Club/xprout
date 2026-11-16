@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { sanitizeTenantForClient } from '@/lib/tenant-public'
 import MenuPage from '@/components/menu/MenuPage'
 import BranchPicker from '@/components/menu/BranchPicker'
+import { loadPublicPageNav } from '@/lib/data/tenant-pages-runtime'
 import ScanRecorder from '@/components/menu/ScanRecorder'
 import JsonLdScript from '@/components/seo/JsonLdScript'
 import type { Metadata } from 'next'
@@ -109,6 +110,7 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
   // Same prices and the same private-menu rule as /[slug]/[menuSlug]: the
   // default menu can be private or carry an in-store multiplier too.
   const priced = withMenuPrices(data)
+  const pageLinks = await loadPublicPageNav(data.tenant)
   const { menu: resolvedMenu, categories, products, capabilities, table } = priced
   const isPrivate = resolvedMenu?.is_private === true
 
@@ -145,6 +147,7 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
       chatAddonAudioEnabled={data.chatAddonAudioEnabled}
       chatAddonTextEnabled={data.chatAddonTextEnabled}
       capabilities={capabilities}
+      pageLinks={pageLinks}
       table={capabilities.guestOrdering ? table : null}
       waiterCallTable={capabilities.waiterCalls ? table : null}
     />

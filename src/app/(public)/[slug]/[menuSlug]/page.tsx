@@ -4,6 +4,10 @@ export const revalidate = 60
 import { notFound } from 'next/navigation'
 import { sanitizeTenantForClient } from '@/lib/tenant-public'
 import MenuPage from '@/components/menu/MenuPage'
+import TenantPageView from '@/components/pages/TenantPageView'
+import { loadPublicPageTarget, pageMetadata } from '@/lib/pages/public-page'
+import { loadPublicPageNav } from '@/lib/data/tenant-pages-runtime'
+import { resolveSlugTarget } from '@/lib/pages/page-rules'
 import ScanRecorder from '@/components/menu/ScanRecorder'
 import PrivateMenuWrapper from '@/components/menu/PrivateMenuWrapper'
 import type { Metadata } from 'next'
@@ -34,7 +38,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, menuSlug } = await params
   // Same cached read the page makes (deduplicated per request).
   const base = await getPublicMenuBase(slug, menuSlug)
-  if (base.kind === 'not_found') return { title: 'Menu' }
+  if (base.kind === 'not_found') {
+    // Not a menu or a branch: it may be one of the restaurant's website pages.
+    const target = await loadPublicPageTarget(slug, menuSlug)
+    return target && resolveSlugTarget(base.kind, true) === 'page' ? pageMetadata(target.tenant, target.page) : { title: 'Menu' }
+  }
   const tenant = base.tenant
 
   const sectionName = (base.kind === 'menu' ? base.location?.name ?? base.menu?.name : null) ?? 'Menu'
@@ -90,10 +98,32 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
     // Private menus gate on a phone-verified session; the loader checks it on
     // every request and returns no content without it (see below).
   })
-  if (data.kind !== 'menu') notFound()
+  if (data.kind !== 'menu') {
+    // Resolution order: menu, then branch (both in the loader above), then a published page, then 404.
+    const target = await loadPublicPageTarget(slug, menuSlug)
+    if (resolveSlugTarget(data.kind, !!target) !== 'page' || !target) notFound()
+    const pageSettings = target.tenant.tenant_settings as any
+    const pageCanonical = getCanonicalUrl(target.tenant, `/${menuSlug}`)
+    return (
+      <>
+        <JsonLdScript data={buildBreadcrumbJsonLd([
+          { name: target.tenant.name, url: getCanonicalUrl(target.tenant, '/') },
+          { name: target.page.title, url: pageCanonical },
+        ])} />
+        <TenantPageView
+          tenant={{ name: target.tenant.name, slug: target.tenant.slug }}
+          settings={pageSettings}
+          page={target.page}
+          nav={target.nav}
+          lang={lang ?? pageSettings?.language ?? 'en'}
+        />
+      </>
+    )
+  }
 
   // SEED-019: a private/in-store menu scales every price on it the same way.
   const priced = withMenuPrices(data)
+  const pageLinks = await loadPublicPageNav(data.tenant)
   const { tenant, menu, location, categories, capabilities, table, optionGroupsByProductId, productIngredientsByProductId } = priced
 
   // P0-08 round 2: scan recording moved client-side via <ScanRecorder /> —
@@ -161,6 +191,7 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
       chatAddonAudioEnabled={data.chatAddonAudioEnabled}
       chatAddonTextEnabled={data.chatAddonTextEnabled}
       capabilities={capabilities}
+      pageLinks={pageLinks}
       table={capabilities.guestOrdering ? table : null}
       waiterCallTable={capabilities.waiterCalls ? table : null}
     />
