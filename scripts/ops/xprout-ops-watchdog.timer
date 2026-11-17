@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Xprout host and app container every ten minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+RandomizedDelaySec=15s
+Unit=xprout-ops-watchdog.service
+
+[Install]
+WantedBy=timers.target

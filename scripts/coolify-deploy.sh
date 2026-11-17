@@ -69,15 +69,19 @@ for attempt in $(seq 1 "${wait_attempts}"); do
   sleep 5
 done
 
-# Healthy is not enough: the release reported by readiness must be this SHA.
-for attempt in $(seq 1 24); do
-  release="$(curl -sS --max-time 10 "${PUBLIC_URL}/api/health/ready" | jq -r '.release // empty' || true)"
-  if [ "${release}" = "${SHA}" ]; then
+# A matching SHA is not enough: require HTTP 200, healthy status AND database.
+ready_attempts="${COOLIFY_READY_ATTEMPTS:-24}"
+ready_body="$(mktemp)"
+trap 'rm -f "$ready_body"' EXIT
+for attempt in $(seq 1 "${ready_attempts}"); do
+  code="$(curl -sS --max-time 10 -o "$ready_body" -w '%{http_code}' "${PUBLIC_URL}/api/health/ready" || true)"
+  if [ "$code" = 200 ] && jq -e --arg sha "$SHA" \
+    '.release == $sha and .status == "ok" and .checks.database.ok == true' "$ready_body" >/dev/null 2>&1; then
     echo "Production serves ${SHA}."
     exit 0
   fi
-  echo "Readiness reports release '${release:-none}' (${attempt}/24)"
-  sleep 5
+  echo "Readiness not yet healthy at expected release (HTTP ${code:-000}; ${attempt}/${ready_attempts})"
+  if [ "$attempt" -lt "$ready_attempts" ]; then sleep 5; fi
 done
-echo "::error::Production does not report release ${SHA}."
+echo "::error::Production did not verify healthy readiness at release ${SHA}."
 exit 1

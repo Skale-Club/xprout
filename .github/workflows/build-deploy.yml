@@ -38,12 +38,35 @@ env:
 
 jobs:
   build-and-deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout the validated commit
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
+
+      - name: Notify production build started
+        continue-on-error: true
+        env:
+          OPS_TELEGRAM_ENABLED: ${{ vars.OPS_TELEGRAM_ENABLED }}
+          OPS_TELEGRAM_BOT_TOKEN: ${{ secrets.OPS_TELEGRAM_BOT_TOKEN }}
+          OPS_TELEGRAM_CHAT_ID: ${{ secrets.OPS_TELEGRAM_CHAT_ID }}
+          OPS_TELEGRAM_THREAD_ID: ${{ vars.OPS_TELEGRAM_THREAD_ID }}
+          OPS_EVENT: build-started
+          OPS_DETAIL: Validated production release entered the build and deploy pipeline.
+          OPS_SHA: ${{ inputs.sha }}
+          OPS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/ops/telegram-ops.py notify
+
+      - name: Require deployment credentials and full SHA
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::Expected a full commit SHA.'; exit 1; }
+          [ -n "$COOLIFY_TOKEN" ] || { echo '::error::COOLIFY_TOKEN is required; production was not deployed.'; exit 1; }
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -85,11 +108,22 @@ jobs:
             sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Deploy this SHA with Coolify
+        id: deploy
         env:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-        run: |
-          if [ -z "${COOLIFY_TOKEN}" ]; then
-            echo "::warning::COOLIFY_TOKEN not set — image pushed, deploy skipped."
-            exit 0
-          fi
-          bash scripts/coolify-deploy.sh "${{ inputs.sha }}"
+          SHA: ${{ inputs.sha }}
+        run: bash scripts/coolify-deploy.sh "$SHA"
+
+      - name: Notify production pipeline outcome
+        if: always()
+        continue-on-error: true
+        env:
+          OPS_TELEGRAM_ENABLED: ${{ vars.OPS_TELEGRAM_ENABLED }}
+          OPS_TELEGRAM_BOT_TOKEN: ${{ secrets.OPS_TELEGRAM_BOT_TOKEN }}
+          OPS_TELEGRAM_CHAT_ID: ${{ secrets.OPS_TELEGRAM_CHAT_ID }}
+          OPS_TELEGRAM_THREAD_ID: ${{ vars.OPS_TELEGRAM_THREAD_ID }}
+          OPS_EVENT: ${{ job.status == 'success' && steps.deploy.outcome == 'success' && 'deploy-succeeded' || job.status == 'cancelled' && 'build-deploy-cancelled' || 'build-deploy-failed' }}
+          OPS_DETAIL: ${{ job.status == 'success' && steps.deploy.outcome == 'success' && 'Production readiness verified HTTP 200, healthy database and expected release.' || 'Production release pipeline did not complete successfully. Inspect the run and current production health.' }}
+          OPS_SHA: ${{ inputs.sha }}
+          OPS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/ops/telegram-ops.py notify

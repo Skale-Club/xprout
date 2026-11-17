@@ -26,12 +26,28 @@ env:
   APP_UUID: gmaayluj11x1m6j7baogonfn
   COOLIFY_BASE: https://coolify.skale.club
   PUBLIC_URL: https://xprout.app
+  SHA: ${{ inputs.sha }}
 
 jobs:
   rollback:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+
+      - name: Notify production rollback started
+        continue-on-error: true
+        env:
+          OPS_TELEGRAM_ENABLED: ${{ vars.OPS_TELEGRAM_ENABLED }}
+          OPS_TELEGRAM_BOT_TOKEN: ${{ secrets.OPS_TELEGRAM_BOT_TOKEN }}
+          OPS_TELEGRAM_CHAT_ID: ${{ secrets.OPS_TELEGRAM_CHAT_ID }}
+          OPS_TELEGRAM_THREAD_ID: ${{ vars.OPS_TELEGRAM_THREAD_ID }}
+          OPS_EVENT: rollback-started
+          OPS_DETAIL: Production redeploy or rollback validation started.
+          OPS_SHA: ${{ inputs.sha }}
+          OPS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/ops/telegram-ops.py notify
 
       - name: The SHA passed CI on main
         env:
@@ -56,13 +72,28 @@ jobs:
         run: |
           # Old validated SHAs may exist only in the original package.
           repository="${IMAGE_NAME}"
-          if ! docker manifest inspect "${repository}:${{ inputs.sha }}" > /dev/null 2>&1; then
+          if ! docker manifest inspect "${repository}:${SHA}" > /dev/null 2>&1; then
             repository="${LEGACY_IMAGE_NAME}"
-            docker manifest inspect "${repository}:${{ inputs.sha }}" > /dev/null
+            docker manifest inspect "${repository}:${SHA}" > /dev/null
           fi
           echo "IMAGE_REPOSITORY=${repository}" >> "$GITHUB_ENV"
 
       - name: Deploy this SHA with Coolify
+        id: deploy
         env:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-        run: bash scripts/coolify-deploy.sh "${{ inputs.sha }}"
+        run: bash scripts/coolify-deploy.sh "$SHA"
+
+      - name: Notify production rollback outcome
+        if: always()
+        continue-on-error: true
+        env:
+          OPS_TELEGRAM_ENABLED: ${{ vars.OPS_TELEGRAM_ENABLED }}
+          OPS_TELEGRAM_BOT_TOKEN: ${{ secrets.OPS_TELEGRAM_BOT_TOKEN }}
+          OPS_TELEGRAM_CHAT_ID: ${{ secrets.OPS_TELEGRAM_CHAT_ID }}
+          OPS_TELEGRAM_THREAD_ID: ${{ vars.OPS_TELEGRAM_THREAD_ID }}
+          OPS_EVENT: ${{ job.status == 'success' && steps.deploy.outcome == 'success' && 'rollback-succeeded' || job.status == 'cancelled' && 'rollback-cancelled' || 'rollback-failed' }}
+          OPS_DETAIL: ${{ job.status == 'success' && steps.deploy.outcome == 'success' && 'Production readiness verified HTTP 200, healthy database and expected release.' || 'Production rollback did not complete successfully. Inspect the run and current production health.' }}
+          OPS_SHA: ${{ inputs.sha }}
+          OPS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/ops/telegram-ops.py notify

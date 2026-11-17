@@ -107,9 +107,126 @@ Send `Authorization: Bearer $HEALTH_TOKEN` to `/ready` to also see which
 integrations are configured (Sentry, OpenRouter, Stripe, rate-limit store,
 storage). It shows booleans only, never values. Set `HEALTH_TOKEN` in Coolify.
 
-**Uptime monitor:** `.github/workflows/uptime.yml` calls `/ready` every 15
-minutes and fails (GitHub e-mails you) when production is down. Optional
-settings:
+## Production operations on Telegram
 
-- variable `APP_URL`;
-- secret `HEALTH_TOKEN`.
+`scripts/ops/telegram-ops.py` sends outbound HTTPS requests to Telegram from
+GitHub Actions. There is no inbound webhook or application runtime dependency.
+Ops uses a dedicated destination; existing application/order bot settings and
+the shared host watchdog's global recipients must remain separate.
+
+Repository configuration (GitHub Settings → Secrets and variables → Actions):
+
+| Setting | Kind | Purpose |
+|---|---|---|
+| `OPS_TELEGRAM_BOT_TOKEN` | Secret | Dedicated operations bot token |
+| `OPS_TELEGRAM_CHAT_ID` | Secret | Numeric dedicated group/chat id, including a negative sign when applicable |
+| `OPS_TELEGRAM_THREAD_ID` | Optional variable | Positive numeric forum topic id; omit for an ordinary group |
+| `OPS_TELEGRAM_ENABLED` | Variable | Set exactly `true` to activate sends; absent/false disables them |
+| `COOLIFY_TOKEN` | Existing secret | Required for deployment; missing credentials fail the pipeline |
+
+The bot must be allowed to post in the target group/topic. Never put a token in
+workflow source, command arguments or a Journal entry. The helper trims trailing
+token whitespace/CR, validates numeric destinations, bounds messages, reads and
+timeouts, and checks HTTP 200 plus Telegram `ok: true`. Messages use plain text;
+raw service response bodies and exception URLs are never logged. Delivery
+failures produce a sanitized warning and cannot turn deployment failure into
+success or make a successful deployment fail.
+
+`notify` reads `OPS_EVENT`, `OPS_DETAIL`, `OPS_SHA` and `OPS_RUN_URL` from the
+environment. It also requires `GITHUB_ACTIONS=true` and
+`GITHUB_REF=refs/heads/main`; local/dev runs cannot send through this CLI.
+The importable `send_message(text, env=None) -> bool` is available to the
+separate, explicitly enabled production host timer.
+
+The CI workflow sends `ci-failed` when production validation blocks publication.
+The release pipeline sends `build-started` before building and
+`deploy-succeeded` only after Coolify finishes and readiness proves HTTP 200,
+the expected SHA, `status: ok` and `checks.database.ok: true`. A matching SHA
+with HTTP 503, invalid JSON, degradation or an unhealthy database is a failed
+verification. `build-deploy-failed` identifies an unsuccessful pipeline without
+claiming any previous version is still serving. Redeploy/rollback uses the same
+verification and `rollback-started`, `rollback-succeeded` or `rollback-failed`.
+Cancellation messages are best effort: a runner killed before its final step
+cannot deliver one. Build/rollback workflows refuse non-main execution.
+
+### External uptime and incident state
+
+`.github/workflows/uptime.yml` probes the fixed HTTPS origin `xprout.app` every
+10 minutes at :03/:13/:23/:33/:43/:53 and supports manual execution on main.
+GitHub schedule delivery may be delayed; this is not a real-time SLA. It checks
+`/api/health` (valid JSON with `ok: true`), `/api/health/ready` (valid documented
+schema and database check), and `/` (HTTP 200 with HTML). Redirects fail closed.
+The previous `APP_URL` override is intentionally no longer used; the external
+production monitor cannot be pointed at a development origin. No health token
+is needed and no privileged integration details are requested.
+
+Down checks retry twice with five-second pauses before classification. A down
+result distinguishes liveness, database/readiness and public-page failure.
+Readiness/database latency above 1500 ms (or reported `degraded`) must persist
+across two scheduled observations before a warning notification. Both degraded
+and down observations fail the workflow independently of Telegram delivery.
+Routine healthy checks are silent. Transitions send `uptime-down`,
+`uptime-degraded`, and `uptime-recovered`; repeated unchanged incidents are silent.
+A cold healthy run establishes a baseline without announcing recovery.
+If an incident's Telegram notification was never delivered before it clears,
+the healthy result is recorded silently; a recovery is only announced for an
+incident the group was successfully notified about.
+
+The Actions cache keeps observed status, slow-check streak and the last
+successfully notified status separately. Failed incident and recovery deliveries
+remain retryable on subsequent runs. Restore uses a versioned prefix and save
+uses a unique run id plus run attempt; saving runs even after an unhealthy
+probe. Uptime runs are serialized and do not cancel each other. Cache is best
+effort: eviction, unavailable cache or canceled saves can lose incident history,
+cause a duplicate down notification, delay a slow warning, or miss a recovery.
+This limitation is acceptable for the initial monitor; a durable incident store
+is needed for stronger guarantees.
+
+### Activation and offline verification
+
+First run the offline tests below; they fake transport and never send messages,
+trigger deployments or create real outages. Configure the dedicated secrets,
+verify the destination id/topic, then enable `OPS_TELEGRAM_ENABLED=true` and
+manually run Uptime on main. A healthy baseline is intentionally silent; inspect
+the Actions summary. A separate explicit smoke message may verify routing when
+authorized, without manufacturing an outage. Set the variable to `false` to
+stop GitHub notifications while probes continue.
+
+```sh
+python3 -m unittest discover -s scripts/ops -p test_telegram_ops.py
+node --test scripts/ops/xprout-deploy-image.test.mjs
+```
+
+### Dedicated host watchdog
+
+`scripts/ops/telegram-host-watchdog.py` runs outside Docker on the application
+host. It checks disk (85%), memory (90%), swap (50%), and the current app
+container in Compose project `gmaayluj11x1m6j7baogonfn`, service `app`. It ignores
+retired stopped containers when a replacement is running and allows two minutes
+for container health startup. Resident plus swapped cgroup memory at 35% of host
+RAM is another signal. Thresholds match the shared watchdog's initial defaults;
+they are operational warnings, not application performance guarantees.
+
+Install the helper and watchdog at `/opt/xprout-ops/` with root-owned source
+files. Install the versioned `xprout-ops-watchdog.service` and `.timer` in
+`/etc/systemd/system/`. The service loads `/etc/xprout-ops.env` (root only, 0600),
+which contains the dedicated `OPS_TELEGRAM_*` credentials and explicit enable
+switch. The timer runs every ten minutes, with a short randomized delay.
+The existing shared `/etc/skale-watchdog.env` and its recipients are unchanged.
+
+Persistent state and a nonblocking lock live in `/var/lib/xprout-ops/` (0700).
+Each problem class has a six-hour repeat window and one recovery notification.
+Failed delivery is never acknowledged and is retried; recovery delivery is
+retried too. Host collection failure itself becomes a signal. This watchdog
+cannot report complete host failure; the independent GitHub probe covers that.
+
+`python scripts/ops/configure-telegram-ops.py --chat-id <group-id>` prompts for
+the bot token with hidden input. It validates bot/group membership, resolves a
+group upgrade, saves GitHub secrets via stdin and the dedicated root environment
+over SSH, and leaves both destinations disabled for review. Its ignored status
+receipt contains only bot/group identity and configuration state. It never
+writes a local token file. Review before enabling the variable and host timer.
+
+Backup freshness and scheduled application job failure checks remain a later
+increment. They require verified receipt/job contracts and are not claimed by
+the process/database/host checks above.

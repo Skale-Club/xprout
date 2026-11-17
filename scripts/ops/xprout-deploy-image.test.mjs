@@ -7,16 +7,31 @@ import { spawnSync } from 'node:child_process'
 
 const bash = process.platform === 'win32' ? 'C:/Program Files/Git/bin/bash.exe' : 'bash'
 const sha = 'a'.repeat(40)
-function fixture(repository, badReadback = false) {
+function fixture(repository, badReadback = false, readyMode = 'healthy') {
   const dir = mkdtempSync(join(tmpdir(), 'xprout-deploy-test-'))
   const log = join(dir, 'requests.log'), env = join(dir, 'mock-env.sh')
   writeFileSync(env, `
 # All external I/O is replaced before the real deploy helper starts.
-curl() { printf '%s\\n' "$*" >> "$TEST_LOG"; printf '{}'; }
+curl() {
+  printf '%s\\n' "$*" >> "$TEST_LOG"
+  if [[ "$*" == *'/api/health/ready'* ]]; then
+    while (( $# )); do
+      if [[ "$1" == -o ]]; then printf '%s' "$READY_BODY" > "$2"; shift 2; else shift; fi
+    done
+    if [[ "$READY_MODE" == http503 ]]; then printf 503; else printf 200; fi
+  else printf '{}'; fi
+}
+sleep() { :; }
 jq() {
   local all="$*" key="" value=""
   case "$1" in
-    -e) cat >/dev/null; return 1 ;;
+    -e)
+      if [[ "$all" == *'--arg sha'* ]]; then
+        [[ "$all" == *'.release == $sha and .status == "ok" and .checks.database.ok == true'* ]] || return 2
+        local body
+        body="$(cat "\${!#}")"
+        [[ "$body" == *'"release":"'"$TEST_SHA"'"'* && "$body" == *'"status":"ok"'* && "$body" == *'"database":{"ok":true}'* ]]
+      else cat >/dev/null; return 1; fi ;;
     -nc)
       shift
       while (( $# )); do
@@ -43,6 +58,12 @@ jq() {
   try {
     const result = spawnSync(bash, ['scripts/coolify-deploy.sh', sha], { encoding: 'utf8', timeout: 5000,
       env: { ...process.env, BASH_ENV: env, TEST_LOG: log, TEST_SHA: sha, BAD_READBACK: badReadback ? '1' : '0',
+        READY_MODE: readyMode, COOLIFY_READY_ATTEMPTS: '2',
+        READY_BODY: readyMode === 'invalid-json' ? 'not-json' : JSON.stringify({
+          release: readyMode === 'stale-release' ? 'b'.repeat(40) : sha,
+          status: readyMode === 'degraded' ? 'degraded' : 'ok',
+          checks: { database: { ok: readyMode !== 'same-sha-unhealthy' } },
+        }),
         IMAGE_REPOSITORY: repository, COOLIFY_TOKEN: 'offline-fixture', COOLIFY_BASE: 'https://fixture.invalid', APP_UUID: 'fixture-app', PUBLIC_URL: 'https://fixture.invalid' } })
     return { ...result, requests: readFileSync(log, 'utf8') }
   } finally {
@@ -69,3 +90,12 @@ test('repository readback mismatch refuses before SHA pin or deployment', () => 
   assert.match(result.stdout, /IMAGE_REPOSITORY readback/)
   assert.doesNotMatch(result.requests, /"key":"IMAGE_TAG"|\/api\/v1\/deploy\?/)
 })
+
+for (const mode of ['same-sha-unhealthy', 'http503', 'degraded', 'invalid-json', 'stale-release']) {
+  test(`deployment refuses success for readiness ${mode}`, () => {
+    const result = fixture('ghcr.io/skale-club/xprout', false, mode)
+    assert.equal(result.status, 1, result.stderr + result.stdout)
+    assert.match(result.stdout, /did not verify healthy readiness/)
+    assert.doesNotMatch(result.stdout, /Production serves/)
+  })
+}

@@ -75,6 +75,7 @@ jobs:
           node --test scripts/ops/import-xprout-private-candidate.test.mjs
           node --test scripts/ops/xprout-database-rehearsal.test.mjs
           node --test scripts/ops/xprout-deploy-image.test.mjs
+          python3 -B -m unittest discover -s scripts/ops -p 'test_*telegram*.py'
           python3 -B scripts/ops/test_xprout_private_transport.py
           python3 -B scripts/ops/test_install_xprout_private_transport.py
           python3 -B scripts/ops/test_xprout_pg_stdio.py
@@ -330,3 +331,28 @@ jobs:
     with:
       sha: ${{ github.sha }}
     secrets: inherit
+
+  notify-validation-failure:
+    needs: [checks, e2e, identity-postgres, cutover-postgres, offsite-backup-postgres, owned-schema-postgres]
+    if: >-
+      always() && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notify Telegram that validation blocked publication
+        continue-on-error: true
+        env:
+          OPS_TELEGRAM_ENABLED: ${{ vars.OPS_TELEGRAM_ENABLED }}
+          OPS_TELEGRAM_BOT_TOKEN: ${{ secrets.OPS_TELEGRAM_BOT_TOKEN }}
+          OPS_TELEGRAM_CHAT_ID: ${{ secrets.OPS_TELEGRAM_CHAT_ID }}
+          OPS_TELEGRAM_THREAD_ID: ${{ vars.OPS_TELEGRAM_THREAD_ID }}
+          OPS_EVENT: ci-failed
+          OPS_DETAIL: Validation failed; production publication did not start. Check the failed jobs in this run.
+          OPS_SHA: ${{ github.sha }}
+          OPS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/ops/telegram-ops.py notify

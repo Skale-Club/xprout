@@ -1,47 +1,41 @@
 name: Uptime
 
-# Every 15 minutes: is production up and can it reach its database?
-# Calls /api/health/ready (503 when the database is down). A failed run is
-# shown in Actions and GitHub e-mails the workflow's owner. Run it by hand
-# from Actions → Uptime → Run workflow to check a deploy.
-#
-# Optional: repository variable APP_URL (defaults to production) and secret
-# HEALTH_TOKEN (same as the app's) to also print which integrations are set.
-
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '3,13,23,33,43,53 * * * *'
   workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-uptime
+  cancel-in-progress: false
 
 jobs:
   ready:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
-      - name: Check /api/health/ready
+      - uses: actions/checkout@v4
+      - name: Restore incident state
+        uses: actions/cache/restore@v4
+        with:
+          path: .ops-state/uptime.json
+          key: xprout-uptime-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: xprout-uptime-v1-
+      - name: Probe production and notify transitions
         env:
-          APP_URL: ${{ vars.APP_URL || 'https://xprout.app' }}
-          HEALTH_TOKEN: ${{ secrets.HEALTH_TOKEN }}
-        run: |
-          auth=()
-          if [ -n "$HEALTH_TOKEN" ]; then auth=(-H "Authorization: Bearer $HEALTH_TOKEN"); fi
-          for attempt in 1 2 3; do
-            code=$(curl -sS -o body.json -w '%{http_code}' --max-time 20 "${auth[@]}" "$APP_URL/api/health/ready" || echo 000)
-            if [ "$code" = "200" ]; then break; fi
-            echo "Attempt $attempt: HTTP $code"; sleep 10
-          done
-          echo "HTTP $code"
-          cat body.json 2>/dev/null || true
-          {
-            echo "## $APP_URL — HTTP $code"
-            echo '```json'
-            cat body.json 2>/dev/null || echo '(no body)'
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$code" != "200" ]; then
-            echo "::error::Production health check failed (HTTP $code)"
-            exit 1
-          fi
-          if grep -q '"status":"degraded"' body.json; then
-            echo "::warning::Production is up but degraded (slow database)"
-          fi
+          OPS_TELEGRAM_ENABLED: ${{ vars.OPS_TELEGRAM_ENABLED }}
+          OPS_TELEGRAM_BOT_TOKEN: ${{ secrets.OPS_TELEGRAM_BOT_TOKEN }}
+          OPS_TELEGRAM_CHAT_ID: ${{ secrets.OPS_TELEGRAM_CHAT_ID }}
+          OPS_TELEGRAM_THREAD_ID: ${{ vars.OPS_TELEGRAM_THREAD_ID }}
+          OPS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/ops/telegram-ops.py probe
+      - name: Save observed and notified incident state even after failure
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .ops-state/uptime.json
+          key: xprout-uptime-v1-${{ github.run_id }}-${{ github.run_attempt }}
