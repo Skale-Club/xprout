@@ -165,7 +165,9 @@
 .marketing-site [data-motion="on"] .mk-copy-swap { animation:mk-copy-enter 450ms cubic-bezier(.2,.7,.2,1); }
 .marketing-site [data-motion="on"] .mk-price-swap { animation:mk-value-enter 300ms ease-out; }
 .marketing-site [data-motion="off"] *, .marketing-site [data-motion="off"] *::before, .marketing-site [data-motion="off"] *::after { animation:none !important; transition:none !important; }
-@keyframes mk-art-enter { from { transform:translateY(20px) scale(.98); } to { transform:none; } }
+/* Keep the first hero image at its final visible size while it loads. A later
+   carousel frame must not become larger just because the entrance has ended. */
+@keyframes mk-art-enter { from { opacity:.6; } to { opacity:1; } }
 @keyframes mk-float { from { transform:translateY(-3px) rotate(-1deg); } to { transform:translateY(5px) rotate(1deg); } }
 @keyframes mk-nudge { from { transform:translateY(-2px); } to { transform:translateY(2px); } }
 @keyframes mk-copy-enter { from { transform:translateX(16px); opacity:.45; } to { transform:none; opacity:1; } }
