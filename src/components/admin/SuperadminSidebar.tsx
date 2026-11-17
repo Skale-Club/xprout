@@ -27,10 +27,10 @@ export default function SuperadminSidebar({ appName, logoUrl }: { appName: strin
   return (
     <aside className="flex h-full w-full flex-col border-r border-zinc-800 bg-zinc-950 text-zinc-400">
       <div className="border-b border-zinc-800/50 border-t-2 border-t-platform-brand-accent p-6 pr-16 lg:pr-6">
-        <div className="mb-1 flex items-center gap-2">
+        <Link href="/" className="group mb-1 flex min-w-0 items-center gap-2">
           <DeliveryImage src={platformLogoUrl(logoUrl)} width={24} height={24} sizes="24px" alt="" className="size-6 rounded-md object-contain outline outline-1 -outline-offset-1 outline-white/10" />
-          <Link href="/" className="truncate text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:text-primary">{appName}</Link>
-        </div>
+          <span className="truncate text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors group-hover:text-primary">{appName}</span>
+        </Link>
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Super Admin Console</p>
       </div>
 

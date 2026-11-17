@@ -4,6 +4,7 @@ import { platformLogoUrl } from '@/lib/platform-brand'
 
 import { ReactNode, useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 import { lockBodyScroll } from '@/components/ui/ModalPortal'
 import { useEnterMovesToNextField, useRevealFocusedField } from '@/components/ui/keyboard-fields'
@@ -56,13 +57,15 @@ export default function DashboardShell({
         >
           <Menu className="size-5" />
         </button>
-        <Image
-          src={platformLogoUrl(logoUrl)}
-          alt=""
-          width={32}
-          height={32}
-          className="size-8 rounded-lg object-contain outline outline-1 -outline-offset-1 outline-black/10"
-        />
+        <Link href="/" aria-label={`${appName} home`} className="flex size-11 flex-shrink-0 items-center justify-center rounded-xl">
+          <Image
+            src={platformLogoUrl(logoUrl)}
+            alt=""
+            width={32}
+            height={32}
+            className="size-8 rounded-lg object-contain outline outline-1 -outline-offset-1 outline-black/10"
+          />
+        </Link>
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">{eyebrow ?? appName}</p>
           <p className="truncate text-sm font-black text-zinc-900">{contextName}</p>

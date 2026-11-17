@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Box, ChevronDown, X } from 'lucide-react'
 import PlatformSignature from '@/components/branding/PlatformSignature'
 import { DeliveryImage } from '@/components/delivery-image'
@@ -58,7 +59,9 @@ export default function GalleryClient({ sections }: { sections: GallerySection[]
     <div className="min-h-[100dvh] bg-[var(--mk-paper)] text-[var(--mk-ink)]">
       <header className="sticky top-0 z-40 bg-[var(--mk-forest)]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-          <PlatformSignature tone="ivory" className="!w-[118px] !min-w-[118px]" />
+          <Link href="/" aria-label="Xprout home" className={`shrink-0 rounded-md ${focusRing}`}>
+            <PlatformSignature tone="ivory" className="!w-[118px] !min-w-[118px]" />
+          </Link>
           <button
             type="button"
             onClick={() => setOpenSections(allOpen ? new Set() : new Set(sections.map(section => section.id)))}
