@@ -100,9 +100,27 @@ describe('dish page navigation', () => {
     const menuHref = `href="${dishSite.baseUrl}/dinner"`
     const breadcrumb = html.match(/<nav aria-label="Breadcrumb"[\s\S]*?<\/nav>/)?.[0] ?? ''
     const article = html.match(/<article[\s\S]*?<\/article>/)?.[0] ?? ''
+    const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] ?? ''
     expect(breadcrumb).toContain(menuHref)
+    expect(header).not.toContain(menuHref)
     expect(article).not.toBe('')
     expect(article).not.toContain(menuHref)
     expect(article).not.toMatch(/>Dinner</)
+  })
+  it('shows the category, sizes, ingredients, where it is served and other dishes linking to their own pages', async () => {
+    mocks.site.mockResolvedValue(dishSite)
+    mocks.dish.mockResolvedValue({ tenant: { ...tenant, tenant_settings: { currency: 'USD', address: '1 Main St', city: 'Springfield', phone: '+16175550142', country: 'US' } },
+      menu: { name: 'Dinner' }, product: { name: 'Soup', description: 'Roasted tomatoes.', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: 12.5, original_price: null, tags: [] },
+      price: { amount: 9, from: true }, category: 'Starters', ingredients: ['Tomato', 'Basil'],
+      sizes: [{ id: 'size', name: 'Size', type: 'single', options: [{ id: 's', name: 'Cup', base_price: 9, price_modifier: 0 }, { id: 'l', name: 'Bowl', base_price: 14, price_modifier: 0 }] }],
+      related: [{ id: 'r', name: 'Bread', slug: 'bread-111111111111', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: { amount: 4, from: false } }] })
+    const html = renderToStaticMarkup(await DishPage({ params: params() }))
+    expect(html).toContain('Starters')
+    expect(html).toMatch(/Cup<\/span><span[^>]*>\$9\.00/)
+    expect(html).toContain('Tomato, Basil')
+    expect(html).toContain('1 Main St, Springfield')
+    expect(html).toContain('href="https://www.google.com/maps/dir/?api=1&amp;destination=1%20Main%20St%2C%20Springfield')
+    expect(html).toContain('href="tel:+16175550142"')
+    expect(html).toContain(`href="${dishSite.baseUrl}/dinner/bread-111111111111"`)
   })
 })

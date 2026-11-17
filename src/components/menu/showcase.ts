@@ -50,7 +50,7 @@ export function priceListText(group: PricedOptionGroup, money: Money): string {
 }
 
 /** Groups whose options set the dish's price (sizes): single or half-and-half with a base price. */
-function sizeGroups(groups: readonly PricedOptionGroup[]): PricedOptionGroup[] {
+export function sizeGroups(groups: readonly PricedOptionGroup[]): PricedOptionGroup[] {
   return groups.filter(g => (g.type === 'single' || g.type === 'half_and_half') && g.options.some(o => o.base_price !== null && o.base_price !== undefined))
 }
 

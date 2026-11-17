@@ -7,7 +7,7 @@ import { parseSectionsForWrite } from '@/lib/pages/sections'
 
 const mocks = vi.hoisted(() => ({ base: vi.fn(), prices: vi.fn() }))
 vi.mock('@/lib/menu/public-menu-data', () => ({ getPublicMenuBase: mocks.base, withMenuPrices: mocks.prices }))
-import { loadPublicDish } from '@/lib/menu/dish-pages-runtime'
+import { loadPublicDish, relatedDishes } from '@/lib/menu/dish-pages-runtime'
 
 const product = {
   id: '11111111-1111-4111-8111-111111111111', name: 'Crème brûlée', description: 'Vanilla custard, caramel crust.',
@@ -66,6 +66,29 @@ describe('public dish loader privacy and routing', () => {
     expect(await loadPublicDish('pizza', 'dinner', dishSlug(product))).toBeNull()
     mocks.base.mockResolvedValue({ ...base, products: [product, product] })
     expect(await loadPublicDish('pizza', 'dinner', dishSlug(product))).toBeNull()
+  })
+  it('adds the category, sizes, default ingredients and related dishes for the page', async () => {
+    const dish = { ...product, category_id: 'desserts', position: 1 }
+    const sibling = { ...product, id: '22222222-2222-4222-8222-222222222222', name: 'Tiramisu', category_id: 'desserts', position: 2 }
+    const sizes = [{ id: 'size', name: 'Size', type: 'single', options: [{ id: 's', name: 'Small', base_price: 9, price_modifier: 0 }, { id: 'l', name: 'Large', base_price: 14, price_modifier: 0 }] }]
+    mocks.base.mockResolvedValue({ ...base, products: [dish, sibling], categories: [{ id: 'desserts', name: 'Desserts' }],
+      optionGroupsByProductId: { [dish.id]: sizes },
+      productIngredientsByProductId: { [dish.id]: [{ is_default: true, ingredient: { name: 'Vanilla' } }, { is_default: false, ingredient: { name: 'Berries' } }] } })
+    const found = await loadPublicDish('pizza', 'dinner', dishSlug(dish))
+    expect(found).toMatchObject({ category: 'Desserts', ingredients: ['Vanilla'], price: { amount: 9, from: true } })
+    expect(found?.sizes.map(group => group.name)).toEqual(['Size'])
+    expect(found?.related).toEqual([{ id: sibling.id, name: 'Tiramisu', slug: dishSlug(sibling), image_url: sibling.image_url, price: { amount: 12, from: false } }])
+  })
+})
+
+describe('related dishes on a dish page', () => {
+  const dish = (id: string, category_id: string | null, position: number, extra: Partial<Product> = {}) =>
+    ({ ...product, id: `${id}1111111-1111-4111-8111-111111111111`, name: `Dish ${id}`, category_id, position, ...extra }) as Product
+  it('puts the same category first, keeps menu order, skips dishes without their own page and stops at the limit', () => {
+    const current = dish('a', 'mains', 1)
+    const list = [dish('f', 'drinks', 1), dish('b', 'mains', 3), dish('c', 'mains', 2), dish('d', 'mains', 4, { image_url: null }), dish('e', 'drinks', 0), current]
+    expect(relatedDishes(current, list, {}, 3).map(item => item.name)).toEqual(['Dish c', 'Dish b', 'Dish e'])
+    expect(relatedDishes(current, list, {}).map(item => item.name)).not.toContain('Dish a')
   })
 })
 

@@ -13,8 +13,8 @@ export default function TenantSiteHeader({ tenant, logoUrl, base, nav, menuLabel
   /** The restaurant's home on this host ("" on its own domain). */
   base: string
   nav: ReadonlyArray<{ slug: string; title: string }>
-  /** The button back to the menu. */
-  menuLabel: string
+  /** The button back to the menu; left out, no button (dish pages: the breadcrumb leads back). */
+  menuLabel?: string
   menuHref?: string
   pagesLabel: string
 }) {
@@ -31,7 +31,7 @@ export default function TenantSiteHeader({ tenant, logoUrl, base, nav, menuLabel
           <span className="truncate text-[17px] font-bold tracking-tight text-zinc-900">{tenant.name}</span>
         </a>
         <div className="flex shrink-0 items-center gap-2">
-          <a href={menuHref ?? home} className="hidden h-10 items-center rounded-full bg-white px-4 text-[14px] font-medium text-zinc-900 shadow-card ring-1 ring-black/5 sm:flex">{menuLabel}</a>
+          {menuLabel && <a href={menuHref ?? home} className="hidden h-10 items-center rounded-full bg-white px-4 text-[14px] font-medium text-zinc-900 shadow-card ring-1 ring-black/5 sm:flex">{menuLabel}</a>}
           <PageLinksMenu tenantSlug={tenant.slug} links={nav} label={pagesLabel} variant="bar" baseUrl={base} />
         </div>
       </div>
