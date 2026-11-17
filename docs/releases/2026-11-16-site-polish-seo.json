@@ -1,0 +1,280 @@
+{
+  "origin": "https://xprout.app",
+  "canonicalOrigin": "https://xprout.app",
+  "preview": false,
+  "checkedAt": "2026-11-17T04:39:02.023Z",
+  "passed": 54,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "home: status",
+      "ok": true,
+      "evidence": "200"
+    },
+    {
+      "name": "home: canonical",
+      "ok": true,
+      "evidence": "https://xprout.app"
+    },
+    {
+      "name": "home: document language",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "home: JSON-LD",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "home: OG identity",
+      "ok": true,
+      "evidence": "https://xprout.app"
+    },
+    {
+      "name": "home: OG image absolute",
+      "ok": true,
+      "evidence": "absolute image found"
+    },
+    {
+      "name": "robots reachable",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "sitemap host policy",
+      "ok": true,
+      "evidence": "200"
+    },
+    {
+      "name": "robots advertises sitemap",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "sitemap contains locations",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "sitemap leaf /sitemaps/platform.xml",
+      "ok": true,
+      "evidence": "200"
+    },
+    {
+      "name": "sitemap leaf /celes/sitemap.xml",
+      "ok": true,
+      "evidence": "200"
+    },
+    {
+      "name": "aurora: status",
+      "ok": true,
+      "evidence": "200"
+    },
+    {
+      "name": "aurora: canonical",
+      "ok": true,
+      "evidence": "https://xprout.app/aurora"
+    },
+    {
+      "name": "aurora: document language",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "aurora: JSON-LD",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "aurora: OG identity",
+      "ok": true,
+      "evidence": "https://xprout.app/aurora"
+    },
+    {
+      "name": "aurora: OG image absolute",
+      "ok": true,
+      "evidence": "absolute image found"
+    },
+    {
+      "name": "aurora: noindex",
+      "ok": true,
+      "evidence": "noindex, nofollow"
+    },
+    {
+      "name": "aurora: sitemap policy",
+      "ok": true,
+      "evidence": "404"
+    },
+    {
+      "name": "bella-vista: status",
+      "ok": true,
+      "evidence": "200"
+    },
+    {
+      "name": "bella-vista: canonical",
+      "ok": true,
+      "evidence": "https://xprout.app/bella-vista"
+    },
+    {
+      "name": "bella-vista: document language",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "bella-vista: JSON-LD",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "bella-vista: OG identity",
+      "ok": true,
+      "evidence": "https://xprout.app/bella-vista"
+    },
+    {
+      "name": "bella-vista: OG image absolute",
+      "ok": true,
+      "evidence": "absolute image found"
+    },
+    {
+      "name": "bella-vista: noindex",
+      "ok": true,
+      "evidence": "noindex, nofollow"
+    },
+    {
+      "name": "bella-vista: sitemap policy",
+      "ok": true,
+      "evidence": "404"
+    },
+    {
+      "name": "cookie first visitor: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "cookie first visitor: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "cookie first visitor: isolated public identity",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "cookie second visitor: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "cookie second visitor: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "cookie second visitor: isolated public identity",
+      "ok": true,
+      "evidence": ""
+    },
+    {
+      "name": "authorization: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "authorization: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "table query: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "table query: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "language query: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "language query: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "view query: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "view query: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "RSC: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "RSC: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "RSC navigation: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "RSC navigation: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "prefetch: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "prefetch: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "router state: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "router state: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "segment prefetch: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "segment prefetch: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    },
+    {
+      "name": "RSC query: no shared cache hit",
+      "ok": true,
+      "evidence": "DYNAMIC"
+    },
+    {
+      "name": "RSC query: response bypass policy",
+      "ok": true,
+      "evidence": "private, no-store "
+    }
+  ]
+}
