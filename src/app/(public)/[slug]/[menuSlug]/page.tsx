@@ -9,6 +9,7 @@ import MenuPage from '@/components/menu/MenuPage'
 import { formatWeekday, getMenuCopy } from '@/components/menu/menu-i18n'
 import { withBranchPublicFacts } from '@/lib/menu/branch-public-facts'
 import TenantPageView from '@/components/pages/TenantPageView'
+import { renamedMenuSlug } from '@/lib/menu/renamed-menu-slugs'
 import { phoneLabel, telUrl } from '@/components/menu/showcase'
 import { loadPublicPageTarget, pageMetadata } from '@/lib/pages/public-page'
 import { loadPublicPageNav } from '@/lib/data/tenant-pages-runtime'
@@ -107,6 +108,9 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
     // Private menus gate on a phone-verified session; the loader checks it on
     // every request and returns no content without it (see below).
   })
+  // A renamed menu's old address, once no menu or branch answers to it any more.
+  const renamed = renamedMenuSlug(slug, menuSlug)
+  if (renamed && !(data.kind === 'menu' && (data.location || data.menu?.slug === menuSlug))) permanentRedirect(`/${slug}/${renamed}`)
   if (data.kind !== 'menu') {
     // Resolution order: menu, then branch (both in the loader above), then a published page, then 404.
     const target = await loadPublicPageTarget(slug, menuSlug)

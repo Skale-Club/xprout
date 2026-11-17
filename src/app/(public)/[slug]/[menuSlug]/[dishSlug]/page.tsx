@@ -1,6 +1,7 @@
 import { siteLocale } from '@/lib/site/request-contract'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
+import { renamedMenuSlug } from '@/lib/menu/renamed-menu-slugs'
 import { MapPin, Phone } from 'lucide-react'
 import JsonLdScript from '@/components/seo/JsonLdScript'
 import { DeliveryImage } from '@/components/delivery-image'
@@ -56,7 +57,13 @@ const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
  */
 export default async function DishPage({ params }: Props) {
   const found = await loadDish(params)
-  if (!found) notFound()
+  if (!found) {
+    // A dish under a renamed menu's old address, once that menu is gone.
+    const { slug, menuSlug, dishSlug } = await params
+    const renamed = renamedMenuSlug(slug, menuSlug)
+    if (renamed) permanentRedirect(`/${slug}/${renamed}/${dishSlug}`)
+    notFound()
+  }
   const { tenant, menu, product, price, site, menuUrl, imageUrl, arModel } = found
   const category = found.category ?? null
   const sizes = found.sizes ?? []
