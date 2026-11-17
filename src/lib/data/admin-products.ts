@@ -1,3 +1,4 @@
+import { isAcceptedImageUrl } from '@/lib/media/image-source'
 import type { Product } from '@/types/database'
 import { activeAdminMenu, AdminMenuError, readAdminMenus, type AdminMenuContext, type AdminMenuQuery } from './admin-menus'
 import { PUBLIC_MENU_COLUMNS } from './public-menu'
@@ -32,11 +33,8 @@ function resultRows(result: { rows: Record<string, unknown>[] }): AdminProduct[]
     return row as AdminProduct
   })
 }
-function validImage(value: unknown) {
-  if (typeof value !== 'string' || value.length > 2048) return false
-  try { const parsed = new URL(value); return ['https:', 'http:'].includes(parsed.protocol) && !parsed.username && !parsed.password }
-  catch { return false }
-}
+// Only our optimized WebP (see src/lib/media/image-source.ts): a raw JPEG or another site is refused.
+const validImage = isAcceptedImageUrl
 export function productPatch(input: unknown, creating = false, noticeReady = true) {
   const body = object(input), patch: Record<string, unknown> = {}
   const allowed = ['name', 'description', 'price', 'original_price', 'category_id', 'image_url', 'image_urls', 'feed_image_url', 'is_available', 'is_featured', 'show_in_feed', 'tags', 'min_notice_minutes']

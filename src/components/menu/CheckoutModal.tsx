@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import { DeliveryImage } from '@/components/delivery-image'
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { X, ChevronLeft, Check, UtensilsCrossed, Package, Truck, MapPin } from 'lucide-react'
 import type { CartItem } from './menu-utils'
@@ -284,7 +284,7 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                         <div key={item.cartKey} className="flex gap-3 px-4 py-3">
                           <div className="size-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
                             {img
-                              ? <Image src={img} alt="" width={48} height={48} className="size-full object-cover" />
+                              ? <DeliveryImage variant="card" src={img} alt="" width={48} height={48} className="size-full object-cover" />
                               : <div className="flex size-full items-center justify-center"><UtensilsCrossed className="size-4 text-zinc-300" /></div>}
                           </div>
                           <div className="min-w-0 flex-1">

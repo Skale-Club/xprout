@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { idempotencyKeyFor, type IdempotencySlot } from '@/lib/orders/idempotency-client'
 import dynamic from 'next/dynamic'
-import Image from 'next/image'
+import { DeliveryImage } from '@/components/delivery-image'
 import { formatPrice } from '@/lib/utils'
 import { ShoppingBag, ChevronLeft, Plus, Minus, CheckCircle, SlidersHorizontal } from 'lucide-react'
 import WaiterCallsPanel from '@/components/admin/WaiterCallsPanel'
@@ -266,7 +266,7 @@ export default function WaiterPage({ tenantId, tenantName, tables, categories, p
             <div key={product.id} className="flex items-center gap-3 bg-white border border-zinc-100 rounded-xl px-4 py-3">
               {product.image_url && (
                 <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative">
-                  <Image src={product.image_url} alt={product.name} fill className="object-cover" sizes="48px" />
+                  <DeliveryImage variant="card" src={product.image_url} alt={product.name} fill className="object-cover" sizes="48px" />
                 </div>
               )}
               <div className="flex-1 min-w-0">

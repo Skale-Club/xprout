@@ -54,11 +54,11 @@ describe('product editable fields', () => {
 })
 
  it('preserves the optional feed photo independently and validates it like other image URLs', () => {
-  const url = 'https://cdn.example/portrait.webp'
+  const url = 'https://xmartmenu-product-images.skale.club/t/portrait.webp'
   expect(productPatch({ feed_image_url: url })).toEqual({ feed_image_url: url })
   expect(productPatch({ feed_image_url: null })).toEqual({ feed_image_url: null })
   expect(productPatch({ name: 'Renamed' })).not.toHaveProperty('feed_image_url')
-  for (const value of ['javascript:bad', 'https://user:secret@cdn.example/a', '', 42]) {
+  for (const value of ['javascript:bad', 'https://user:secret@cdn.example/a', '', 42, 'https://cdn.example/a.webp', 'https://xmartmenu-product-images.skale.club/t/a.jpg']) {
     expect(() => productPatch({ feed_image_url: value })).toThrow()
   }
  })

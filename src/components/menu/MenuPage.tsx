@@ -7,6 +7,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactN
 import { idempotencyKeyFor, type IdempotencySlot } from '@/lib/orders/idempotency-client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { DeliveryImage } from '@/components/delivery-image'
+import { prefetchImage, whenIdle } from '@/lib/media/prefetch-image'
 import DishPhoto from './DishPhoto'
 import { getInitials } from '@/lib/utils'
 import { MenuAnalyticsTracker } from '@/lib/analytics/client'
@@ -378,6 +380,21 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
 
   // Flat list in display order — used for prev/next navigation inside the product modal.
   const orderedProducts = [...groupedByCategory.flatMap(g => g.items), ...uncategorized]
+
+  // Images load ahead of the guest, like a game streaming the next area (src/lib/media/prefetch-image.ts):
+  // once the page is idle every list tile in display order, and the neighbours of an open dish.
+  const warmOrder = [...featured, ...orderedProducts].map(p => getProductImages(p)[0]).join('|')
+  useEffect(() => whenIdle(() => {
+    for (const src of warmOrder.split('|').slice(0, 80)) prefetchImage(src, { variant: 'card' })
+  }), [warmOrder])
+  const selectedId = selectedProduct?.id
+  const neighbourImages = (() => {
+    const at = orderedProducts.findIndex(p => p.id === selectedId)
+    return at < 0 ? '' : [at + 1, at - 1, at + 2].map(i => orderedProducts[i]).filter(Boolean).map(p => getProductImages(p)[0]).join('|')
+  })()
+  useEffect(() => {
+    for (const src of neighbourImages.split('|')) prefetchImage(src)
+  }, [neighbourImages])
 
   /** `item` names the dish with the choices made (ProductModal). */
   function openWhatsApp(item: string) {
@@ -1026,9 +1043,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     onMoreInfo: () => openProduct(p, 'detail'),
   }))
 
-  const hasCustomization = (productId: string) =>
-    (optionGroupsByProductId[productId]?.length ?? 0) > 0
-    || (ingredientCustomizationEnabled && (productIngredientsByProductId[productId]?.length ?? 0) > 0)
+  // Every + (card, featured, feed, dish page) adds in one tap unless the dish has a required choice
+  // (size, flavour...). Optional extras and ingredient removals stay in the dish window.
+  const hasCustomization = (productId: string) => !canQuickAdd(optionGroupsByProductId[productId])
 
   // Open/closed is computed on the client only (it depends on "now").
   const [openInfo, setOpenInfo] = useState<{ state: ReturnType<typeof computeOpenState>['state']; todayIndex: number | null } | null>(null)
@@ -1105,7 +1122,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         >
           {settings?.banner_url && (
             <>
-              <Image src={settings.banner_url} alt="" fill priority sizes="100vw" className="object-cover" />
+              <DeliveryImage src={settings.banner_url} alt="" fill priority sizes="100vw" className="object-cover" />
               <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/10" />
             </>
           )}
@@ -1133,7 +1150,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           {/* The logo and the name go back to the restaurant's home. */}
           <a href={restaurantHome} aria-label={tenant.name} className="relative -mt-9 block size-[72px] overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-black/5 transition-[scale] active:scale-95 sm:-mt-12 sm:size-24">
             {settings?.logo_url ? (
-              <Image src={settings.logo_url} alt="" fill priority sizes="96px" className="object-contain p-2" />
+              <DeliveryImage src={settings.logo_url} alt="" fill priority sizes="96px" className="object-contain p-2" />
             ) : (
               <div className="flex size-full items-center justify-center text-xl font-semibold text-zinc-700">{getInitials(tenant.name)}</div>
             )}
@@ -1269,8 +1286,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
               const image = getProductImages(p)[0]
               const feature = dishFeature(p)
               const key = buildCartKey(p.id, {})
-              const customizable = hasCustomization(p.id)
-              const qty = customizable ? 0 : cart.find(i => i.cartKey === key)?.quantity ?? 0
+              const needsChoice = hasCustomization(p.id)
+              const qty = needsChoice ? 0 : cart.find(i => i.cartKey === key)?.quantity ?? 0
               return (
                 // Same pieces as the grid card: the photo carries the tag pill and the
                 // 3D cube, and the + sits beside the price, off the photo.
@@ -1278,6 +1295,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                   key={p.id}
                   {...(clone ? {} : { 'data-analytics-product-id': p.id, 'data-analytics-source': 'featured' })}
                   className="relative w-[156px] shrink-0 sm:w-[220px]"
+                  onPointerEnter={() => prefetchImage(image, { urgent: true })}
                 >
                   <button
                     type="button"
@@ -1288,7 +1306,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                   />
                   <div className="pointer-events-none relative aspect-[4/3] overflow-hidden rounded-2xl bg-zinc-100">
                     {image
-                      ? <DishPhoto src={image} alt="" fit="cover" sizes="(max-width: 640px) 156px, 220px" />
+                      ? <DishPhoto variant="card" src={image} alt="" fit="cover" sizes="(max-width: 640px) 156px, 220px" />
                       : <DishPlaceholder />}
                     {feature && (
                       <div className="absolute inset-x-2 top-2 flex">
@@ -1306,9 +1324,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                       <button
                         type="button"
                         tabIndex={clone ? -1 : undefined}
-                        // A dish with choices to make opens its sheet instead of
+                        // A dish with a required choice opens its sheet instead of
                         // going into the order without them.
-                        onClick={() => customizable ? openProduct(p, 'featured') : addToCart(p, {}, p.price, undefined, undefined, undefined, 'featured')}
+                        onClick={() => needsChoice ? openProduct(p, 'featured') : addToCart(p, {}, p.price, undefined, undefined, undefined, 'featured')}
                         aria-label={fill(copy.addNamed, { name: p.name })}
                         className="pointer-events-auto relative z-10 flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-zinc-200 active:bg-zinc-200"
                       >
@@ -1432,7 +1450,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                   {section.items.map(p => {
                     const key = buildCartKey(p.id, {})
                     const qty = cart.find(i => i.cartKey === key)?.quantity ?? 0
-                    const customizable = hasCustomization(p.id)
+                    const needsChoice = hasCustomization(p.id)
                     return (
                       <ProductCard
                         key={p.id}
@@ -1448,10 +1466,10 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                         href={dishHref(p)}
                         onOpen={() => openProduct(p, 'grid')}
                         {...(directOrdersEnabled ? {
-                          cartQuantity: customizable ? 0 : qty,
-                          // A dish with choices to make opens its sheet instead of
+                          cartQuantity: needsChoice ? 0 : qty,
+                          // A dish with a required choice opens its sheet instead of
                           // going into the order without them.
-                          onAdd: customizable ? () => openProduct(p, 'grid') : () => addToCart(p, {}, p.price),
+                          onAdd: needsChoice ? () => openProduct(p, 'grid') : () => addToCart(p, {}, p.price),
                           onIncrement: () => updateCartQuantity(key, qty + 1),
                           onDecrement: () => updateCartQuantity(key, qty - 1),
                         } : {})}
@@ -1858,6 +1876,8 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
     <article
       data-analytics-product-id={product.id}
       data-analytics-source="grid"
+      // A finger landing on the card starts the dish window's photo before the tap ends.
+      onPointerEnter={() => prefetchImage(image, { urgent: true })}
       className="group relative grid grid-cols-[minmax(0,1fr)_clamp(8rem,28vw,10rem)] grid-rows-[1fr_auto] overflow-hidden rounded-2xl bg-white shadow-card transition-shadow hover:shadow-[0_2px_6px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.08)] sm:flex sm:flex-col"
     >
       {href ? (
@@ -1895,7 +1915,9 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
               {price.fromLabel ?? <span className="tabular-nums text-zinc-500 line-through">{formatMoney(promo as number, currency, lang)}</span>}
             </p>
           )}
-          <span className="whitespace-nowrap text-[15px] font-bold tabular-nums" style={{ color: accentText }}>{price.amount}</span>
+          {/* Block + trimmed to the baseline, so the digits (not an invisible line box whose size depends on each
+              platform's font metrics) sit on the add button's bottom edge on Android and iOS alike. */}
+          <span className="block whitespace-nowrap text-[17px] leading-none font-extrabold tracking-tight tabular-nums [text-box:trim-end_cap_alphabetic]" style={{ color: accentText }}>{price.amount}</span>
         </div>
         {(showAdd || showStepper) && (
           <div className="pointer-events-auto relative z-10 ml-auto flex w-[104px] shrink-0 justify-end">
@@ -1920,7 +1942,7 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
       </div>
       <div className="pointer-events-none relative col-start-2 row-span-2 row-start-1 min-h-[clamp(8rem,28vw,10rem)] bg-zinc-100 sm:order-1 sm:aspect-[4/3] sm:min-h-0 sm:w-full">
         {image
-          ? <Image src={image} alt="" fill sizes="(max-width: 639px) clamp(128px, 28vw, 160px), (max-width: 1024px) 50vw, 33vw" className="object-cover object-center transition-transform duration-500 sm:group-hover:scale-[1.03]" />
+          ? <DeliveryImage variant="card" src={image} alt="" fill sizes="(max-width: 639px) clamp(128px, 28vw, 160px), (max-width: 1024px) 50vw, 33vw" className="object-cover object-center transition-transform duration-500 sm:group-hover:scale-[1.03]" />
           : <DishPlaceholder />}
         {cardFeature && (
           <div className="absolute inset-x-2 top-2 flex sm:inset-x-3 sm:top-3">

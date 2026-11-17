@@ -28,6 +28,7 @@
 
 import { createServiceClient } from '@/lib/supabase/server'
 import { assertOwnedModeStorage } from '@/lib/data/owned-mode'
+import { cardVariantKey } from '@/lib/media/image-source'
 
 // ─── Bucket type ─────────────────────────────────────────────────────────────
 
@@ -168,7 +169,48 @@ class S3StorageClient implements IStorageClient {
       Body: data,
       ContentType: options.contentType,
     }), options.signal ? { abortSignal: options.signal } : undefined)
+    // Every stored WebP gets its small card sibling right away (src/lib/media/image-source.ts).
+    const variantKey = options.contentType === 'image/webp' ? cardVariantKey(path) : null
+    if (variantKey) await this.putCardVariant(bucket, variantKey, data, options.signal)
     return this.getPublicUrl(bucket, path)
+  }
+
+  /**
+   * A missing sibling only costs the original's weight (the browser falls back to it), so a failure here
+   * is logged, never turned into a failed upload.
+   */
+  private async putCardVariant(bucket: StorageBucket, key: string, original: Buffer | Uint8Array, signal?: AbortSignal): Promise<boolean> {
+    try {
+      const { PutObjectCommand } = await import('@aws-sdk/client-s3')
+      const { makeCardVariant } = await import('@/lib/media/optimize-image')
+      const body = await makeCardVariant(original)
+      await (await this.getS3Client()).send(new PutObjectCommand({
+        Bucket: this.bucketName(bucket), Key: key, Body: body, ContentType: 'image/webp',
+      }), signal ? { abortSignal: signal } : undefined)
+      return true
+    } catch (error) {
+      console.error(JSON.stringify({ level: 'error', event: 'storage.card_variant_failed', bucket, key, message: error instanceof Error ? error.message : String(error) }))
+      return false
+    }
+  }
+
+  /** Backfill: writes the card sibling of an already stored WebP when it is missing. */
+  async ensureCardVariant(bucket: StorageBucket, path: string): Promise<'exists' | 'created' | 'skipped' | 'failed'> {
+    const key = cardVariantKey(path)
+    if (!key) return 'skipped'
+    const { HeadObjectCommand } = await import('@aws-sdk/client-s3')
+    const client = await this.getS3Client()
+    try {
+      await client.send(new HeadObjectCommand({ Bucket: this.bucketName(bucket), Key: key }))
+      return 'exists'
+    } catch (error) {
+      const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode
+      if (status !== 404) return 'failed'
+    }
+    // Originals are capped at 180 KB by policy; 5 MB leaves room for legacy files without loading anything huge.
+    const original = await this.download(bucket, path, 5 * 1024 * 1024).catch(() => null)
+    if (!original) return 'failed'
+    return await this.putCardVariant(bucket, key, original) ? 'created' : 'failed'
   }
 
   getPublicUrl(bucket: StorageBucket, path: string): string {

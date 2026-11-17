@@ -45,6 +45,8 @@ Format-specific assets still need explicit budgets. The policy records current
 implementation gaps; do not claim they are fixed. New paths must enforce it.
 Profile changes need evidence/tests and a Journal decision; never add a silent
 bypass. Existing production/release authorization rules apply.
+Dish images must pass `isAcceptedImageUrl` (src/lib/media/image-source.ts): stored WebP
+only, uploaded through the storage layer so it gets its `.w480.webp` card sibling.
 <!-- /media-policy -->
 
 

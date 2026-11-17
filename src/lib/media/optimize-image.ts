@@ -23,3 +23,9 @@ export async function optimizeImageToWebP(input: Buffer, options: ImageOptimizat
   }
   throw new Error(`Image cannot fit the ${Math.round(maxBytes / 1024)}KB limit while preserving its content.`)
 }
+
+/** The small sibling every stored WebP gets for lists, carts and thumbnails (src/lib/media/image-source.ts). */
+export async function makeCardVariant(input: Buffer | Uint8Array): Promise<Buffer> {
+  const { CARD_VARIANT } = await import('./image-source')
+  return optimizeImageToWebP(Buffer.from(input), { maxSide: CARD_VARIANT.maxSide, maxSize: CARD_VARIANT.maxBytes })
+}

@@ -14,6 +14,7 @@ import FeedSizeSheet from './FeedSizeSheet'
 import type { FeedSize } from './feed-sizes'
 import type { DishDetail } from '@/lib/public-dish-details'
 import { getFeedSlideDuration, getProductImages, getFeedSlides, isFeedPortrait } from './menu-utils'
+import { prefetchImage } from '@/lib/media/prefetch-image'
 import { LOOP_COPIES, dishAt, dragOffset, lockAxis, loops, recenter, resolveSwipe, startPosition, type SwipeAxis } from './feed-gestures'
 import DishHeading from './DishHeading'
 import { computePrimaryForeground, readableTextColor } from '@/lib/color-utils'
@@ -228,6 +229,14 @@ export default function MenuFeed({
               index={index}
               count={count}
               priority={position === startAt}
+              onActive={() => {
+                // The next two dishes are already loading while the guest looks at this one.
+                for (const step of [1, 2]) {
+                  const next = products[dishAt(position + step, count)]
+                  const slide = next && getFeedSlides(next, productMediaByProductId[next.id] ?? [], extraImagesFor(next)).find(item => item.type === 'image')
+                  if (slide) prefetchImage(feedImageSrc(slide.url))
+                }
+              }}
               media={productMediaByProductId[product.id] ?? []}
               extraImages={extraImagesFor(product)}
               autoplay={autoplayVideos}
@@ -285,9 +294,10 @@ function FeedCard({
   product, index, count, priority, media, extraImages, autoplay, copy, lang, currency,
   primaryColor, accentColor, directOrdersEnabled, cartCount, arOrder, arSequence, arModel, quantity,
   customizable, sizes, details, price, onOpen, onAdd, onPickSize, onIncrement, onDecrement, onOpenCart,
-  onAddFromAr, onArOpened, onArLaunched, onMediaEvent,
+  onAddFromAr, onArOpened, onArLaunched, onMediaEvent, onActive,
 }: {
   product: Product
+  onActive?: () => void
   index: number
   count: number
   priority: boolean
@@ -347,6 +357,7 @@ function FeedCard({
       className="group relative h-full snap-start snap-always overflow-hidden bg-zinc-950"
     >
       <FeedMedia
+        onActive={onActive}
         product={product}
         media={media}
         extraImages={extraImages}
@@ -458,6 +469,7 @@ function FeedCard({
 }
 
 function FeedMedia({
+  onActive,
   product,
   media,
   extraImages,
@@ -468,6 +480,8 @@ function FeedMedia({
   viewDishLabel,
   onMediaEvent,
 }: {
+  /** Called when this dish becomes the one on screen. */
+  onActive?: () => void
   product: Product
   media: ProductMedia[]
   extraImages: string[]
@@ -487,6 +501,9 @@ function FeedMedia({
   const [nearViewport, setNearViewport] = useState(priority)
   const [active, setActive] = useState(false)
   const [mediaIndex, setMediaIndex] = useState(0)
+  const onActiveRef = useRef(onActive)
+  useEffect(() => { onActiveRef.current = onActive })
+  useEffect(() => { if (active) onActiveRef.current?.() }, [active])
   // Horizontal drag inside the dish (feed-gestures.ts): the photo track follows
   // the finger without re-rendering (written straight to the track's style),
   // then animates to the next/previous photo or springs back.

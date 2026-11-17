@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useSyncExternalStore } from 'react'
-import Image from 'next/image'
+import { DeliveryImage } from '@/components/delivery-image'
 import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, UtensilsCrossed, ChevronDown } from 'lucide-react'
 import type { Product } from '@/types/database'
 import type { CartItem } from './menu-utils'
@@ -107,7 +107,7 @@ export default function CartPanel({
                   <div className="flex gap-3">
                     <div className="size-[72px] flex-shrink-0 overflow-hidden rounded-xl bg-zinc-100">
                       {img
-                        ? <Image src={img} alt="" width={72} height={72} className="size-full object-cover" />
+                        ? <DeliveryImage variant="card" src={img} alt="" width={72} height={72} className="size-full object-cover" />
                         : <div className="flex size-full items-center justify-center"><UtensilsCrossed className="size-5 text-zinc-300" /></div>}
                     </div>
 
@@ -184,7 +184,7 @@ export default function CartPanel({
                     <li key={product.id} className="flex items-center gap-3 rounded-xl bg-white p-2">
                       <span className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
                         {image
-                          ? <Image src={image} alt="" fill sizes="48px" className="object-cover" />
+                          ? <DeliveryImage variant="card" src={image} alt="" fill sizes="48px" className="object-cover" />
                           : <span className="flex size-full items-center justify-center"><UtensilsCrossed className="size-5 text-zinc-300" /></span>}
                       </span>
                       <span className="min-w-0 flex-1">

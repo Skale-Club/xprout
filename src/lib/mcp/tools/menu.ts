@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { slugify } from '@/lib/utils'
 import { MENU_LANGUAGE_CODES } from '@/components/menu/menu-i18n'
 import { MAX_DISH_TAG_LENGTH, PREDEFINED_DISH_TAGS, validateDishTags } from '@/lib/menu/dish-tags'
+import { isAcceptedImageUrl } from '@/lib/media/image-source'
 import {
   checkDestructiveAllowed,
   errorResult,
@@ -313,7 +314,7 @@ export function registerMenuWriteTools(server: McpServer): void {
         original_price: z.number().min(0).nullable().optional(),
         category_id: z.string().uuid().optional(),
         menu_id: z.string().uuid().optional(),
-        image_url: z.string().nullable().optional(),
+        image_url: z.string().refine(isAcceptedImageUrl, 'Image must be an optimized WebP on Xprout storage (upload it through the admin first)').nullable().optional(),
         is_available: z.boolean().optional(),
         is_featured: z.boolean().optional(),
         show_in_feed: z.boolean().optional().describe('Exibir no feed visual mobile (default true)'),
@@ -377,7 +378,7 @@ export function registerMenuWriteTools(server: McpServer): void {
         description: z.string().nullable().optional(),
         original_price: z.number().min(0).nullable().optional(),
         category_id: z.string().uuid().nullable().optional(),
-        image_url: z.string().nullable().optional(),
+        image_url: z.string().refine(isAcceptedImageUrl, 'Image must be an optimized WebP on Xprout storage (upload it through the admin first)').nullable().optional(),
         is_available: z.boolean().optional(),
         is_featured: z.boolean().optional(),
         show_in_feed: z.boolean().optional().describe('Exibir no feed visual mobile'),

@@ -35,6 +35,16 @@ The request-scoped brand discovery assets use these bounded profiles: approved p
 
 Deliver image sizes appropriate to rendered dimensions with responsive sources and `sizes`, reserve layout space, lazy-load offscreen media, and prioritize only the visible critical asset. Use the existing delivery component where supported. Serve cacheable derivatives through storage/CDN with versioned URLs and appropriate cache headers. Precompute derivatives or use bounded, cached image delivery; Next Image cache misses are acceptable with bounded allowed sizes and resource controls. Do not allow unbounded guest-triggered re-encoding or retranscode video per view.
 
+### Stored images: one scheme, served from the edge (2026-11-17)
+
+Every image the menu shows follows one rule, defined in `src/lib/media/image-source.ts`:
+
+- **Accepted URLs.** A dish image (`image_url`, `image_urls`, `feed_image_url`) must be a WebP on our R2 buckets, a WebP the app ships under `public/`, or a legacy Supabase public-storage WebP. The admin API (`src/lib/data/admin-products.ts`) and the MCP product tools refuse anything else (raw JPEG/PNG, other sites, query strings), so no path — admin, MCP, scripts or another AI — can publish a heavy or foreign image.
+- **Card sibling.** Every WebP written through the storage layer (`S3StorageClient.upload`) also gets `<name>.w480.webp`: at most 480 px and 32 KiB, encoded by the same optimizer. Lists, carts, upsell, option thumbnails and the waiter screen use it (`DeliveryImage variant="card"`); the dish window and the feed use the original. A missing sibling falls back to the original in the browser.
+- **Direct delivery.** Stored images are rendered as is (`unoptimized`): Cloudflare serves them from the edge (~0.2 s) instead of the app server resizing them on a cache miss (0.7–1.1 s measured in production on 2026-11-17). Local assets and legacy hosts still use next/image.
+- **Loading ahead.** `src/lib/media/prefetch-image.ts` warms images before they are reached: every list tile once the page is idle, the dish photo when a finger lands on its card, the neighbours of an open dish and the next two feed dishes. At most four downloads in flight; nothing on Save-Data or 2G.
+- **Backfill.** Images stored before this rule, or put on R2 outside the app, get their sibling from `POST /api/internal/image-variants` (header `x-revalidate-secret`, paged by `after`/`next`). Run it after the deploy that ships this rule; until then cards download the original after a failed sibling request.
+
 ## Video contract and current implementation
 
 All owned video publication must transcode to a bounded delivery profile, verify the resulting bytes and generate an optimized poster. Existing ffmpeg output is H.264 MP4, `yuv420p`, without audio, with fast-start metadata. These are the **current code settings** in `src/lib/media/video.ts`:
