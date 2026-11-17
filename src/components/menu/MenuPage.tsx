@@ -1043,7 +1043,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const restaurantHome = (() => { try { return canonicalBaseUrl ? new URL(canonicalBaseUrl).pathname || '/' : `/${tenant.slug}` } catch { return `/${tenant.slug}` } })()
   // Each public dish card is a real link to its dish page (crawlable), opened here as the dish window.
   const dishHref = (product: Product) => !feedPreview && canonicalBaseUrl && menu?.slug && menu.is_private === false && isIndexableDish(product)
-    ? `${restaurantHome === '/' ? '' : restaurantHome.replace(/\/$/, '')}/${menu.slug}/${dishSlug(product)}` : undefined
+    ? `${canonicalBaseUrl.replace(/\/$/, '')}/${menu.slug}/${dishSlug(product)}` : undefined
   const menusLabel = ({ en: 'Menus', pt: 'Cardápios', es: 'Cartas' } as Record<string, string>)[selectedLanguage.split('-')[0]] ?? 'Menus'
 
   return (
