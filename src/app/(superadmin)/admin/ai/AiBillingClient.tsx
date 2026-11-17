@@ -84,7 +84,7 @@ export default function AiBillingClient() {
       <div className="mx-auto w-full max-w-7xl space-y-4">
         <header>
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-400"><Sparkles className="size-4" />Super admin</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-zinc-950">AI & billing</h1>
+          <h1 className="mt-1 text-3xl font-black tracking-tight text-zinc-950">AI</h1>
           <p className="mt-1 max-w-3xl text-sm text-zinc-500">
             Every AI call (chat, voice, translation, blog, seeding) goes through OpenRouter. The global key below is the default for every client and the fallback when a client&apos;s own key fails. Billable usage is charged at real cost plus margin on the client&apos;s monthly plan invoice.
           </p>

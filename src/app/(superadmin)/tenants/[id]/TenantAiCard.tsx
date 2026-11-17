@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, CheckCircle2, Loader2, Receipt, Save, Sparkles } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, MessageCircle, Receipt, Save, Sparkles } from 'lucide-react'
 import OpenRouterKeyField from '@/components/ai/OpenRouterKeyField'
 import type { AiBillingMode } from '@/lib/ai/billing-rules'
 import { BILLING_MODE_HELP, BILLING_MODE_LABELS, BILLING_MODES, formatBrl, formatUsd, type UsageMonth } from '@/lib/ai/labels'
@@ -22,6 +22,8 @@ interface Payload {
   can_bill: boolean
   /** Whether the client may paste or remove its own key in its panel (off by default). */
   client_key_allowed: boolean
+  /** The chat on this client's menu: on/off (whatever the plan) and its channels. */
+  chat: { on: boolean; text: boolean; voice: boolean; has_subscription: boolean }
 }
 
 interface BillResult {
@@ -39,7 +41,7 @@ const BILL_REASONS: Record<NonNullable<BillResult['reason']>, string> = {
   below_minimum: 'Pending usage is under one cent; it keeps accumulating.',
 }
 
-/** Superadmin › client: how this client's AI is paid for, and its usage. */
+/** Superadmin › client › AI: the menu chat, how this client's AI is paid for, its key and its usage. */
 export default function TenantAiCard({ tenantId }: { tenantId: string }) {
   const url = `/api/superadmin/tenants/${tenantId}/ai`
   const [data, setData] = useState<Payload | null>(null)
@@ -96,8 +98,8 @@ export default function TenantAiCard({ tenantId }: { tenantId: string }) {
         <div className="flex items-center gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600"><Sparkles className="size-4" /></span>
           <div>
-            <h2 id="tenant-ai-title" className="text-sm font-bold text-zinc-950">AI usage & billing</h2>
-            <p className="text-xs text-zinc-500">Who pays for this client&apos;s AI calls. Defaults live in <Link href="/admin/ai" className="font-semibold text-indigo-600 hover:underline">AI & billing</Link>.</p>
+            <h2 id="tenant-ai-title" className="text-sm font-bold text-zinc-950">AI</h2>
+            <p className="text-xs text-zinc-500">The menu chat, who pays for this client&apos;s AI calls, and its usage. Defaults live in <Link href="/admin/ai" className="font-semibold text-indigo-700 hover:underline">AI</Link>.</p>
           </div>
         </div>
       </div>
@@ -107,6 +109,31 @@ export default function TenantAiCard({ tenantId }: { tenantId: string }) {
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="space-y-3">
+            {/* The chat on the client's menu. Saved as soon as it changes; on works whatever the plan includes. */}
+            <div className="rounded-xl border border-zinc-200 p-3">
+              <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+                <span className="flex items-center gap-2 text-sm font-bold text-zinc-900"><MessageCircle className="size-4 text-zinc-500" />Chat on the menu</span>
+                <input type="checkbox" role="switch" checked={data.chat.on} disabled={busy !== null || !data.chat.has_subscription}
+                  onChange={e => void save({ chat: { on: e.target.checked } })} className="size-4 shrink-0 accent-zinc-900" />
+              </label>
+              {!data.chat.has_subscription ? (
+                <p className="text-xs text-zinc-500">This client has no subscription yet, so the chat cannot be switched on.</p>
+              ) : data.chat.on ? (
+                <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
+                  {([['text', 'Text'], ['voice', 'Voice']] as const).map(([channel, label]) => (
+                    <label key={channel} className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-semibold text-zinc-700">
+                      <input type="checkbox" checked={data.chat[channel]} disabled={busy !== null}
+                        onChange={e => void save({ chat: { [channel]: e.target.checked } })} className="size-4 accent-zinc-900" />{label}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500">Guests see an AI assistant on the menu. It runs on the billing mode below.</p>
+              )}
+              {data.chat.on && !data.global_key_configured && data.effective_mode !== 'own_key' && (
+                <p className="mt-1 text-xs font-semibold text-amber-800">No OpenRouter key yet: the chat cannot answer until a global key is set in AI.</p>
+              )}
+            </div>
             {data.last_key_error && (
               <p className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />

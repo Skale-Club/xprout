@@ -14,6 +14,7 @@ import { adminMenusOwned } from '@/lib/data/admin-menus'
 import { adminChatError } from '@/lib/admin/chat-context'
 import { assertOwnedAiActor, writeOwnedAiTenantSettings } from '@/lib/data/ai-panel-runtime'
 import { nativeAiTenantPayload } from '@/lib/ai/native-panel'
+import { chatControls } from '@/lib/data/ai-panel'
 import { readNativeAnalyticsBody } from '@/lib/data/public-analytics'
 
 export const dynamic = 'force-dynamic'
@@ -21,13 +22,16 @@ export const dynamic = 'force-dynamic'
 type Ctx = { params: Promise<{ id: string }> }
 
 export async function tenantAiPayload(tenantId: string) {
-  const [platform, tenant, usage, unbilled, { data: sub }] = await Promise.all([
+  const supabase = createServiceClient()
+  const [platform, tenant, usage, unbilled, { data: sub }, { data: chatRow }] = await Promise.all([
     loadPlatformAiSettings(),
     loadTenantAiSettings(tenantId),
     usageByTenant(startOfMonthIso(), tenantId),
     unbilledChargeUsd(tenantId),
-    createServiceClient().from('tenant_subscriptions').select('stripe_customer_id').eq('tenant_id', tenantId).maybeSingle(),
+    supabase.from('tenant_subscriptions').select('stripe_customer_id, chat_addon_override, chat_addon_active, plans(chat_addon_available)').eq('tenant_id', tenantId).maybeSingle(),
+    supabase.from('chat_addon_settings').select('enabled, text_enabled, audio_enabled').eq('tenant_id', tenantId).maybeSingle(),
   ])
+  const plan = (sub as { plans?: { chat_addon_available?: boolean } | null } | null)?.plans
   return {
     billing_mode: tenant.mode,
     effective_mode: tenant.mode ?? platform.defaultMode,
@@ -42,7 +46,31 @@ export async function tenantAiPayload(tenantId: string) {
     unbilled_charge_usd: unbilled,
     can_bill: !!sub?.stripe_customer_id,
     client_key_allowed: tenant.clientKeyAllowed,
+    chat: chatControls({ ...(chatRow ?? {}), has_subscription: !!sub, chat_addon_override: sub?.chat_addon_override,
+      chat_addon_active: sub?.chat_addon_active, chat_addon_available: plan?.chat_addon_available }),
   }
+}
+
+/** Superadmin chat switch and channels (same rules as writeTenantChatControls in src/lib/data/ai-panel.ts). */
+async function writeLegacyChat(tenantId: string, input: unknown): Promise<string | null> {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return 'Invalid request'
+  const chat = input as Record<string, unknown>, patch: Record<string, unknown> = {}
+  if (chat.text !== undefined) { if (typeof chat.text !== 'boolean') return 'Invalid chat channel'; patch.text_enabled = chat.text }
+  if (chat.voice !== undefined) { if (typeof chat.voice !== 'boolean') return 'Invalid chat channel'; patch.audio_enabled = chat.voice }
+  if (chat.on !== undefined && typeof chat.on !== 'boolean') return 'Invalid chat switch'
+  const supabase = createServiceClient()
+  const { data: current } = await supabase.from('chat_addon_settings').select('text_enabled, audio_enabled').eq('tenant_id', tenantId).maybeSingle()
+  const text = patch.text_enabled ?? current?.text_enabled ?? true, voice = patch.audio_enabled ?? current?.audio_enabled ?? false
+  if (text === false && voice === false) return 'Keep text or voice on'
+  if (typeof chat.on === 'boolean') {
+    const { data, error } = await supabase.from('tenant_subscriptions').update({ chat_addon_override: chat.on }).eq('tenant_id', tenantId).select('tenant_id')
+    if (error) return 'Could not save'
+    if (!data?.length) return 'This client has no subscription yet'
+    patch.enabled = chat.on
+  }
+  if (!Object.keys(patch).length) return null
+  const { error } = await supabase.from('chat_addon_settings').upsert({ tenant_id: tenantId, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id' })
+  return error ? 'Could not save' : null
 }
 
 async function handleGET(_request: Request, { params }: Ctx) {
@@ -70,6 +98,12 @@ async function handlePUT(request: Request, { params }: Ctx) {
     } catch (error) { return adminChatError(error) }
   }
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+  if (body.chat !== undefined) {
+    const problem = await writeLegacyChat(id, body.chat)
+    if (problem) return NextResponse.json({ error: problem }, { status: problem === 'Could not save' ? 500 : problem.startsWith('This client') ? 409 : 400 })
+    // A chat-only change leaves the AI billing row alone.
+    if (Object.keys(body).length === 1) return NextResponse.json(await tenantAiPayload(id))
+  }
   const row: Record<string, unknown> = { tenant_id: id, updated_at: new Date().toISOString() }
 
   if (body.billing_mode !== undefined) {
