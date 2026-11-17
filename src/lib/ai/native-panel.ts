@@ -16,11 +16,12 @@ export async function nativeAiTenantPayload(context: AdminActorContext, superadm
   const month = usage.get(context.tenantId) ?? null
   if (!superadminView) return { effective_mode: tenant.mode ?? platform.defaultMode, openrouter_api_key: maskedOrEmpty(tenant.key),
     last_key_error: tenant.lastKeyError, last_key_error_at: tenant.lastKeyErrorAt, usd_to_brl: platform.usdToBrl,
+    client_key_allowed: tenant.clientKeyAllowed,
     month: month && { calls: month.calls, charge_usd: month.chargeUsd, calls_on_own_key: month.byKey.tenant } }
   return { billing_mode: tenant.mode, effective_mode: tenant.mode ?? platform.defaultMode, openrouter_api_key: maskedOrEmpty(tenant.key),
     markup_pct: tenant.markupPct, effective_markup_pct: tenant.markupPct ?? platform.defaultMarkupPct,
     last_key_error: tenant.lastKeyError, last_key_error_at: tenant.lastKeyErrorAt, global_key_configured: platform.platformKeySource !== 'none',
-    usd_to_brl: platform.usdToBrl, month, unbilled_charge_usd: unbilled, can_bill: canBill }
+    usd_to_brl: platform.usdToBrl, month, unbilled_charge_usd: unbilled, can_bill: canBill, client_key_allowed: tenant.clientKeyAllowed }
 }
 export async function nativeAiGlobalPayload(context: AdminActorContext) {
   const [platform, tenants, usage] = await Promise.all([loadPlatformAiSettings(), readOwnedAiPanelTenants(context), usageByTenant(startOfMonthIso())])

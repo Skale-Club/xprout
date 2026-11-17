@@ -20,6 +20,8 @@ interface Payload {
   month: UsageMonth | null
   unbilled_charge_usd: number
   can_bill: boolean
+  /** Whether the client may paste or remove its own key in its panel (off by default). */
+  client_key_allowed: boolean
 }
 
 interface BillResult {
@@ -135,8 +137,18 @@ export default function TenantAiCard({ tenantId }: { tenantId: string }) {
               onChange={setKey}
               testUrl={url}
               onRemove={() => void save({ openrouter_api_key: null })}
-              help="Used when the mode is the client's own key. The client can also paste it in their panel (Settings › AI & billing)."
+              help="Used when the mode is the client's own key. You manage it; the client only sees it if you allow it below."
             />
+            {/* Off by default: the OpenRouter key is the platform's responsibility. Saved as soon as it changes. */}
+            <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 px-3 py-2.5">
+              <input type="checkbox" checked={data.client_key_allowed === true} disabled={busy !== null}
+                onChange={e => void save({ client_key_allowed: e.target.checked })}
+                className="mt-0.5 size-4 shrink-0 accent-zinc-900" />
+              <span className="text-xs leading-relaxed text-zinc-600">
+                <span className="block font-bold text-zinc-900">Let the client manage their own key</span>
+                Shows the key field in the client&apos;s panel (Settings › AI &amp; billing) so they can bring, change or remove their own OpenRouter key.
+              </span>
+            </label>
             <button
               type="button"
               onClick={() => void save({ billing_mode: mode || null, markup_pct: markup === '' ? null : Number(markup), openrouter_api_key: key })}

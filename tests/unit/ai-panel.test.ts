@@ -13,10 +13,18 @@ it('masked/omitted keys preserve, empty/null remove and new values encrypt with 
   expect(encrypted).not.toBe(value); expect(decryptApiKey(encrypted!)).toBe(value)
   expect(nextStoredKey('aaaa••••bbbb')).toBeUndefined(); expect(nextStoredKey(undefined)).toBeUndefined(); expect(nextStoredKey(null)).toBeNull(); expect(nextStoredKey('  ')).toBeNull()
 })
+it('owner key changes are refused until a superadmin allows the client to manage its own key', async () => {
+  for (const permission of [[], [{ allowed: false }]]) {
+    const query = vi.fn().mockResolvedValueOnce({ rows: [profile()] }).mockResolvedValueOnce({ rows: permission }).mockResolvedValue({ rows: [] })
+    await expect(writeAiTenantSettings(query, owner, { openrouter_api_key: randomUUID() }, true)).rejects.toMatchObject({ status: 403 })
+    expect(query).toHaveBeenCalledTimes(2); expect(query.mock.calls[1][1]).toEqual([tenantId])
+  }
+})
 it('owner key update binds the real tenant and ignores requested markup/mode/tenant overrides', async () => {
-  const query = vi.fn().mockResolvedValueOnce({ rows: [profile()] }).mockResolvedValue({ rows: [] }), value = randomUUID()
-  await writeAiTenantSettings(query, owner, { openrouter_api_key: value, tenant_id: randomUUID(), markup_pct: 900, billing_mode: 'included' }, true)
-  const [sql, values] = query.mock.calls[1]
+  const query = vi.fn().mockResolvedValueOnce({ rows: [profile()] }).mockResolvedValueOnce({ rows: [{ allowed: true }] }).mockResolvedValue({ rows: [] }), value = randomUUID()
+  await writeAiTenantSettings(query, owner, { openrouter_api_key: value, tenant_id: randomUUID(), markup_pct: 900, billing_mode: 'included', client_key_allowed: true }, true)
+  const [sql, values] = query.mock.calls[2]
+  expect(sql).not.toContain('client_key_allowed')
   expect(values[0]).toBe(tenantId); expect(sql).not.toContain('markup_pct'); expect(values).toContain('own_key'); expect(values).not.toContain(value)
   const keyIndex = sql.slice(sql.indexOf('(tenant_id,') + 1, sql.indexOf(') VALUES')).split(',').indexOf('openrouter_api_key')
   expect(decryptApiKey(values[keyIndex])).toBe(value)
@@ -41,6 +49,11 @@ it('superadmin tenant changes validate mode/margin before a write and clear warn
   const query = vi.fn().mockResolvedValueOnce({ rows: [profile('superadmin')] }).mockResolvedValue({ rows: [] })
   await writeAiTenantSettings(query, { ...global, tenantId }, { openrouter_api_key: null, markup_pct: null }, false)
   expect(query.mock.calls[1][0]).toContain('last_key_error'); expect(query.mock.calls[1][1]).toContain(null)
+  const allow = vi.fn().mockResolvedValueOnce({ rows: [profile('superadmin')] }).mockResolvedValue({ rows: [] })
+  await writeAiTenantSettings(allow, { ...global, tenantId }, { client_key_allowed: true }, false)
+  expect(allow.mock.calls[1][0]).toContain('client_key_allowed'); expect(allow.mock.calls[1][1]).toContain(true)
+  const invalid = vi.fn().mockResolvedValue({ rows: [profile('superadmin')] })
+  await expect(writeAiTenantSettings(invalid, { ...global, tenantId }, { client_key_allowed: 'yes' }, false)).rejects.toMatchObject({ status: 400 })
 })
 it('usage aggregates preserve null-tenant buckets, exact bound scope and all-time unbilled facts without a source row cap', async () => {
   const query = vi.fn().mockResolvedValue({ rows: [{ tenant_id: null, calls: 2, cost_usd: '0.30000000', charge_usd: '0.39000000', unbilled: '0.13000000', tenant_calls: 1, platform_calls: 1 }] })

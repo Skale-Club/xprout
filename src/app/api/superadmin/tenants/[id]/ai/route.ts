@@ -41,6 +41,7 @@ export async function tenantAiPayload(tenantId: string) {
     month: usage.get(tenantId) ?? null,
     unbilled_charge_usd: unbilled,
     can_bill: !!sub?.stripe_customer_id,
+    client_key_allowed: tenant.clientKeyAllowed,
   }
 }
 
@@ -86,6 +87,10 @@ async function handlePUT(request: Request, { params }: Ctx) {
       if (!Number.isFinite(markup) || markup < 0 || markup > 1000) return NextResponse.json({ error: 'Margin must be between 0 and 1000%' }, { status: 400 })
       row.markup_pct = clampMarkup(markup)
     }
+  }
+  if (body.client_key_allowed !== undefined) {
+    if (typeof body.client_key_allowed !== 'boolean') return NextResponse.json({ error: 'Invalid client key permission' }, { status: 400 })
+    row.client_key_allowed = body.client_key_allowed
   }
   const key = nextStoredKey(body.openrouter_api_key)
   if (key !== undefined) {

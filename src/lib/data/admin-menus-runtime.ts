@@ -2,6 +2,7 @@ import pg from 'pg'
 import { postgresRuntimeConfig } from './database-config'
 import { sharedRuntimePool } from './shared-pool'
 import { scheduleTenantPublish } from '../site/publish-effects-runtime'
+import { log } from '../observability/log'
 import { AdminMenuError, findAdminMenu, mutateAdminMenu, readAdminMenus, type AdminMenuContext, type AdminMenuMutation, type AdminMenuQuery } from './admin-menus'
 
 let pool: pg.Pool | undefined, configuration: string | undefined
@@ -18,6 +19,20 @@ function ownedPool() {
   if (!pool) { pool = sharedRuntimePool('ADMIN_MENUS'); configuration = current }
   return pool
 }
+/**
+ * The cause behind a generic "unavailable": Postgres code, table, column and constraint, never the
+ * row values (pg's `detail` can echo them, so it is left out).
+ */
+function logUnavailable(error: unknown, write: boolean, timedOut: boolean) {
+  const pgError = error as { code?: unknown; table?: unknown; column?: unknown; constraint?: unknown; routine?: unknown } | null
+  log.error('admin_db.transaction_failed', {
+    write, timed_out: timedOut, err: error,
+    pg: pgError && typeof pgError === 'object'
+      ? { code: pgError.code, table: pgError.table, column: pgError.column, constraint: pgError.constraint, routine: pgError.routine }
+      : undefined,
+  })
+}
+
 /** No mutation retries: an interrupted COMMIT can have an ambiguous outcome. */
 export async function adminMenuTransaction<T>(source: Pick<pg.Pool, 'connect'>, write: boolean, operation: (query: AdminMenuQuery) => Promise<T>, timeoutMs = 8000): Promise<T> {
   let client: pg.PoolClient | undefined, released = false, expired = false
@@ -25,7 +40,7 @@ export async function adminMenuTransaction<T>(source: Pick<pg.Pool, 'connect'>, 
   const destroy = () => { if (client && !released) { released = true; client.release(true) } }
   let timer: ReturnType<typeof setTimeout> | undefined
   const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => { expired = true; destroy(); reject(unavailable()) }, Number.isFinite(timeoutMs) ? Math.max(1, Math.min(timeoutMs, 8000)) : 8000)
+    timer = setTimeout(() => { expired = true; destroy(); logUnavailable(undefined, write, true); reject(unavailable()) }, Number.isFinite(timeoutMs) ? Math.max(1, Math.min(timeoutMs, 8000)) : 8000)
   })
   const transaction = async () => {
     try {
@@ -41,7 +56,10 @@ export async function adminMenuTransaction<T>(source: Pick<pg.Pool, 'connect'>, 
       return result
     } catch (error) {
       if (client && !released) await client.query('ROLLBACK').catch(() => {})
-      throw error instanceof AdminMenuError ? error : unavailable()
+      if (error instanceof AdminMenuError) throw error
+      // After the deadline the cause was already logged as a timeout.
+      if (!expired) logUnavailable(error, write, false)
+      throw unavailable()
     }
   }
   try { return await Promise.race([transaction(), deadline]) }

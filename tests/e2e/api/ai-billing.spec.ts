@@ -96,6 +96,14 @@ test('platform default: our key, billed at cost + margin', async () => {
   expect(events).toEqual([{ feature: 'translation', key_source: 'platform', billable: true, cost_usd: COST, markup_pct: 30, charge_usd: 0.0013 }])
 })
 
+test('the client cannot set or test its own key until the superadmin allows it', async () => {
+  const locked = await owner.put('/api/admin/ai', { data: { openrouter_api_key: CLIENT_KEY } })
+  expect(locked.status(), await locked.text()).toBe(403)
+  expect((await owner.post('/api/admin/ai', { data: { action: 'test', api_key: 'sk-test-invalid' } })).status()).toBe(403)
+  expect(await (await owner.get('/api/admin/ai')).json()).toMatchObject({ client_key_allowed: false })
+  expect(await setClient({ client_key_allowed: true })).toMatchObject({ client_key_allowed: true })
+})
+
 test("owner's own key: they pay OpenRouter, we bill nothing", async () => {
   const saved = await owner.put('/api/admin/ai', { data: { openrouter_api_key: CLIENT_KEY } })
   expect(saved.status(), await saved.text()).toBe(200)

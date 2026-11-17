@@ -8,6 +8,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 function object(input: unknown) { if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AdminMenuError(400, 'Invalid request'); return input as Record<string, unknown> }
 function superadmin(context: AdminActorContext) { if (context.role !== 'superadmin') throw new AdminMenuError(403, 'Forbidden') }
 function tenant(context: AdminActorContext): string { if (!context.tenantId || !UUID.test(context.tenantId)) throw new AdminMenuError(404, 'Tenant not found'); return context.tenantId }
+/** Shown to a restaurant whose OpenRouter key is managed by the platform (the default). */
+export const CLIENT_KEY_LOCKED = 'Your AI key is managed by the platform. Contact support if you want to use your own OpenRouter key.'
 function nonnegative(value: unknown) { const number = Number(value); if (!Number.isFinite(number) || number < 0) throw new AdminMenuError(503, 'Usage is unavailable'); return number }
 
 export async function readAiUsageSummary(query: AdminMenuQuery, sinceIso: string, tenantId?: string): Promise<Map<string | null, UsageSummary>> {
@@ -47,6 +49,11 @@ export async function writeAiTenantSettings(query: AdminMenuQuery, context: Admi
   await authorizeAdminActor(query, context, true)
   const tenantId = tenant(context), body = object(input), key = nextStoredKey(body.openrouter_api_key)
   if (ownerOnly && key === undefined) return
+  if (ownerOnly) {
+    // The key is the platform's responsibility unless a superadmin let this client manage its own.
+    const allowed = await query(`SELECT (to_jsonb(s)->>'client_key_allowed')='true' AS allowed FROM public.tenant_ai_settings s WHERE tenant_id=$1 FOR UPDATE`, [tenantId])
+    if (allowed.rows[0]?.allowed !== true) throw new AdminMenuError(403, CLIENT_KEY_LOCKED)
+  }
   const row: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (ownerOnly) row.billing_mode = key ? 'own_key' : null
   else {
@@ -58,6 +65,10 @@ export async function writeAiTenantSettings(query: AdminMenuQuery, context: Admi
     if (body.markup_pct !== undefined) {
       if (body.markup_pct === null || body.markup_pct === '') row.markup_pct = null
       else { const markup = Number(body.markup_pct); if (!Number.isFinite(markup) || markup < 0 || markup > 1000) throw new AdminMenuError(400, 'Margin must be between 0 and 1000%'); row.markup_pct = clampMarkup(markup) }
+    }
+    if (body.client_key_allowed !== undefined) {
+      if (typeof body.client_key_allowed !== 'boolean') throw new AdminMenuError(400, 'Invalid client key permission')
+      row.client_key_allowed = body.client_key_allowed
     }
   }
   if (key !== undefined) { row.openrouter_api_key = key; row.last_key_error = null; row.last_key_error_at = null }

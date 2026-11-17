@@ -13,6 +13,8 @@ interface Payload {
   last_key_error: string | null
   last_key_error_at: string | null
   usd_to_brl: number
+  /** Off by default: the platform manages the key until a superadmin lets this restaurant bring its own. */
+  client_key_allowed: boolean
   month: { calls: number; charge_usd: number; calls_on_own_key: number } | null
 }
 
@@ -23,7 +25,7 @@ const MODE_TEXT: Record<AiBillingMode, { title: string; body: string }> = {
   },
   platform: {
     title: 'Billed on your plan invoice',
-    body: 'AI runs on our key. What you use is added to your monthly plan invoice. Prefer to pay OpenRouter yourself? Paste your own key below.',
+    body: 'AI runs on our key. What you use is added to your monthly plan invoice.',
   },
   included: {
     title: 'Included in your plan',
@@ -33,7 +35,7 @@ const MODE_TEXT: Record<AiBillingMode, { title: string; body: string }> = {
 
 const API = '/api/admin/ai'
 
-/** The restaurant's AI page: their own OpenRouter key and this month's usage. */
+/** The restaurant's AI page: this month's usage and, only when the platform allows it, their own OpenRouter key. */
 export default function AiSettingsClient() {
   const [data, setData] = useState<Payload | null>(null)
   const [key, setKey] = useState('')
@@ -86,13 +88,18 @@ export default function AiSettingsClient() {
             </div>
           )}
 
-          {data.last_key_error && (
+          {data.last_key_error && data.client_key_allowed && (
             <p role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <span>OpenRouter rejected your key on {new Date(data.last_key_error_at ?? '').toLocaleString()}. Check its credit at openrouter.ai, or paste a new key. Until then, AI usage runs on our key and goes on your plan invoice.</span>
             </p>
           )}
 
+          {!data.client_key_allowed ? (
+            <p className="rounded-[1.25rem] border border-zinc-100 bg-white p-6 text-sm text-zinc-600 shadow-sm">
+              Your AI key is managed by the platform. Want to pay OpenRouter directly with your own key? Contact support and we can turn it on for you.
+            </p>
+          ) : (
           <div className="space-y-5 rounded-[1.25rem] border border-zinc-100 bg-white p-8 shadow-sm">
             <OpenRouterKeyField
               label="Your OpenRouter API key"
@@ -117,6 +124,7 @@ export default function AiSettingsClient() {
               </p>
             )}
           </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-[1.25rem] border border-zinc-100 bg-white p-6 shadow-sm">

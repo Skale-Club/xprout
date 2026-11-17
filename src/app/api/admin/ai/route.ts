@@ -1,8 +1,9 @@
 /**
- * The restaurant's own AI page (owner only): paste or remove their OpenRouter
- * key and see this month's usage. Saving a key switches the client to
- * "own key" (they pay OpenRouter directly); removing it goes back to the
- * platform default. Margins and modes beyond that are set by the superadmin.
+ * The restaurant's own AI page (owner only): this month's usage and, only when
+ * a superadmin allowed it (tenant_ai_settings.client_key_allowed, off by
+ * default), pasting or removing their own OpenRouter key. Saving a key switches
+ * the client to "own key" (they pay OpenRouter directly); removing it goes back
+ * to the platform default. Margins and modes are set by the superadmin.
  */
 import { NextResponse } from 'next/server'
 import { getEffectiveTenant } from '@/lib/get-effective-tenant'
@@ -13,6 +14,7 @@ import { maskedOrEmpty, nextStoredKey, startOfMonthIso, usageByTenant, verifyOpe
 import { adminMenusOwned } from '@/lib/data/admin-menus'
 import { adminChatContext, adminChatError } from '@/lib/admin/chat-context'
 import { assertOwnedAiActor, writeOwnedAiTenantSettings } from '@/lib/data/ai-panel-runtime'
+import { CLIENT_KEY_LOCKED } from '@/lib/data/ai-panel'
 import { nativeAiTenantPayload } from '@/lib/ai/native-panel'
 import { readNativeAnalyticsBody } from '@/lib/data/public-analytics'
 
@@ -38,6 +40,7 @@ async function payload(tenantId: string) {
     last_key_error: tenant.lastKeyError,
     last_key_error_at: tenant.lastKeyErrorAt,
     usd_to_brl: platform.usdToBrl,
+    client_key_allowed: tenant.clientKeyAllowed,
     month: month && { calls: month.calls, charge_usd: month.chargeUsd, calls_on_own_key: month.byKey.tenant },
   }
 }
@@ -67,6 +70,7 @@ async function handlePUT(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { openrouter_api_key?: unknown }
   const key = nextStoredKey(body.openrouter_api_key)
   if (key === undefined) return NextResponse.json(await payload(who.tenantId!))
+  if (!(await loadTenantAiSettings(who.tenantId!)).clientKeyAllowed) return NextResponse.json({ error: CLIENT_KEY_LOCKED }, { status: 403 })
   const { error } = await createServiceClient().from('tenant_ai_settings').upsert({
     tenant_id: who.tenantId,
     openrouter_api_key: key,
@@ -89,7 +93,9 @@ async function handlePOST(request: Request) {
   }
   const body = (await request.json().catch(() => ({}))) as { action?: string; api_key?: string }
   if (body.action !== 'test') return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
-  const candidate = body.api_key?.trim() && !body.api_key.includes('••') ? body.api_key.trim() : (await loadTenantAiSettings(who.tenantId!)).key
+  const settings = await loadTenantAiSettings(who.tenantId!)
+  if (!settings.clientKeyAllowed) return NextResponse.json({ error: CLIENT_KEY_LOCKED }, { status: 403 })
+  const candidate = body.api_key?.trim() && !body.api_key.includes('••') ? body.api_key.trim() : settings.key
   if (!candidate) return NextResponse.json({ ok: false, error: 'No key to test' })
   return NextResponse.json(await verifyOpenRouterKey(candidate))
 }

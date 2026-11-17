@@ -43,6 +43,8 @@ export interface TenantAiSettings {
   markupPct: number | null
   lastKeyError: string | null
   lastKeyErrorAt: string | null
+  /** Off by default: only the platform sets this client's key until a superadmin lets the client manage it. */
+  clientKeyAllowed: boolean
 }
 
 function decryptOrNull(value: string | null | undefined): string | null {
@@ -74,7 +76,8 @@ export async function loadPlatformAiSettings(): Promise<PlatformAiSettings> {
 export async function loadTenantAiSettings(tenantId: string): Promise<TenantAiSettings> {
   const { data } = adminMenusOwned() ? { data: await readOwnedTenantAiRecord(tenantId) } : await createServiceClient()
     .from('tenant_ai_settings')
-    .select('billing_mode, openrouter_api_key, markup_pct, last_key_error, last_key_error_at')
+    // '*' so the optional client_key_allowed column is read when present (absent = not allowed).
+    .select('*')
     .eq('tenant_id', tenantId)
     .maybeSingle()
   return {
@@ -83,6 +86,7 @@ export async function loadTenantAiSettings(tenantId: string): Promise<TenantAiSe
     markupPct: data?.markup_pct == null ? null : Number(data.markup_pct),
     lastKeyError: data?.last_key_error ?? null,
     lastKeyErrorAt: data?.last_key_error_at ?? null,
+    clientKeyAllowed: data?.client_key_allowed === true,
   }
 }
 

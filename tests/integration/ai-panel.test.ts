@@ -23,7 +23,7 @@ before(async () => {
     CREATE TABLE public.profiles(id uuid PRIMARY KEY REFERENCES public.app_accounts(id),role text,tenant_id uuid REFERENCES public.tenants(id),must_change_password boolean);
     CREATE TABLE public.tenant_subscriptions(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),stripe_customer_id text);
     CREATE TABLE public.platform_ai_settings(id smallint PRIMARY KEY CHECK(id=1),openrouter_api_key text,default_billing_mode text DEFAULT 'platform',default_markup_pct numeric(6,2) DEFAULT 30,usd_to_brl numeric(10,4) DEFAULT 5.5,updated_at timestamptz DEFAULT now());
-    CREATE TABLE public.tenant_ai_settings(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),billing_mode text,openrouter_api_key text,markup_pct numeric(6,2),last_key_error text,last_key_error_at timestamptz,updated_at timestamptz DEFAULT now());
+    CREATE TABLE public.tenant_ai_settings(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),billing_mode text,openrouter_api_key text,markup_pct numeric(6,2),last_key_error text,last_key_error_at timestamptz,updated_at timestamptz DEFAULT now(),client_key_allowed boolean NOT NULL DEFAULT false);
     CREATE TABLE public.ai_usage_events(id bigserial PRIMARY KEY,tenant_id uuid REFERENCES public.tenants(id),occurred_at timestamptz,key_source text,billable boolean,cost_usd numeric(14,8),charge_usd numeric(14,8),invoiced_at timestamptz)`)
   await admin.query("INSERT INTO public.tenants VALUES($1,'A','a'),($2,'B','b')", [a, b])
   await admin.query('INSERT INTO public.app_accounts VALUES($1,NULL),($2,NULL)', [actor, superadmin])
@@ -46,6 +46,9 @@ test('numeric aggregates preserve scope/date/invoice/key-source buckets and incl
   assert.equal(await run(false, query => readAiUnbilledCharge(query, a)), 0.143)
 })
 test('owner changes encrypt only their key and preserve administrative margin; masked keys keep ciphertext and warnings', async () => {
+  // Locked by default: the platform manages the key until a superadmin allows the client.
+  await assert.rejects(run(true, query => writeAiTenantSettings(query, owner, { openrouter_api_key: randomUUID() }, true)), { status: 403 })
+  await run(true, query => writeAiTenantSettings(query, { ...global, tenantId: a }, { client_key_allowed: true }, false))
   const next = randomUUID(); await run(true, query => writeAiTenantSettings(query, owner, { openrouter_api_key: next, tenant_id: b, markup_pct: 999, billing_mode: 'included' }, true))
   let row = (await admin.query('SELECT * FROM public.tenant_ai_settings WHERE tenant_id=$1', [a])).rows[0]
   assert.notEqual(row.openrouter_api_key, next); assert.equal(decryptApiKey(row.openrouter_api_key), next); assert.equal(row.billing_mode, 'own_key'); assert.equal(Number(row.markup_pct), 25); assert.equal(row.last_key_error, null)
