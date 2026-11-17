@@ -59,3 +59,27 @@ test('a rejected sign-in document shows recovery instead of a collapsed overlay'
   await dialog.getByRole('button', { name: 'Close sign in' }).click()
   await expect(dialog).toHaveCount(0)
 })
+
+test('switching hero dishes reuses loaded images instead of inserting duplicate posters', async ({ page }) => {
+  await page.goto('/')
+  const scene = page.locator('.mk-table-scene')
+  const observation = await scene.evaluateHandle(element => {
+    const state = { addedImages: 0, observer: null as MutationObserver | null }
+    state.observer = new MutationObserver(records => {
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node instanceof HTMLImageElement) state.addedImages++
+        else if (node instanceof Element) state.addedImages += node.querySelectorAll('img').length
+      }
+    })
+    state.observer.observe(element, { childList: true, subtree: true })
+    return state
+  })
+  await scene.getByRole('button', { name: 'Next dish', exact: true }).click()
+  await expect(scene.locator('.mk-table-name')).toHaveText('Artisan Burger')
+  const addedImages = await observation.evaluate(state => {
+    state.observer?.disconnect()
+    return state.addedImages
+  })
+  await observation.dispose()
+  expect(addedImages).toBe(0)
+})

@@ -35,8 +35,6 @@ export default function HeroTableShowcase() {
   const [manual, setManual] = useState(false)
   const [manipulatedModel, setManipulatedModel] = useState('')
   const [announcement, setAnnouncement] = useState('')
-  // The dish being replaced, fading out before the next one fades in.
-  const [outgoing, setOutgoing] = useState<{ index: number; turn: number } | null>(null)
   const dish = dishes[selected]
   const source = `/marketing/v3/dish-${dish.id}`
   const modelSource = `${source}.glb${retry > 0 ? `?retry=${retry}` : ''}`
@@ -137,10 +135,7 @@ export default function HeroTableShowcase() {
 
   useEffect(() => {
     if (motion !== 'playing' || !visible || !activeDocument || !(enabled ? ready : idle) || failed || hovered || focused || manual) return
-    const timer = setTimeout(() => {
-      setOutgoing(current => ({ index: selected, turn: (current?.turn ?? 0) + 1 }))
-      setSelected((selected + 1) % dishes.length)
-    }, 7000)
+    const timer = setTimeout(() => setSelected((selected + 1) % dishes.length), 7000)
     return () => clearTimeout(timer)
   }, [motion, visible, activeDocument, enabled, ready, idle, failed, hovered, focused, manual, selected])
 
@@ -154,7 +149,6 @@ export default function HeroTableShowcase() {
 
   function go(index: number) {
     if (index === selected) return
-    setOutgoing(current => ({ index: selected, turn: (current?.turn ?? 0) + 1 }))
     setSelected(index)
   }
   const choose = (index: number) => {
@@ -179,17 +173,14 @@ export default function HeroTableShowcase() {
         const current = index === selected
         return <DeliveryImage key={item.id} src={`/marketing/v3/dish-${item.id}.webp`} alt={current ? `${item.name} served on a photographed restaurant table` : ''}
           aria-hidden={current ? undefined : true} draggable={false}
+          loading={index === 0 ? 'eager' : 'lazy'} fetchPriority={index === 0 ? 'high' : 'low'}
           width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px"
           className="mk-table-poster" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain',
             opacity: current && !(ready && !failed) ? 1 : 0,
             // A new dish fades in only after the old one has faded out (never two dishes at once);
             // its poster fades out when its own 3D takes over.
-            transition: !current || motion === 'reduced' ? 'none' : ready && !failed ? 'opacity 450ms ease' : 'opacity 280ms ease 200ms' }} />
+            transition: motion === 'reduced' ? 'none' : !current ? 'opacity 200ms ease-in' : ready && !failed ? 'opacity 450ms ease' : 'opacity 280ms ease 200ms' }} />
       })}
-      {outgoing ? <DeliveryImage key={`out-${outgoing.turn}`} src={`/marketing/v3/dish-${dishes[outgoing.index].id}.webp`} alt="" aria-hidden draggable={false}
-        width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px"
-        className="mk-table-poster-out" onAnimationEnd={() => setOutgoing(current => current?.turn === outgoing.turn ? null : current)}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
       {enabled && libraryReady ? <model-viewer key={modelKey} ref={viewer} src={modelSource}
         alt={`3D ${dish.name} on a photographed restaurant table`} poster={`${source}.webp`}
         className="mk-table-viewer" camera-orbit="0deg 62deg 0.55m" camera-target="0m 0.04m 0m" field-of-view="30deg"
