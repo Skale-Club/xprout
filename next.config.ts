@@ -90,9 +90,6 @@ const nextConfig: NextConfig = {
     return [
       { source: "/celes-confections", destination: "/celes", permanent: true },
       { source: "/celes-confections/:path*", destination: "/celes/:path*", permanent: true },
-      // Aurora's main menu was renamed to English (2026-11-17): its dish pages keep their links.
-      { source: "/aurora/cardapio-principal", destination: "/aurora/main-menu", permanent: true },
-      { source: "/aurora/cardapio-principal/:path*", destination: "/aurora/main-menu/:path*", permanent: true },
     ];
   },
   async headers() {
