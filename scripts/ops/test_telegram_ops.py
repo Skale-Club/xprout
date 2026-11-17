@@ -89,9 +89,9 @@ class OpsTests(unittest.TestCase):
         self.assertEqual(self.probe(down), 1)
         self.probe(down)
         self.assertEqual(len(self.sent), 1)
-        self.assertIn("public page HTTP 503", self.sent[0][1]["text"])
+        self.assertIn("página pública HTTP 503", self.sent[0][1]["text"])
         self.assertEqual(self.probe(), 0)
-        self.assertIn("uptime-recovered", self.sent[1][1]["text"])
+        self.assertIn("🟢 Resolvido — Disponibilidade restabelecida", self.sent[1][1]["text"])
         self.probe()
         self.assertEqual(len(self.sent), 2)
 
@@ -105,7 +105,7 @@ class OpsTests(unittest.TestCase):
         self.assertEqual(json.loads(Path(self.state).read_text())["last_notified"], "down")
         self.probe()
         self.assertEqual(len(self.sent), 2)
-        self.assertIn("uptime-recovered", self.sent[1][1]["text"])
+        self.assertIn("🟢 Resolvido — Disponibilidade restabelecida", self.sent[1][1]["text"])
 
     def test_sustained_slow_only_alerts_second_run(self):
         slow = fetcher(readiness("degraded", True, 1800))
@@ -113,7 +113,34 @@ class OpsTests(unittest.TestCase):
         self.assertEqual(self.sent, [])
         self.probe(slow)
         self.assertEqual(len(self.sent), 1)
-        self.assertIn("uptime-degraded", self.sent[0][1]["text"])
+        self.assertIn("🟠 Atenção — Desempenho degradado", self.sent[0][1]["text"])
+
+    def test_all_event_severities_and_safe_fallback(self):
+        groups = {
+            "🔴 Crítico": ["build-deploy-failed", "rollback-failed", "ci-failed", "uptime-down"],
+            "🟠 Atenção": ["build-deploy-cancelled", "rollback-cancelled", "uptime-degraded"],
+            "🔵 Informação": ["build-started", "rollback-started"],
+            "🟢 Resolvido": ["deploy-succeeded", "rollback-succeeded", "uptime-recovered"],
+        }
+        for label, events in groups.items():
+            for event in events:
+                with self.subTest(event=event):
+                    message = ops.format_ops_message(dict(ENV, OPS_EVENT=event))
+                    self.assertTrue(message.startswith(label + " — "))
+                    self.assertIn("Aplicativo: Xprout\nAmbiente: produção", message)
+                    self.assertNotIn(event, message)
+        message = ops.format_ops_message(dict(ENV, OPS_EVENT="<future&event>", OPS_SHA="abcdef12345",
+                                              OPS_RUN_URL="https://example.invalid/run"))
+        self.assertTrue(message.startswith("🔵 Informação — Notificação operacional"))
+        self.assertIn("Evento: <future&event>", message)
+        self.assertIn("Detalhes: <b>plain & safe</b>", message)
+        self.assertIn("Versão: abcdef1\nExecução: https://example.invalid/run", message)
+
+    def test_known_details_are_portuguese_without_health_invention(self):
+        message = ops.format_ops_message(dict(ENV, OPS_EVENT="build-started", OPS_DETAIL=
+            "Validated production release entered the build and deploy pipeline."))
+        self.assertIn("Versão validada entrou", message)
+        self.assertNotIn("saudável", message)
 
     def test_network_delay_does_not_change_database_degradation_threshold(self):
         # Virtual roundtrips exceed 1500 ms without sleeping or external I/O.

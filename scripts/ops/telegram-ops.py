@@ -39,17 +39,63 @@ def transport(url, payload=None):
         return response.status, body[:MAX_BYTES]
 
 
+def format_ops_message(env):
+    """Pure, plain-text presentation; event keys remain internal routing inputs."""
+    events = {
+        "build-started": ("🔵 Informação", "Publicação iniciada"),
+        "deploy-succeeded": ("🟢 Resolvido", "Publicação verificada"),
+        "build-deploy-failed": ("🔴 Crítico", "Falha na publicação"),
+        "build-deploy-cancelled": ("🟠 Atenção", "Publicação cancelada"),
+        "rollback-started": ("🔵 Informação", "Reversão ou republicação iniciada"),
+        "rollback-succeeded": ("🟢 Resolvido", "Reversão ou republicação verificada"),
+        "rollback-failed": ("🔴 Crítico", "Falha na reversão ou republicação"),
+        "rollback-cancelled": ("🟠 Atenção", "Reversão ou republicação cancelada"),
+        "ci-failed": ("🔴 Crítico", "Falha na validação"),
+        "uptime-down": ("🔴 Crítico", "Indisponibilidade detectada"),
+        "uptime-degraded": ("🟠 Atenção", "Desempenho degradado"),
+        "uptime-recovered": ("🟢 Resolvido", "Disponibilidade restabelecida"),
+    }
+    details = {
+        "Validated production release entered the build and deploy pipeline.": "Versão validada entrou na etapa de compilação e publicação.",
+        "Production readiness verified HTTP 200, healthy database and expected release.": "Prontidão verificada: HTTP 200, banco de dados saudável e versão esperada.",
+        "Production release pipeline did not complete successfully. Inspect the run and current production health.": "A publicação não foi concluída com sucesso. Consulte a execução e a saúde atual da produção.",
+        "Validation failed; production publication did not start. Check the failed jobs in this run.": "A validação falhou; a publicação em produção não começou. Consulte as etapas com falha nesta execução.",
+        "Production redeploy or rollback validation started.": "Validação da republicação ou reversão em produção iniciada.",
+        "Production rollback did not complete successfully. Inspect the run and current production health.": "A reversão não foi concluída com sucesso. Consulte a execução e a saúde atual da produção.",
+        "Readiness reports degraded or database latency above 1500 ms": "Prontidão degradada ou latência do banco de dados acima de 1500 ms.",
+        "Liveness, readiness/database and public page passed": "Verificações de atividade, prontidão/banco de dados e página pública aprovadas.",
+    }
+    event = env.get("OPS_EVENT", "")
+    severity, title = events.get(event, ("🔵 Informação", "Notificação operacional"))
+    lines = [f"{severity} — {title}", "", "Aplicativo: Xprout", "Ambiente: produção"]
+    detail = env.get("OPS_DETAIL", "")[:1000]
+    if detail:
+        detail = details.get(detail, detail)
+        # Translate probe diagnostics without changing their classification.
+        for original, translated in (
+            ("readiness database unavailable", "banco de dados indisponível na prontidão"),
+            ("invalid response or unreachable", "resposta inválida ou sem conexão"),
+            ("public page", "página pública"), ("liveness", "atividade"),
+            ("readiness", "prontidão"),
+        ):
+            detail = detail.replace(original, translated)
+        lines.extend(["", "Detalhes: " + detail])
+    if event and event not in events:
+        lines.extend(["", "Evento: " + event[:80]])
+    if env.get("OPS_SHA"):
+        lines.extend(["", "Versão: " + env["OPS_SHA"][:7]])
+    if env.get("OPS_RUN_URL"):
+        lines.append("Execução: " + env["OPS_RUN_URL"][:1000])
+    return "\n".join(lines)
+
+
 def notify(env=os.environ, send=transport):
     """Best effort; returns delivery result without changing a job's outcome."""
     if (env.get("OPS_TELEGRAM_ENABLED") != "true"
             or env.get("GITHUB_ACTIONS") != "true"
             or env.get("GITHUB_REF") != "refs/heads/main"):
         return False
-    lines = ["Xprout production | " + env.get("OPS_EVENT", "notification")[:80]]
-    for key in ("OPS_DETAIL", "OPS_SHA", "OPS_RUN_URL"):
-        if env.get(key):
-            lines.append(env[key][:1000])
-    return send_message("\n".join(lines), env, send)
+    return send_message(format_ops_message(env), env, send)
 
 
 def send_message(text, env=None, send=transport):
