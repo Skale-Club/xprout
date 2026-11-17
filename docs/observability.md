@@ -118,7 +118,7 @@ Repository configuration (GitHub Settings → Secrets and variables → Actions)
 
 | Setting | Kind | Purpose |
 |---|---|---|
-| `OPS_TELEGRAM_BOT_TOKEN` | Secret | Dedicated operations bot token |
+| `OPS_TELEGRAM_BOT_TOKEN` | Secret | Bot token used for the operations destination |
 | `OPS_TELEGRAM_CHAT_ID` | Secret | Numeric dedicated group/chat id, including a negative sign when applicable |
 | `OPS_TELEGRAM_THREAD_ID` | Optional variable | Positive numeric forum topic id; omit for an ordinary group |
 | `OPS_TELEGRAM_ENABLED` | Variable | Set exactly `true` to activate sends; absent/false disables them |
@@ -240,3 +240,26 @@ writes a local token file. Review before enabling the variable and host timer.
 Backup freshness and scheduled application job failure checks remain a later
 increment. They require verified receipt/job contracts and are not claimed by
 the process/database/host checks above.
+
+### Activation evidence (2026-11-17)
+
+The owner-selected existing `@skaleclubbot` posts to **Xprout | Ops**. Its
+existing Xphere webhook is preserved; the operations integration only sends
+outbound messages. GitHub notifications and the dedicated host timer are enabled.
+Host source hashes, root-only credential/state permissions, service exit status
+and repeated automatic timer executions were verified. The initial Telegram
+smoke was acknowledged as message 6.
+
+Runtime `3ce4203450b7e398b872d4dbd8be232c2c1f9382` passed
+[dev CI](https://github.com/Skale-Club/xprout/actions/runs/44086954376) and
+[production CI/deploy](https://github.com/Skale-Club/xprout/actions/runs/44089211148).
+Build-start and deploy-success notification steps completed without delivery
+warnings. Production readiness confirmed the exact SHA, healthy status and
+database (16 ms at final verification). The
+[post-release external check](https://github.com/Skale-Club/xprout/actions/runs/44092272183)
+was healthy and restored the preceding check's cached state successfully.
+
+Targeted offline validation: 25 Python plus seven Node tests passed. Eight
+unsigned/forged webhook probes were rejected with 400/401; no signed payment
+event was replayed. Measured remote durations: dev CI 12m41s; production CI,
+image publication and deployment 16m32s. No local full build was run.
