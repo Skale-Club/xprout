@@ -140,7 +140,9 @@ test('the preview link opens only the staging menu of its own restaurant', async
   const token = (await menuRow(stagingId)).preview_token as string
   assert.equal(await previewOf(a, token), stagingId)
   assert.equal(await previewOf(b, token), null)
-  assert.equal(await previewOf(a, `${token.slice(0, -1)}x`), null)
+  const invalidToken = `${token.slice(0, -1)}${token.endsWith('x') ? 'y' : 'x'}`
+  assert.notEqual(invalidToken, token)
+  assert.equal(await previewOf(a, invalidToken), null)
   assert.equal(await previewOf(a, "' OR true --"), null)
   const rotated = await stage({ kind: 'rotate-link', id: stagingId }) as StagingMenu
   assert.notEqual(rotated.preview_token, token)
