@@ -258,7 +258,8 @@ test('mobile and desktop menu/branch/dish screenshots retain readable read-only 
     await page.goto(`/${slug}/${branch.slug}`)
     await expect(page.getByRole('heading', { name: `${name} – ${branch.name}, ${branch.city}`, exact: true })).toBeVisible()
     await expect(page.getByText(branch.address, { exact: false }).first()).toBeVisible()
-    await expect(page.getByRole('link', { name: branch.phone, exact: true }).first()).toBeVisible()
+    // Phones are always shown formatted for the restaurant's country (USD: "(212) 555-0142").
+    await expect(page.getByRole('link', { name: '(212) 555-0142', exact: true }).first()).toBeVisible()
     await expect(page.locator('body')).not.toContainText('10 Example Street')
     await expect(page.locator('a[href="tel:+12125550100"]')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Abrir no Maps', exact: true }).first()).toBeVisible()
