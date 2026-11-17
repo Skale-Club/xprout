@@ -21,6 +21,7 @@ import { computeOpenState, resolveTimeZone } from '@/lib/chat-context'
 import NoticePill from './NoticePill'
 import { NO_CAPABILITIES, type TenantCapabilities } from '@/lib/service-modes'
 import { contactLinks, displayPrice, phoneLabel, whatsappUrl } from './showcase'
+import { dishSlug, isIndexableDish } from '@/lib/menu/dish-pages'
 import { resolveMenuActionLinks, visibleFooterBrand } from '@/lib/menu-action-links'
 import FeaturedCarousel from './FeaturedCarousel'
 import { GuestAccountButton } from './GuestSignIn'
@@ -1040,6 +1041,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const menuLinks = navigationLinks.filter(link => link.kind === 'menu')
   // The restaurant's home as a path on this host: "/" on its own domain, "/slug" on the platform.
   const restaurantHome = (() => { try { return canonicalBaseUrl ? new URL(canonicalBaseUrl).pathname || '/' : `/${tenant.slug}` } catch { return `/${tenant.slug}` } })()
+  // Each public dish card is a real link to its dish page (crawlable), opened here as the dish window.
+  const dishHref = (product: Product) => !feedPreview && canonicalBaseUrl && menu?.slug && menu.is_private === false && isIndexableDish(product)
+    ? `${restaurantHome === '/' ? '' : restaurantHome.replace(/\/$/, '')}/${menu.slug}/${dishSlug(product)}` : undefined
   const menusLabel = ({ en: 'Menus', pt: 'Cardápios', es: 'Cartas' } as Record<string, string>)[selectedLanguage.split('-')[0]] ?? 'Menus'
 
   return (
@@ -1386,6 +1390,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                         price={priceOf(p)}
                         hasArModel={!!productArModelByProductId[p.id]}
                         noticeMinutes={noticeFor(p)}
+                        href={dishHref(p)}
                         onOpen={() => openProduct(p, 'grid')}
                         {...(directOrdersEnabled ? {
                           cartQuantity: customizable ? 0 : qty,
@@ -1772,9 +1777,11 @@ function ContactCard({ href, icon, caption, value, color, external, numeric, wra
  * quantity stepper; narrow columns wrap the slot below the price before adding, so it stays put.
  * Larger screens put the photo on top. Choices still open the dish sheet. Controls are 44px high.
  */
-function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQuantity, onAdd, onIncrement, onDecrement, hasArModel = false, noticeMinutes = 0 }: {
+function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQuantity, onAdd, onIncrement, onDecrement, hasArModel = false, noticeMinutes = 0, href }: {
   /** Notice the dish needs, in minutes (0 = none); shown as a small pill. */
   noticeMinutes?: number
+  /** The dish page, when it has one: the card is then a link (search engines follow it; a click opens the dish window). */
+  href?: string
   product: Product; lang: string; currency: string; primaryColor: string; onOpen: () => void
   /** The dish has a 3D model: a small cube in the photo's corner says it can be seen on the table. */
   hasArModel?: boolean
@@ -1797,12 +1804,26 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
       data-analytics-source="grid"
       className="group relative grid grid-cols-[minmax(0,1fr)_clamp(8rem,28vw,10rem)] grid-rows-[1fr_auto] overflow-hidden rounded-2xl bg-white shadow-card transition-shadow hover:shadow-[0_2px_6px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.08)] sm:flex sm:flex-col"
     >
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label={product.name}
-        className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
-      />
+      {href ? (
+        <a
+          href={href}
+          onClick={event => {
+            // Ctrl/Cmd/middle click keeps the browser's new tab; a plain click opens the dish window.
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
+            event.preventDefault()
+            onOpen()
+          }}
+          aria-label={product.name}
+          className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={product.name}
+          className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/30"
+        />
+      )}
       <div className="pointer-events-none col-start-1 row-start-1 flex min-w-0 flex-col px-5 pt-5 sm:order-2">
         <h3 className={`line-clamp-2 text-[16px] text-zinc-900 ${ui.dishTitleCompact}`}>{product.name}</h3>
         {product.description && (

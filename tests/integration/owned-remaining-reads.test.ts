@@ -55,15 +55,19 @@ before(async () => {
     CREATE TABLE public.locations (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES public.tenants(id), slug text NOT NULL, is_active boolean NOT NULL DEFAULT true,
       menu_id uuid NULL REFERENCES public.menus(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE public.products (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, menu_id uuid NOT NULL, name text NOT NULL,
-      image_url text, category_id uuid, position int NOT NULL DEFAULT 0);
+      image_url text, category_id uuid, position int NOT NULL DEFAULT 0, is_available boolean NOT NULL DEFAULT true);
+    CREATE TABLE public.categories (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL, menu_id uuid NULL);
     CREATE TABLE public.blog_posts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid, slug text NOT NULL, status text NOT NULL, tags text,
       published_at timestamptz, updated_at timestamptz DEFAULT now());`)
   await admin.query(`INSERT INTO public.tenants(id,name,slug,custom_domain,custom_domain_verified) VALUES
     ($1,'Bistro','bistro','menu.bistro.test',true),($2,'Other','other','pending.other.test',false)`, [tenantId, otherTenantId])
   await admin.query(`INSERT INTO public.tenant_settings(tenant_id,primary_color,accent_color,tagline,logo_url) VALUES ($1,'#112233',NULL,'Good food',NULL)`, [tenantId])
-  await admin.query(`INSERT INTO public.menus(id,tenant_id,slug,is_default,position) VALUES ($1,$2,'main',true,0),($3,$2,'lunch',false,1)`, [menuId, tenantId, randomUUID()])
+  // 'drinks' has no available dish, so it is never listed (only an unavailable one).
+  const lunchId = randomUUID(), drinksId = randomUUID()
+  await admin.query(`INSERT INTO public.menus(id,tenant_id,slug,is_default,position) VALUES ($1,$2,'main',true,0),($3,$2,'lunch',false,1),($4,$2,'drinks',false,2)`, [menuId, tenantId, lunchId, drinksId])
   await admin.query(`INSERT INTO public.locations(id,tenant_id,slug) VALUES ($1,$2,'downtown')`, [randomUUID(), tenantId])
   await admin.query(`INSERT INTO public.products(tenant_id,menu_id,name,position) VALUES ($1,$2,'B',2),($1,$2,'A',1),($3,$2,'foreign',0)`, [tenantId, menuId, otherTenantId])
+  await admin.query(`INSERT INTO public.products(tenant_id,menu_id,name,position,is_available) VALUES ($1,$2,'Soup',0,true),($1,$3,'Sold out',0,false)`, [tenantId, lunchId, drinksId])
   await admin.query(`INSERT INTO public.blog_posts(tenant_id,slug,status,tags,published_at) VALUES
     (NULL,'live','published','Massa Fresca',now() - interval '2 days'),(NULL,'draft','draft','x',NULL),($1,'tenant-post','published','y',now() - interval '1 day')`, [tenantId])
 })
