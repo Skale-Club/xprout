@@ -84,9 +84,7 @@
 .marketing-site :is(.mk-table-photo,.mk-table-poster) { pointer-events:none; user-select:none; -webkit-user-drag:none; }
 .marketing-site .mk-table-viewer { touch-action:pan-y; cursor:grab; transition:opacity 450ms ease; }
 /* Switching dishes: the old one fades out, then the new one fades in (the poster transition). */
-@keyframes mk-poster-out { from { opacity:1; } to { opacity:0; } }
-.marketing-site .mk-table-poster-out { pointer-events:none; animation:mk-poster-out 200ms ease-in forwards; }
-@media(prefers-reduced-motion:reduce) { .marketing-site .mk-table-poster-out { display:none; } .marketing-site .mk-table-viewer { transition:none; } }
+@media(prefers-reduced-motion:reduce) { .marketing-site .mk-table-viewer { transition:none; } }
 .marketing-site .mk-table-viewer:active { cursor:grabbing; }
 /* Centred: the AR button (phones only) above, the position dots at the very bottom. */
 .marketing-site .mk-table-bottom-controls { position:absolute; bottom:12px; left:12px; right:12px; z-index:3; display:flex; flex-direction:column-reverse; align-items:center; gap:10px; pointer-events:none; }
