@@ -256,8 +256,8 @@ test('upsell writes preserve ordered IDs and reject foreign menu or tenant candi
 })
 
 test('dedicated feed photo roundtrips independently of the main gallery and survives normal edits', async () => {
-  const url = 'https://cdn.example/portrait.webp'
-  const before = await mutate({ kind: 'create', body: { name: 'Feed photo dish', price: 12, expectedMenuId: menu, image_url: 'https://cdn.example/main.webp', image_urls: ['https://cdn.example/main.webp'] } }) as AdminProduct
+  const url = 'https://xmartmenu-product-images.skale.club/t/portrait.webp'
+  const before = await mutate({ kind: 'create', body: { name: 'Feed photo dish', price: 12, expectedMenuId: menu, image_url: 'https://xmartmenu-product-images.skale.club/t/main.webp', image_urls: ['https://xmartmenu-product-images.skale.club/t/main.webp'] } }) as AdminProduct
   const product = before.id
   const saved = await mutate({ kind: 'patch', id: product, body: { feed_image_url: url } }) as AdminProduct
   assert.equal(saved.feed_image_url, url)
