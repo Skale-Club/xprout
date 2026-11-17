@@ -44,6 +44,52 @@ export async function readAiBillingAvailability(query: AdminMenuQuery, context: 
   if (result.rows.length > 1) throw new AdminMenuError(503, 'Billing information is unavailable')
   return result.rows[0]?.can_bill === true
 }
+/** The chat on a client's menu as the superadmin sees it: on/off and its channels. */
+export interface TenantChatControls { on: boolean; text: boolean; voice: boolean; has_subscription: boolean }
+
+export async function readTenantChatControls(query: AdminMenuQuery, tenantId: string): Promise<TenantChatControls> {
+  if (!UUID.test(tenantId)) throw new AdminMenuError(404, 'Tenant not found')
+  const rows = (await query(`SELECT s.tenant_id IS NOT NULL AS has_subscription,s.chat_addon_override,s.chat_addon_active,p.chat_addon_available,
+    c.enabled,c.text_enabled,c.audio_enabled FROM public.tenants t LEFT JOIN public.tenant_subscriptions s ON s.tenant_id=t.id
+    LEFT JOIN public.plans p ON p.id=s.plan_id LEFT JOIN public.chat_addon_settings c ON c.tenant_id=t.id WHERE t.id=$1 LIMIT 2`, [tenantId])).rows
+  if (rows.length === 0) throw new AdminMenuError(404, 'Tenant not found')
+  if (rows.length > 1) throw new AdminMenuError(503, 'Chat information is unavailable')
+  return chatControls(rows[0])
+}
+
+/** Same rule as the public menu (public-chat-session.ts): override, else plan add-on paid; then the chat switch. */
+export function chatControls(row: Record<string, unknown>): TenantChatControls {
+  const override = row.chat_addon_override
+  const active = override === true || (override !== false && row.chat_addon_available === true && row.chat_addon_active === true)
+  return { on: active && row.enabled === true, text: row.text_enabled !== false, voice: row.audio_enabled === true, has_subscription: row.has_subscription === true }
+}
+
+/**
+ * Superadmin > client > AI > Chat. On forces the add-on on for this client (whatever the plan) and switches
+ * the chat on; off forces it off. Channels are the menu's text and voice chat; at least one stays on.
+ */
+async function writeTenantChatControls(query: AdminMenuQuery, tenantId: string, input: unknown) {
+  const chat = object(input), patch: Record<string, unknown> = {}
+  for (const [field, column] of [['text', 'text_enabled'], ['voice', 'audio_enabled']] as const) {
+    if (chat[field] === undefined) continue
+    if (typeof chat[field] !== 'boolean') throw new AdminMenuError(400, 'Invalid chat channel')
+    patch[column] = chat[field]
+  }
+  if (chat.on !== undefined) {
+    if (typeof chat.on !== 'boolean') throw new AdminMenuError(400, 'Invalid chat switch')
+    const updated = await query('UPDATE public.tenant_subscriptions SET chat_addon_override=$2 WHERE tenant_id=$1 RETURNING tenant_id', [tenantId, chat.on])
+    if (updated.rows.length !== 1) throw new AdminMenuError(409, 'This client has no subscription yet')
+    patch.enabled = chat.on
+  }
+  if (!Object.keys(patch).length) return
+  patch.updated_at = new Date().toISOString()
+  const columns = Object.keys(patch)
+  await query(`INSERT INTO public.chat_addon_settings(tenant_id,${columns.join(',')}) VALUES($1,${columns.map((_, index) => `$${index + 2}`).join(',')})
+    ON CONFLICT(tenant_id) DO UPDATE SET ${columns.map(column => `${column}=EXCLUDED.${column}`).join(',')}`, [tenantId, ...Object.values(patch)])
+  const after = (await query('SELECT text_enabled,audio_enabled FROM public.chat_addon_settings WHERE tenant_id=$1', [tenantId])).rows[0]
+  if (after && after.text_enabled === false && after.audio_enabled === false) throw new AdminMenuError(400, 'Keep text or voice on')
+}
+
 export async function writeAiTenantSettings(query: AdminMenuQuery, context: AdminActorContext, input: unknown, ownerOnly: boolean) {
   if (!ownerOnly) superadmin(context)
   await authorizeAdminActor(query, context, true)
@@ -69,6 +115,11 @@ export async function writeAiTenantSettings(query: AdminMenuQuery, context: Admi
     if (body.client_key_allowed !== undefined) {
       if (typeof body.client_key_allowed !== 'boolean') throw new AdminMenuError(400, 'Invalid client key permission')
       row.client_key_allowed = body.client_key_allowed
+    }
+    if (body.chat !== undefined) {
+      await writeTenantChatControls(query, tenantId, body.chat)
+      // A chat-only change leaves the AI billing row alone.
+      if (Object.keys(row).length === 1 && body.openrouter_api_key === undefined) return
     }
   }
   if (key !== undefined) { row.openrouter_api_key = key; row.last_key_error = null; row.last_key_error_at = null }

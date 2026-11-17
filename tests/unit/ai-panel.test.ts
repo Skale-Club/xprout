@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { decryptApiKey, encryptApiKey } from '@/lib/crypto'
-import { readAiUsageSummary, writeAiPlatformSettings, writeAiTenantSettings } from '@/lib/data/ai-panel'
+import { chatControls, readAiUsageSummary, readTenantChatControls, writeAiPlatformSettings, writeAiTenantSettings } from '@/lib/data/ai-panel'
 import { nextStoredKey } from '@/lib/ai/settings-key'
 const tenantId = randomUUID(), actorId = randomUUID()
 const owner = { actorId, tenantId, role: 'store-admin' as const }, global = { actorId, role: 'superadmin' as const }
@@ -65,4 +65,33 @@ it('invalid numeric totals and stale profile authority refuse instead of produci
   await expect(readAiUsageSummary(vi.fn().mockResolvedValue({ rows: [{ tenant_id: tenantId, calls: 1, cost_usd: 'NaN' }] }), '2026-11-01')).rejects.toMatchObject({ status: 503 })
   const query = vi.fn().mockResolvedValue({ rows: [{ ...profile('superadmin'), disabled_at: new Date() }] })
   await expect(writeAiPlatformSettings(query, global, { openrouter_api_key: encryptApiKey(randomUUID()) })).rejects.toMatchObject({ status: 403 }); expect(query).toHaveBeenCalledTimes(1)
+})
+
+it('chat controls follow the public menu rule: override first, then the paid plan add-on, then the chat switch', () => {
+  expect(chatControls({ chat_addon_override: true, enabled: true })).toMatchObject({ on: true, text: true, voice: false })
+  expect(chatControls({ chat_addon_override: false, chat_addon_available: true, chat_addon_active: true, enabled: true }).on).toBe(false)
+  expect(chatControls({ chat_addon_override: null, chat_addon_available: true, chat_addon_active: true, enabled: true }).on).toBe(true)
+  expect(chatControls({ chat_addon_override: true, enabled: false }).on).toBe(false)
+  expect(chatControls({ text_enabled: false, audio_enabled: true })).toMatchObject({ text: false, voice: true, has_subscription: false })
+})
+it('a missing client is not found when reading its chat', async () => {
+  await expect(readTenantChatControls(vi.fn().mockResolvedValue({ rows: [] }), tenantId)).rejects.toMatchObject({ status: 404 })
+})
+it('the superadmin chat switch forces the add-on and the chat on without touching the AI billing row', async () => {
+  const query = vi.fn().mockResolvedValueOnce({ rows: [profile('superadmin')] }).mockResolvedValueOnce({ rows: [{ tenant_id: tenantId }] })
+    .mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ text_enabled: true, audio_enabled: false }] })
+  await writeAiTenantSettings(query, { ...global, tenantId }, { chat: { on: true } }, false)
+  expect(query.mock.calls[1]).toEqual(['UPDATE public.tenant_subscriptions SET chat_addon_override=$2 WHERE tenant_id=$1 RETURNING tenant_id', [tenantId, true]])
+  expect(query.mock.calls[2][0]).toContain('chat_addon_settings'); expect(query.mock.calls[2][1]).toContain(true)
+  expect(query).toHaveBeenCalledTimes(4); expect(query.mock.calls.some(([sql]) => String(sql).includes('tenant_ai_settings'))).toBe(false)
+})
+it('the chat cannot be switched on without a subscription, and one channel always stays on', async () => {
+  const none = vi.fn().mockResolvedValueOnce({ rows: [profile('superadmin')] }).mockResolvedValue({ rows: [] })
+  await expect(writeAiTenantSettings(none, { ...global, tenantId }, { chat: { on: true } }, false)).rejects.toMatchObject({ status: 409 })
+  const silent = vi.fn().mockResolvedValueOnce({ rows: [profile('superadmin')] }).mockResolvedValueOnce({ rows: [] })
+    .mockResolvedValueOnce({ rows: [{ text_enabled: false, audio_enabled: false }] })
+  await expect(writeAiTenantSettings(silent, { ...global, tenantId }, { chat: { text: false } }, false)).rejects.toMatchObject({ status: 400 })
+  const invalid = vi.fn().mockResolvedValue({ rows: [profile('superadmin')] })
+  await expect(writeAiTenantSettings(invalid, { ...global, tenantId }, { chat: { on: 'yes' } }, false)).rejects.toMatchObject({ status: 400 })
+  await expect(writeAiTenantSettings(vi.fn().mockResolvedValue({ rows: [profile()] }), owner, { chat: { on: true } }, true)).resolves.toBeUndefined()
 })

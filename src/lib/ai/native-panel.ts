@@ -1,6 +1,6 @@
 import { AdminMenuError } from '../data/admin-menus'
 import type { AdminActorContext } from '../data/admin-actor'
-import { assertOwnedAiActor, readOwnedAiBillingAvailability, readOwnedAiPanelTenants } from '../data/ai-panel-runtime'
+import { assertOwnedAiActor, readOwnedAiBillingAvailability, readOwnedAiPanelTenants, readOwnedTenantChatControls } from '../data/ai-panel-runtime'
 import { loadPlatformAiSettings, loadTenantAiSettings } from './access'
 import { maskedOrEmpty, startOfMonthIso, unbilledChargeUsd, usageByTenant } from './settings-service'
 import { parseBillingMode } from './billing-rules'
@@ -8,10 +8,11 @@ import { parseBillingMode } from './billing-rules'
 export async function nativeAiTenantPayload(context: AdminActorContext, superadminView: boolean) {
   if (!context.tenantId || (superadminView && context.role !== 'superadmin')) throw new AdminMenuError(403, 'Forbidden')
   await assertOwnedAiActor(context)
-  const [platform, tenant, usage, unbilled, canBill] = await Promise.all([
+  const [platform, tenant, usage, unbilled, canBill, chat] = await Promise.all([
     loadPlatformAiSettings(), loadTenantAiSettings(context.tenantId), usageByTenant(startOfMonthIso(), context.tenantId),
     superadminView ? unbilledChargeUsd(context.tenantId) : Promise.resolve(0),
     superadminView ? readOwnedAiBillingAvailability(context) : Promise.resolve(false),
+    superadminView ? readOwnedTenantChatControls(context.tenantId) : Promise.resolve(null),
   ])
   const month = usage.get(context.tenantId) ?? null
   if (!superadminView) return { effective_mode: tenant.mode ?? platform.defaultMode, openrouter_api_key: maskedOrEmpty(tenant.key),
@@ -21,7 +22,7 @@ export async function nativeAiTenantPayload(context: AdminActorContext, superadm
   return { billing_mode: tenant.mode, effective_mode: tenant.mode ?? platform.defaultMode, openrouter_api_key: maskedOrEmpty(tenant.key),
     markup_pct: tenant.markupPct, effective_markup_pct: tenant.markupPct ?? platform.defaultMarkupPct,
     last_key_error: tenant.lastKeyError, last_key_error_at: tenant.lastKeyErrorAt, global_key_configured: platform.platformKeySource !== 'none',
-    usd_to_brl: platform.usdToBrl, month, unbilled_charge_usd: unbilled, can_bill: canBill, client_key_allowed: tenant.clientKeyAllowed }
+    usd_to_brl: platform.usdToBrl, month, unbilled_charge_usd: unbilled, can_bill: canBill, client_key_allowed: tenant.clientKeyAllowed, chat }
 }
 export async function nativeAiGlobalPayload(context: AdminActorContext) {
   const [platform, tenants, usage] = await Promise.all([loadPlatformAiSettings(), readOwnedAiPanelTenants(context), usageByTenant(startOfMonthIso())])
