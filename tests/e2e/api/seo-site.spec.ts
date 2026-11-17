@@ -272,7 +272,8 @@ test('mobile and desktop menu/branch/dish screenshots retain readable read-only 
     await page.goto(`/${slug}/dinner/${dish}`)
     await expect(page.getByRole('heading', { name: publicDish.name, exact: true })).toBeVisible()
     await expect(page.getByText('Roasted tomatoes and basil.', { exact: true })).toBeVisible()
-    await expect(page.locator('.tabular-nums')).toContainText('12,50')
+    // The dish's own price (the page also carries the menu's header, footer and related dishes).
+    await expect(page.locator('article .tabular-nums').first()).toContainText('12,50')
     const photo = page.getByRole('img', { name: publicDish.name, exact: true })
     await expect(photo).toBeVisible()
     await expect.poll(async () => photo.evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true)
