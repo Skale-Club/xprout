@@ -175,6 +175,7 @@ export default async function AdminLayout({
         tenantSlug={(profile.tenants as any)?.slug}
         role={profile.role}
         appName={appName}
+        logoUrl={logoUrl}
         menus={menus ?? []}
         activeMenuId={activeMenu?.id ?? null}
         capabilities={capabilities}

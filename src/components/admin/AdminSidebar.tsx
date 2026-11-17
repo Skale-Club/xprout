@@ -1,9 +1,8 @@
 'use client'
 
-import { platformLogoUrl } from '@/lib/platform-brand'
+import PanelPlatformBrand from '@/components/branding/PanelPlatformBrand'
 
 import { BRAND_NAME } from '@/lib/brand'
-import { DeliveryImage } from '@/components/delivery-image'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -154,11 +153,7 @@ export default function AdminSidebar({
   return (
     <aside className="flex h-full w-full flex-col border-r border-zinc-800 bg-zinc-950 text-zinc-400">
       <div className="border-b border-zinc-800/50 border-t-2 border-t-platform-brand-accent p-6 pr-16 lg:pr-6">
-        <Link href="/" className="group mb-4 flex w-fit items-center gap-2.5">
-          {/* Reserve a consistent slot for the configured platform symbol. */}
-          <DeliveryImage src={platformLogoUrl(logoUrl)} width={32} height={32} sizes="32px" alt="" className="size-8 rounded-lg object-contain object-center" />
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] group-hover:text-primary transition-colors">{appName}</span>
-        </Link>
+        {/* The restaurant's identity leads its own panel; the platform signs the footer. */}
         <p className="text-lg font-black text-white truncate tracking-tight">{tenantName}</p>
         
         {menus.length > 0 && (
@@ -270,6 +265,10 @@ export default function AdminSidebar({
           <LogOut className="w-4 h-4 text-zinc-500 group-hover:text-red-500 transition-colors" />
           Sign out
         </button>}
+        <Link href="/" aria-label={`Powered by ${appName}`} className="flex min-h-11 items-center gap-1 pl-4 text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-white">
+          <span aria-hidden="true" className="whitespace-nowrap">Powered by</span>
+          <PanelPlatformBrand appName={appName} logoUrl={logoUrl} tone="ivory" placement="credit" />
+        </Link>
       </div>
     </aside>
   )

@@ -56,6 +56,19 @@ the descender, is centered in the bar (owner request 2026-11-16, 10% smaller tha
 previous 195px/140px). These sizes sit slightly under the manual's 160px visible
 minimum; this display role does not resize the vector masters.
 
+Internal panels (2026-11-17) use `src/components/branding/PanelPlatformBrand.tsx`:
+
+| Placement | Where | Artwork | Size |
+| --- | --- | --- | --- |
+| `header` | Super admin sidebar (dark rail, desktop and phone drawer) | Ivory signature | 177px box = 160px visible, left clear space pulled back to align with the text |
+| `bar` | Super admin phone top bar (white) | Forest signature | 126px, lettering body centred like the marketing header |
+| `credit` | Restaurant panel sidebar footer, "Powered by" | Ivory signature | 126px |
+
+A restaurant's panel leads with the restaurant's name: no platform mark above it in the
+sidebar and none in its phone bar (`DashboardShell` shows one only with `platformBrandInBar`,
+set by the super admin layout). A configured white-label name or icon keeps that icon and
+name in every placement instead of the signature.
+
 ## Verification
 
 `output/branding/runtime-v1/verification.json` records actual bytes, decoded

@@ -1,9 +1,8 @@
 'use client'
 
-import { platformLogoUrl } from '@/lib/platform-brand'
+import PanelPlatformBrand from '@/components/branding/PanelPlatformBrand'
 
 import { ReactNode, useEffect, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 import { lockBodyScroll } from '@/components/ui/ModalPortal'
@@ -17,6 +16,7 @@ export default function DashboardShell({
   logoUrl,
   eyebrow,
   headerAction,
+  platformBrandInBar = false,
   backgroundClassName = 'bg-zinc-100',
 }: {
   children: ReactNode
@@ -26,6 +26,9 @@ export default function DashboardShell({
   logoUrl?: string | null
   eyebrow?: string
   headerAction?: ReactNode
+  /** The platform's own console shows the platform brand in the phone bar. A restaurant's panel
+   *  leaves that slot to the restaurant: its name leads and Xprout signs the sidebar footer. */
+  platformBrandInBar?: boolean
   backgroundClassName?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -57,15 +60,11 @@ export default function DashboardShell({
         >
           <Menu className="size-5" />
         </button>
-        <Link href="/" aria-label={`${appName} home`} className="flex size-11 flex-shrink-0 items-center justify-center rounded-xl">
-          <Image
-            src={platformLogoUrl(logoUrl)}
-            alt=""
-            width={32}
-            height={32}
-            className="size-8 rounded-lg object-contain outline outline-1 -outline-offset-1 outline-black/10"
-          />
-        </Link>
+        {platformBrandInBar && (
+          <Link href="/" aria-label={`${appName} home`} className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center rounded-xl">
+            <PanelPlatformBrand appName={appName} logoUrl={logoUrl} tone="forest" placement="bar" />
+          </Link>
+        )}
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">{eyebrow ?? appName}</p>
           <p className="truncate text-sm font-black text-zinc-900">{contextName}</p>

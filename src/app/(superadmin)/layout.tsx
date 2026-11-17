@@ -19,7 +19,7 @@ export default async function SuperadminLayout({ children }: { children: React.R
     const ps = await getOwnedShellPlatform(), primary = ps?.cta_color ?? BRAND_PRIMARY
     return <><style>{`:root{--primary:${safeCssColor(primary)};--primary-foreground:${computePrimaryForeground(primary)};}`}</style>
       <DashboardShell appName={ps?.app_name ?? BRAND_NAME} contextName="Super Admin" eyebrow="Super Admin Console"
-        logoUrl={ps?.favicon_url} backgroundClassName="bg-zinc-50"
+        logoUrl={ps?.favicon_url} platformBrandInBar backgroundClassName="bg-zinc-50"
         sidebar={<SuperadminSidebar appName={ps?.app_name ?? BRAND_NAME} logoUrl={ps?.favicon_url} />}>{children}</DashboardShell></>
   }
   const supabase = await createClient()
@@ -45,6 +45,7 @@ export default async function SuperadminLayout({ children }: { children: React.R
       contextName="Super Admin"
       eyebrow="Super Admin Console"
       logoUrl={ps?.favicon_url}
+      platformBrandInBar
       backgroundClassName="bg-zinc-50"
       sidebar={<SuperadminSidebar appName={ps?.app_name ?? BRAND_NAME} logoUrl={ps?.favicon_url} />}
     >
