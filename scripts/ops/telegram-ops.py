@@ -97,12 +97,10 @@ def probe_once(fetch=transport):
     """Probe only the fixed production origin; no auth/tenant/customer data."""
     failures = []
     ready = None
-    elapsed = 0
+    database_latency = 0
     for path, label in (("/api/health", "liveness"), ("/api/health/ready", "readiness"), ("/", "public page")):
         try:
-            started = time.monotonic()
             code, body = fetch(BASE + path)
-            duration = (time.monotonic() - started) * 1000
             if code != 200:
                 failures.append(label + " HTTP " + str(code))
                 continue
@@ -120,15 +118,15 @@ def probe_once(fetch=transport):
                     raise ValueError("invalid readiness")
                 if database["ok"] is not True or ready["status"] == "down":
                     failures.append("readiness database unavailable")
-                elapsed = max(duration, database["latency_ms"])
+                database_latency = database["latency_ms"]
             elif b"<html" not in body.lower():
                 raise ValueError("invalid public page")
         except Exception:
             failures.append(label + " invalid response or unreachable")
     if failures:
         return "down", "; ".join(failures)
-    if ready["status"] == "degraded" or elapsed > 1500:
-        return "degraded", "Readiness/database latency above 1500 ms"
+    if ready["status"] == "degraded" or database_latency > 1500:
+        return "degraded", "Readiness reports degraded or database latency above 1500 ms"
     return "healthy", "Liveness, readiness/database and public page passed"
 
 

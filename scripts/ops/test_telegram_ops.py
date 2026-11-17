@@ -115,6 +115,23 @@ class OpsTests(unittest.TestCase):
         self.assertEqual(len(self.sent), 1)
         self.assertIn("uptime-degraded", self.sent[0][1]["text"])
 
+    def test_network_delay_does_not_change_database_degradation_threshold(self):
+        # Virtual roundtrips exceed 1500 ms without sleeping or external I/O.
+        # Only the app's database measurement/report determines degradation.
+        for latency, expected in ((926, "healthy"), (1500, "healthy"), (1501, "degraded")):
+            with self.subTest(latency=latency), patch.object(ops.time, "monotonic", return_value=0) as clock:
+                fetch = fetcher(readiness(latency=latency))
+                measured = []
+                def delayed(url):
+                    start = ops.time.monotonic()
+                    clock.return_value += 1.703
+                    measured.append(ops.time.monotonic() - start)
+                    return fetch(url)
+                self.assertEqual(ops.probe_once(delayed)[0], expected)
+                self.assertEqual(len(measured), 3)
+                self.assertTrue(all(duration > 1.5 for duration in measured))
+        self.assertEqual(ops.probe_once(fetcher(readiness("degraded", latency=926)))[0], "degraded")
+
     def test_corrupt_cache_streak_does_not_break_probe(self):
         Path(self.state).write_text(json.dumps({"version": 1, "slow_streak": "invalid"}))
         self.assertEqual(self.probe(fetcher(readiness("degraded", True, 1800))), 1)

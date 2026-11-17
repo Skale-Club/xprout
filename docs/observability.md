@@ -162,9 +162,14 @@ is needed and no privileged integration details are requested.
 
 Down checks retry twice with five-second pauses before classification. A down
 result distinguishes liveness, database/readiness and public-page failure.
-Readiness/database latency above 1500 ms (or reported `degraded`) must persist
+Database latency above 1500 ms (or reported `degraded`) must persist
 across two scheduled observations before a warning notification. Both degraded
 and down observations fail the workflow independently of Telegram delivery.
+The threshold preserves the application's database measurement, not external
+network roundtrip time. A read-only production probe on 2026-11-17 measured
+926 ms database latency with `status: ok` over a 1703 ms network roundtrip;
+counting that roundtrip would incorrectly report database degradation. Network
+unreachability remains bounded by the ten-second HTTP timeout.
 Routine healthy checks are silent. Transitions send `uptime-down`,
 `uptime-degraded`, and `uptime-recovered`; repeated unchanged incidents are silent.
 A cold healthy run establishes a baseline without announcing recovery.
@@ -191,11 +196,16 @@ manually run Uptime on main. A healthy baseline is intentionally silent; inspect
 the Actions summary. A separate explicit smoke message may verify routing when
 authorized, without manufacturing an outage. Set the variable to `false` to
 stop GitHub notifications while probes continue.
+To silence both routes, set the GitHub variable to `false` and run
+`systemctl disable --now xprout-ops-watchdog.timer` on the host.
 
 ```sh
 python3 -m unittest discover -s scripts/ops -p test_telegram_ops.py
 node --test scripts/ops/xprout-deploy-image.test.mjs
 ```
+
+Measured on Surface (2026-11-17): targeted Python tests ~0.1 s and deploy Node
+fixtures ~8.3 s; no local full builds were run.
 
 ### Dedicated host watchdog
 
