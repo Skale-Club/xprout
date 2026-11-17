@@ -37,6 +37,9 @@ export default function SignInFrameDialog({ src, unavailable, title, closeLabel,
   const [height, setHeight] = useState(440)
   const [ready, setReady] = useState(false)
   const [loadError, setLoadError] = useState(false)
+  /** The sign-in finished and the page is going on: only the spinner shows (no blank or error card). */
+  const [leaving, setLeaving] = useState(false)
+  const finished = useRef(false)
   const observer = useRef<ResizeObserver | null>(null)
   const dark = tone === 'dark'
   const marketing = tone === 'marketing'
@@ -56,15 +59,15 @@ export default function SignInFrameDialog({ src, unavailable, title, closeLabel,
 
   useEffect(() => {
     if (!src) return
-    let finished = false
     const check = () => {
       const frame = frameRef.current
-      if (finished || !frame) return
+      if (finished.current || !frame) return
       let location: Location | undefined
       try { location = frame.contentWindow?.location } catch { return }
       const path = location?.pathname ?? ''
       if (path && path !== 'blank' && !isSignInPath(path)) {
-        finished = true
+        finished.current = true
+        setLeaving(true)
         const destination = `${path}${location?.search ?? ''}`
         frame.src = 'about:blank'
         onSignedIn(destination)
@@ -76,6 +79,8 @@ export default function SignInFrameDialog({ src, unavailable, title, closeLabel,
 
   const onLoad = () => {
     const frame = frameRef.current
+    // The blank page that stops the next page loading inside the card is not a failed sign-in.
+    if (finished.current) return
     const doc = (() => { try { return frame?.contentDocument ?? null } catch { return null } })()
     observer.current?.disconnect()
     const content = doc?.querySelector('main')
@@ -92,7 +97,7 @@ export default function SignInFrameDialog({ src, unavailable, title, closeLabel,
     void settled.then(() => window.requestAnimationFrame(() => window.requestAnimationFrame(() => { measure(); setReady(true) })))
   }
 
-  const shown = ready || unavailable || loadError
+  const shown = !leaving && (ready || unavailable || loadError)
   return (
     <ModalPortal closeOnEscape={false}>
       <div className="fixed inset-0 z-50" onClick={onClose}>

@@ -85,7 +85,7 @@ export default function DashboardOverview({
               <div className="h-6 w-1.5 rounded-full bg-primary" />
               <h2 className="text-base font-bold text-zinc-900">Recent clients</h2>
             </div>
-            <Link href="/tenants" className="flex items-center gap-1.5 text-xs font-bold text-zinc-900 hover:scale-105 bg-primary px-4 py-2 rounded-full transition-all">
+            <Link href="/tenants" className="flex items-center gap-1.5 text-xs font-bold text-primary-foreground hover:scale-105 bg-primary px-4 py-2 rounded-full transition-all">
               View all <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -126,8 +126,8 @@ export default function DashboardOverview({
           {/* Today's scans */}
           <div className="rounded-2xl bg-zinc-950 p-5 text-white sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-500">Store Activity</h2>
+              <TrendingUp className="w-5 h-5 text-primary-on-dark" />
+              <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400">Store Activity</h2>
             </div>
             {topScanners.length === 0 ? (
               <p className="text-sm text-zinc-500 italic">No activity recorded today.</p>
@@ -136,12 +136,12 @@ export default function DashboardOverview({
                 {topScanners.map(t => (
                   <div key={t.id} className="flex items-center justify-between group">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{t.name}</p>
+                      <p className="text-sm font-bold truncate group-hover:text-primary-on-dark transition-colors">{t.name}</p>
                       <p className="text-[10px] text-zinc-500 font-mono tracking-tight">/{t.slug}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-black text-white">{t.scans}</p>
-                      <p className="text-[8px] font-bold text-zinc-700 uppercase tracking-tighter">scans</p>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">scans</p>
                     </div>
                   </div>
                 ))}

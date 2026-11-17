@@ -29,9 +29,9 @@ export default function SuperadminSidebar({ appName, logoUrl }: { appName: strin
       <div className="border-b border-zinc-800/50 border-t-2 border-t-platform-brand-accent p-6 pr-16 lg:pr-6">
         <Link href="/" className="group mb-1 flex min-w-0 items-center gap-2">
           <DeliveryImage src={platformLogoUrl(logoUrl)} width={24} height={24} sizes="24px" alt="" className="size-6 rounded-md object-contain outline outline-1 -outline-offset-1 outline-white/10" />
-          <span className="truncate text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors group-hover:text-primary">{appName}</span>
+          <span className="truncate text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors group-hover:text-primary-on-dark">{appName}</span>
         </Link>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Super Admin Console</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Super Admin Console</p>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-4" aria-label="Super admin navigation">
@@ -48,10 +48,12 @@ export default function SuperadminSidebar({ appName, logoUrl }: { appName: strin
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold transition-[background-color,color,scale] duration-150 active:scale-[0.98]',
-                  active ? 'bg-primary text-primary-foreground' : 'text-zinc-500 hover:bg-zinc-900 hover:text-white',
+                  // The forest-green brand colour barely separates from this near-black rail, so the
+                  // current page is an ivory pill and the brand colour stays on the icon (lightened on dark).
+                  active ? 'bg-platform-ivory text-zinc-950' : 'text-zinc-400 hover:bg-zinc-900 hover:text-white',
                 )}
               >
-                <Icon className={cn('size-4 flex-shrink-0 transition-colors', active ? 'text-primary-foreground' : 'text-zinc-500 group-hover:text-primary')} />
+                <Icon className={cn('size-4 flex-shrink-0 transition-colors', active ? 'text-primary-on-light' : 'text-zinc-400 group-hover:text-primary-on-dark')} />
                 {label}
               </Link>
             </div>
@@ -61,7 +63,7 @@ export default function SuperadminSidebar({ appName, logoUrl }: { appName: strin
 
       <div className="border-t border-zinc-800/50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <form action="/api/auth/signout" method="post">
-          <button type="submit" className="group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-zinc-500 transition-[background-color,color,scale] duration-150 active:scale-[0.98] hover:bg-red-500/10 hover:text-red-500">
+          <button type="submit" className="group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-zinc-400 transition-[background-color,color,scale] duration-150 active:scale-[0.98] hover:bg-red-500/10 hover:text-red-400">
             <LogOut className="size-4" />
             Sign out
           </button>

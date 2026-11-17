@@ -76,6 +76,22 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
   const container = useRef<HTMLDivElement>(null)
   const attempt = useRef<Awaited<ReturnType<typeof phoneProof>> | null>(null)
   const pending = useRef(false)
+  /** Set once the sign-in hands over to the next page: the card keeps its "Please wait…" until it is gone. */
+  const [leaving, setLeaving] = useState(false)
+
+  /**
+   * Go where the sign-in leads. Inside the marketing site's popup (a same-origin frame) the whole tab goes
+   * there at once: the panel never loads inside the small card first (the old blink before the panel).
+   * The guest sign-in on a menu keeps navigating its own frame, which the menu watches.
+   */
+  function leaveTo(url: string) {
+    setLeaving(true)
+    if (embedded && !customerFlow && window.parent !== window) {
+      try { window.parent.location.assign(new URL(url, window.location.origin).href); return }
+      catch { /* Not same-origin after all: the popup notices the frame leaving the sign-in instead. */ }
+    }
+    window.location.assign(url)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -118,7 +134,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
     if (staffAccess) {
       const { challenge } = await post('challenge',{})
       await post(staffAccess.kind === 'invite' ? 'accept-staff-invite' : 'recover-staff',{idToken,challenge,code:staffAccess.code})
-      setSignedIn(true);window.location.assign(await ownedLoginDestination('/dashboard'));return
+      setSignedIn(true);leaveTo(await ownedLoginDestination('/dashboard'));return
     }
     if (continueToApp) {
       try {
@@ -126,7 +142,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
           ...(existingAccountLink ? { existing: { email: existingEmail.trim(),password: existingPassword } } : {}) })
         setSignedIn(true)
         // Google that waited for a phone is linked afterwards, from this fresh session, after showing which Google account it is.
-        window.location.assign(googleAttempted && !link
+        leaveTo(googleAttempted && !link
           ? `/identity?action=link${customerFlow ? '&flow=customer' : ''}&from=${encodeURIComponent(destination)}` : destination)
       } catch (error) { throw new IdentityRequestError(error instanceof Error ? error.message : 'Your access could not be confirmed.', error instanceof OwnedLoginError ? error.code : undefined) }
       finally { setExistingPassword('') }
@@ -158,7 +174,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
   }
 
   async function continueToDashboard() {
-    try { window.location.assign(await ownedLoginDestination(next,fetch,customerFlow)) }
+    try { leaveTo(await ownedLoginDestination(next,fetch,customerFlow)) }
     catch { throw new IdentityRequestError('Your access could not be confirmed. Try again or contact support for reviewed recovery.') }
   }
 
@@ -189,7 +205,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
       if (DEV_PHONE_SIGN_IN) {
         if (sent) {
           await devPhoneVerify(sentPhone, code)
-          window.location.assign(await ownedLoginDestination(next, fetch, customerFlow))
+          leaveTo(await ownedLoginDestination(next, fetch, customerFlow))
           return
         }
         const devPhone = toE164Phone(phone)
@@ -274,7 +290,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
       if (DEV_PHONE_SIGN_IN) {
         if (sent) {
           await devPhoneVerify(sentPhone, code)
-          window.location.assign(await ownedLoginDestination(next, fetch, customerFlow))
+          leaveTo(await ownedLoginDestination(next, fetch, customerFlow))
           return
         }
         const devPhone = toE164Phone(phone)
@@ -330,8 +346,8 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
               onFocus={keepFieldVisible} className={fieldClass} />
           </div>}
           <div ref={container} />
-          <button data-testid="identity-phone-submit" className={primary} disabled={busy || (sent ? code.length < 6 : phone.replace(/\D/g, '').length < 6)}>
-            {busy ? 'Please wait…' : sent ? 'Sign in' : 'Continue'}{busy ? null : <ArrowRight className="size-4" aria-hidden="true" />}
+          <button data-testid="identity-phone-submit" className={primary} disabled={busy || leaving || (sent ? code.length < 6 : phone.replace(/\D/g, '').length < 6)}>
+            {busy || leaving ? 'Please wait…' : sent ? 'Sign in' : 'Continue'}{busy || leaving ? null : <ArrowRight className="size-4" aria-hidden="true" />}
           </button>
         </form>
         {!sent ? <>
@@ -340,7 +356,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#F3EFE5]/60">or</span>
             <div className="h-px flex-1 bg-[#F3EFE5]/15" />
           </div>
-          <button type="button" disabled={busy} onClick={() => void run(async () => { await complete(await googleProof(config)) })}
+          <button type="button" disabled={busy || leaving} onClick={() => void run(async () => { await complete(await googleProof(config)) })}
             className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-transparent bg-[#F3EFE5] px-4 text-sm font-semibold text-[#283F32] transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F3EFE5] disabled:opacity-50">
             <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
             Continue with Google
