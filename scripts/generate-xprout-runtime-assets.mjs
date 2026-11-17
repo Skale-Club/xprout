@@ -19,6 +19,9 @@ for (const kind of ['symbol', 'wordmark']) {
   if (sourcePaths[kind] !== geometry[kind].d) throw Error(`${kind}: canonical geometry mismatch`)
 }
 if (hash(sourcePaths.symbol) !== geometry.symbolProvenance.pathSha256) throw Error('Approved v7 symbol hash mismatch')
+// The monogram signature reuses the wordmark's p, r, o, u, t contours unchanged.
+sourcePaths.prout = geometry.prout.d
+if (!sourcePaths.wordmark.startsWith(sourcePaths.prout) || hash(sourcePaths.prout) !== geometry.proutProvenance.pathSha256) throw Error('Monogram lettering mismatch')
 function artwork(layout, color, x = 0, y = 0) {
   return layout.items.map(item => {
     const shape = geometry[item.kind]
@@ -84,7 +87,8 @@ const social = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630
 await save(versioned('social-card-1200x630.webp'), await sharp(Buffer.from(social)).webp({ quality: 92 }).toBuffer(), 'social')
 await save(versioned('social-card-1200x630.png'), await sharp(Buffer.from(social)).png({ compressionLevel: 9 }).toBuffer(), 'og-png')
 for (const [name, target] of [
-  ['icon-512.png', 'public/icon.png'], ['icon-512.png', 'src/app/icon.png'], ['apple-touch-icon.png', 'src/app/apple-icon.png'],
+  // src/app/icon.png and apple-icon.png are route handlers that serve the versioned files.
+  ['icon-512.png', 'public/icon.png'],
   ...['icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png'].map(name => [name, `public/icons/${name}`]),
 ]) await save(target, generated[name], 'png')
 const report = { generatedAt: new Date().toISOString(), source: 'docs/brand/xprout/v1; owner-approved v7', symbolPathSha256: hash(sourcePaths.symbol), approvedSymbolPathSha256: geometry.symbolProvenance.pathSha256, unchangedSymbolPath: true, wordmarkPathSha256: hash(sourcePaths.wordmark), placement: { appSymbolWidth: 328, maskableSymbolWidth: 288, maskableMaxRadius: Math.hypot(144, 144 * (geometry.symbol.bounds[3] - geometry.symbol.bounds[1]) / (geometry.symbol.bounds[2] - geometry.symbol.bounds[0])), safeCircleRadius: 204.8 }, assets: manifest }

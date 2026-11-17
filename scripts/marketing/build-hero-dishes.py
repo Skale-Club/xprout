@@ -11,6 +11,7 @@ import math
 import sys
 from pathlib import Path
 
+import bmesh
 import bpy
 from mathutils import Vector, Matrix
 
@@ -47,6 +48,15 @@ for slug, original, plate in [('picanha', 'premium-picanha', .30), ('burger', 'a
         obj.data.update()
         bpy.context.view_layer.objects.active = obj
         if len(obj.data.polygons) > 5000:
+            # glTF import splits vertices at every UV seam; decimating that
+            # mesh tears the seams open and the food turns see-through.
+            # Weld the seams first so the shell stays closed.
+            weld = bmesh.new()
+            weld.from_mesh(obj.data)
+            bmesh.ops.remove_doubles(weld, verts=weld.verts, dist=1e-5)
+            weld.to_mesh(obj.data)
+            weld.free()
+            obj.data.update()
             decimate = obj.modifiers.new('Bounded marketing geometry', 'DECIMATE')
             decimate.ratio = .22
             bpy.ops.object.modifier_apply(modifier=decimate.name)

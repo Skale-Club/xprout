@@ -18,18 +18,21 @@ async function main() {
   const dimensions = item => ({w: item.bounds[2]-item.bounds[0], h: item.bounds[3]-item.bounds[1]});
   const s = dimensions(g.symbol), w = dimensions(g.wordmark);
   const markH = 202, markW = s.w * markH / s.h;
-  // Placement revision 2026-11-14: exact approved paths, lettering reduced 14%.
-  const wordScale = 0.86;
-  // Exact initial capital X contour cap top and baseline/body bottom. The p
-  // descender is intentionally excluded from the alignment reference.
+  // Monogram revision 2026-11-16: the symbol takes the place of the initial
+  // capital X, so the signature reads "Xprout" once. The symbol is scaled to
+  // the removed X contour's cap top and baseline; p, r, o, u, t are unchanged.
   const bodyBounds = [16.3140489858687, 193.11198629815513];
-  const bodyHeight = (bodyBounds[1] - bodyBounds[0]) * wordScale;
-  const wordY = (markH - bodyHeight) / 2 - (bodyBounds[0] - g.wordmark.bounds[1]) * wordScale;
-  const horizontalH = Math.max(markH, wordY + w.h * wordScale);
+  const bodyHeight = bodyBounds[1] - bodyBounds[0];
+  const removedXRight = g.proutProvenance.removedContourBounds[2];
+  // The symbol's right edge sits this far inside the removed X's right edge,
+  // keeping its lower leaf clear of the p stem at small sizes.
+  const monogramKern = 6;
+  const monogramScale = bodyHeight / s.h, monogramW = s.w * monogramScale;
+  const symbolLeft = removedXRight - monogramKern - monogramW;
   const layouts = {
     symbol: {w:s.w,h:s.h,symbolHeight:s.h,items:[{kind:'symbol',x:0,y:0,scale:1}]},
     wordmark: {w:w.w,h:w.h,symbolHeight:markH,items:[{kind:'wordmark',x:0,y:0,scale:1}]},
-    horizontal: {w:markW+50+w.w*wordScale,h:horizontalH,symbolHeight:markH,alignment:{reference:'initial capital X contour; cap top to baseline/body bottom; descenders and diacritics excluded',sourceBodyBounds:bodyBounds},items:[{kind:'symbol',x:0,y:0,scale:markH/s.h},{kind:'wordmark',x:markW+50,y:wordY,scale:wordScale}]},
+    horizontal: {w:g.prout.bounds[2]-symbolLeft,h:g.prout.bounds[3]-bodyBounds[0],symbolHeight:bodyHeight,alignment:{reference:'symbol replaces the initial capital X; symbol top and bottom sit on the removed X contour cap top and baseline; descenders excluded',sourceBodyBounds:bodyBounds,kern:monogramKern},items:[{kind:'symbol',x:0,y:0,scale:monogramScale},{kind:'prout',x:g.prout.bounds[0]-symbolLeft,y:g.prout.bounds[1]-bodyBounds[0],scale:1}]},
     stacked: {w:600,h:220+50+w.h*600/w.w,symbolHeight:220,items:[{kind:'symbol',x:(600-s.w*220/s.h)/2,y:0,scale:220/s.h},{kind:'wordmark',x:0,y:270,scale:600/w.w}]}
   };
   function artwork(layout, color, x=0, y=0) {
@@ -99,13 +102,11 @@ async function main() {
   if(socialWebp.length>g.budgets.previewBytes)throw Error('Social card budget');
   await save('icons/xprout-social-card-1200x630.webp',socialWebp,{width:1200,height:630});
   // Separate diagnostic proof; supplied logo exports remain unmarked.
-  const proofLayout=layouts.horizontal, proofPad=markH/4;
+  const proofLayout=layouts.horizontal, proofPad=bodyHeight/4;
   const proofLines=[
-    ['symbol top',proofPad,'#bb6644'],
-    ['cap top',proofPad+wordY,'#2266aa'],
-    ['body center',proofPad+markH/2,'#aa3366'],
-    ['baseline',proofPad+wordY+bodyHeight,'#2266aa'],
-    ['symbol bottom',proofPad+markH,'#bb6644'],
+    ['symbol top = cap top',proofPad,'#2266aa'],
+    ['body center',proofPad+bodyHeight/2,'#aa3366'],
+    ['symbol bottom = baseline',proofPad+bodyHeight,'#2266aa'],
   ].map(([label,y,color])=>`<line x1="${proofPad}" x2="${proofLayout.w+proofPad}" y1="${y}" y2="${y}" stroke="${color}" stroke-width="1.2" stroke-dasharray="5 5"/><text x="${proofPad+6}" y="${y-4}" fill="${color}" font-family="Arial,sans-serif" font-size="11">${label}</text>`).join('');
   const proof=svg('horizontal',g.colors.forest,g.colors.ivory).replace('</svg>',proofLines+'</svg>');
   await fs.mkdir(path.join(root,'evidence'),{recursive:true});

@@ -43,14 +43,18 @@ references therefore resolve to the approved forest/ivory tile after deployment.
 The versioned ICO is available for explicit metadata; no legacy source favicon
 existed to overwrite.
 
-The horizontal signature's current viewBox is
-`0 0 1064.1543518142191 320.0414858022277`; preserve this aspect ratio. Visible
-artwork is 963.1543518142191 by 219.04148580222773, with 50.5 units of clearspace
-around it. The manual's 160px visible horizontal minimum needs about 177px total
-SVG width. SVG image sizing must not stretch it into a square tile.
-The owner approved a compact marketing-header exception on2026-11-14:140px total
-below768px, with a44px link target, while desktop remains195px. This display role
-does not resize the vector masters or change the typography alignment reference.
+The horizontal signature is the monogram (2026-11-16): the v7 symbol replaces the
+capital X, scaled from the removed X's cap top to baseline, followed by the unchanged
+p, r, o, u, t outlines. Its viewBox is `0 0 901.8794539094855 314.0554789427838`;
+preserve this aspect ratio. The lettering body (symbol top to baseline) spans
+y = 44.199 to 220.997, so its center sits 24.429 units (7.7787% of the height) above
+the artwork box center because of the p descender. SVG image sizing must not stretch
+it into a square tile.
+The marketing header shows it at 176px total width (126px below 768px), with a 44px
+link target, and shifts it down by `translateY(7.7787%)` so the lettering body, not
+the descender, is centered in the bar (owner request 2026-11-16, 10% smaller than the
+previous 195px/140px). These sizes sit slightly under the manual's 160px visible
+minimum; this display role does not resize the vector masters.
 
 ## Verification
 

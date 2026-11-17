@@ -1,4 +1,5 @@
-/** Versioned platform assets from the approved, unchanged Xprout v7 master. */
+/** Versioned platform assets from the approved Xprout v7 symbol and lettering. The horizontal
+ * signature is the monogram: the symbol stands in for the capital X, followed by "prout". */
 export const PLATFORM_BRAND_ASSETS = {
   icon: '/brand/xprout/v1/icon-512.png',
   icon192: '/brand/xprout/v1/icon-192.png',
@@ -9,16 +10,16 @@ export const PLATFORM_BRAND_ASSETS = {
   favicon32: '/brand/xprout/v1/favicon-32.png',
   faviconIco: '/brand/xprout/v1/favicon.ico',
   // Content revisions prevent an older proportional layout surviving CDN/browser caches.
-  horizontalForest: '/brand/xprout/v1/xprout-horizontal-forest.svg?v=3144b79c',
-  horizontalIvory: '/brand/xprout/v1/xprout-horizontal-ivory.svg?v=2e899574',
+  horizontalForest: '/brand/xprout/v1/xprout-horizontal-forest.svg?v=c8a37e22',
+  horizontalIvory: '/brand/xprout/v1/xprout-horizontal-ivory.svg?v=2918de51',
   symbolForest: '/brand/xprout/v1/xprout-symbol-forest.svg',
   symbolIvory: '/brand/xprout/v1/xprout-symbol-ivory.svg',
-  social: '/brand/xprout/v1/social-card-1200x630.webp?v=ad105444',
-  socialPng: '/brand/xprout/v1/social-card-1200x630.png?v=411ed0a0',
+  social: '/brand/xprout/v1/social-card-1200x630.webp?v=5c14a3a7',
+  socialPng: '/brand/xprout/v1/social-card-1200x630.png?v=92c8f195',
 } as const
 
 /** Version the generated social route with the approved PNG's content revision. */
-export const PLATFORM_SOCIAL_IMAGE = '/opengraph-image?v=411ed0a0'
+export const PLATFORM_SOCIAL_IMAGE = '/opengraph-image?v=92c8f195'
 
 /** Explicit configuration wins; only an absent logo selects the platform default. */
 export function platformLogoUrl(configured?: string | null): string {

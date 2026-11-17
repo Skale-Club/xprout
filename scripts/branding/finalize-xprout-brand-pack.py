@@ -28,23 +28,27 @@ for target in [p/'manual/xprout-brand-manual.md',c/'brand-manual.md']: target.wr
 g = json.loads((c/'geometry.json').read_text())
 l = json.loads((c/'layouts.json').read_text())['horizontal']
 sha = lambda b: hashlib.sha256(b).hexdigest()
-centers = []
 for item in l['items']:
     shape = g[item['kind']]
     pen = BoundsPen(None); parse_path(shape['d'], pen)
     assert list(pen.bounds) == shape['bounds']
-    centers.append(item['y']+(pen.bounds[3]-pen.bounds[1])*item['scale']/2)
 body_bounds=l['alignment']['sourceBodyBounds']
 contour_bounds=[]
 for contour in re.findall(r'M[^M]+',g['wordmark']['d']):
     pen=BoundsPen(None);parse_path(contour,pen);contour_bounds.append(pen.bounds)
 capital_x=min(contour_bounds,key=lambda bounds:bounds[0])
 assert [capital_x[1],capital_x[3]]==body_bounds
-word=l['items'][1]
-body_center=word['y']+((body_bounds[0]+body_bounds[1])/2-g['wordmark']['bounds'][1])*word['scale']
-assert abs(centers[0]-body_center) < 1e-9
-assert centers[1] > body_center # p descender must not control alignment
-assert l['items'][1]['scale'] == .86
+# Monogram: the symbol stands in for the removed capital X, cap top to baseline.
+mark,word=l['items']
+assert [mark['kind'],word['kind']]==['symbol','prout']
+assert g['wordmark']['d']==g['prout']['d']+re.findall(r'M[^M]+',g['wordmark']['d'])[-1]
+assert sha(g['prout']['d'].encode())==g['proutProvenance']['pathSha256'] and list(capital_x)==g['proutProvenance']['removedContourBounds']
+body_height=body_bounds[1]-body_bounds[0]
+symbol_height=(g['symbol']['bounds'][3]-g['symbol']['bounds'][1])*mark['scale']
+assert mark['y']==0 and abs(symbol_height-body_height) < 1e-9 and word['scale']==1
+assert abs(word['y']-(g['prout']['bounds'][1]-body_bounds[0])) < 1e-9 # lettering keeps its baseline
+symbol_right=mark['x']+(g['symbol']['bounds'][2]-g['symbol']['bounds'][0])*mark['scale']
+assert abs((word['x']-symbol_right)-(g['prout']['bounds'][0]-capital_x[2]+l['alignment']['kern'])) < 1e-9
 assert sha(g['symbol']['d'].encode()) == g['symbolProvenance']['pathSha256']
 m = json.loads((p/'brand-manifest.json').read_text())
 palette=json.loads((c/'palette.json').read_text())
@@ -60,7 +64,7 @@ for a in m['assets']:
     if file.suffix=='.svg':
         paths=[e.attrib['d'] for e in ET.fromstring(data).iter() if e.tag.endswith('path')]
         if 'horizontal' in file.name:
-            assert g['symbol']['d'] in paths and g['wordmark']['d'] in paths
+            assert paths[-2:]==[g['symbol']['d'],g['prout']['d']]
     if file.suffix=='.png':
         with Image.open(file) as im: assert max(im.size)<=512 and len(data)<=40960
 for file,count in [('manual/xprout-brand-manual.pdf',10),('print/xprout-vector-masters.pdf',4)]:
@@ -69,7 +73,7 @@ for file,count in [('manual/xprout-brand-manual.pdf',10),('print/xprout-vector-m
 for k in ['horizontal','stacked','symbol','wordmark']:
     for color in ['forest','ivory']: assert (p/f'svg/xprout-{k}-{color}.svg').read_bytes()==(c/f'xprout-{k}-{color}.svg').read_bytes()
 (p/'README.md').write_text((c/'README.md').read_text(encoding='utf-8'),encoding='utf-8')
-report={'revision':'2026-11-14 horizontal placement','symbolPathSha256':sha(g['symbol']['d'].encode()),'wordmarkPathSha256':sha(g['wordmark']['d'].encode()),'fullInkCenters':centers,'symbolAndTypographicBodyCenters':[centers[0],body_center],'bodyBounds':body_bounds,'wordmarkY':word['y'],'symbolHeight':202,'wordmarkHeight':(g['wordmark']['bounds'][3]-g['wordmark']['bounds'][1])*.86,'wordmarkScale':.86,'assetsVerified':len(m['assets']),'pdfPages':[10,4],'visualReview':'Parent agent reviews regenerated forest and ivory signatures separately.'}
+report={'revision':'2026-11-16 monogram horizontal signature','symbolPathSha256':sha(g['symbol']['d'].encode()),'wordmarkPathSha256':sha(g['wordmark']['d'].encode()),'proutPathSha256':sha(g['prout']['d'].encode()),'bodyBounds':body_bounds,'symbolHeight':symbol_height,'symbolScale':mark['scale'],'letteringX':word['x'],'letteringY':word['y'],'letteringScale':word['scale'],'kern':l['alignment']['kern'],'assetsVerified':len(m['assets']),'pdfPages':[10,4],'visualReview':'Parent agent reviews regenerated forest and ivory signatures separately.'}
 (p/'evidence/horizontal-placement-verification.json').write_text(json.dumps(report,indent=2)+'\n')
 archive=p.parent/'xprout-brand-pack-v1.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:

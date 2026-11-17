@@ -26,28 +26,29 @@
     ]
   },
   "horizontal": {
-    "w": 963.1543518142191,
-    "h": 219.04148580222773,
-    "symbolHeight": 202,
+    "w": 813.4804852533423,
+    "h": 225.65651028664055,
+    "symbolHeight": 176.79793731228642,
     "alignment": {
-      "reference": "initial capital X contour; cap top to baseline/body bottom; descenders and diacritics excluded",
+      "reference": "symbol replaces the initial capital X; symbol top and bottom sit on the removed X contour cap top and baseline; descenders excluded",
       "sourceBodyBounds": [
         16.3140489858687,
         193.11198629815513
-      ]
+      ],
+      "kern": 6
     },
     "items": [
       {
         "kind": "symbol",
         "x": 0,
         "y": 0,
-        "scale": 0.6539248623899249
+        "scale": 0.5723394397413835
       },
       {
-        "kind": "wordmark",
-        "x": 272.93576869784545,
-        "y": 24.976886955716836,
-        "scale": 0.86
+        "kind": "prout",
+        "x": 187.35996285330913,
+        "y": 5.848815940074861,
+        "scale": 1
       }
     ]
   },
