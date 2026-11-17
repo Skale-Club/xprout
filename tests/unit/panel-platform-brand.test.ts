@@ -58,8 +58,8 @@ describe('platform brand in the internal panels', () => {
 
   it('shows the platform brand in the phone bar only for the platform console', () => {
     const shell = (platformBrandInBar: boolean) => renderToStaticMarkup(createElement(DashboardShell, {
-      appName: 'Xprout', contextName: 'Aurora', sidebar: null, platformBrandInBar,
-    }, null))
+      appName: 'Xprout', contextName: 'Aurora', sidebar: null, platformBrandInBar, children: null,
+    }))
     expect(shell(true)).toContain(PLATFORM_BRAND_ASSETS.horizontalForest)
     expect(shell(false)).not.toContain(PLATFORM_BRAND_ASSETS.horizontalForest)
     expect(shell(false)).toContain('Aurora')
