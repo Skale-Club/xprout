@@ -78,6 +78,7 @@ import {
   CalendarCheck,
 } from 'lucide-react'
 import type { AppliedPromo, LoyaltyInfo } from './CheckoutModal'
+import { DishPageCartContext, type DishPageCart } from './DishCartButton'
 
 const ProductModal = dynamic(() => import('./ProductModal'), { ssr: false })
 const CartPanel = dynamic(() => import('./CartPanel'), { ssr: false })
@@ -146,6 +147,13 @@ interface Props {
   table?: { id: string; name: string } | null
   /** The table this link belongs to, when the restaurant serves at the table: guests can call a waiter or ask for the bill. */
   waiterCallTable?: { id: string; name: string } | null
+  /**
+   * A dish page (/<slug>/<menu>/<dish>): its content, rendered on the server, takes the place of the
+   * dish list, inside the menu's own header, footer, order bar, cart and checkout. Its h1 is the
+   * dish, so the restaurant's name is not a heading here; no category bar, featured row or feed.
+   * DishCartButton inside it reaches this menu's order.
+   */
+  dishPage?: ReactNode
 }
 
 function getTranslatedMenuField(
@@ -159,10 +167,11 @@ function getTranslatedMenuField(
   return typeof value === 'string' && value.trim() ? value : fallback
 }
 
-export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
+export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null, dishPage }: Props) {
   const router = useRouter()
+  const onDishPage = dishPage !== undefined && dishPage !== null
   const [feedPreview, setFeedPreview] = useState(false)
-  const feedEnabled = (tenant.tenant_settings?.visual_feed_enabled ?? true) || feedPreview
+  const feedEnabled = !onDishPage && ((tenant.tenant_settings?.visual_feed_enabled ?? true) || feedPreview)
   const [menuView, setMenuView] = useState<MenuView>(() => resolveInitialView({
     urlView: initialView,
     defaultView: tenant.tenant_settings?.menu_default_view,
@@ -183,7 +192,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     getMobileViewportSnapshot,
     getServerMobileViewportSnapshot,
   )
-  const activeMenuView = isMobileViewport ? menuView : 'list'
+  const activeMenuView = isMobileViewport && !onDishPage ? menuView : 'list'
   // Decided on the server from the plan and the restaurant's switches.
   const directOrdersEnabled = capabilities.guestOrdering
   const ingredientCustomizationEnabled = capabilities.ingredientCustomization
@@ -291,6 +300,17 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   // The guest's language: ?lang= (also written on change, so a reload keeps
   // it), otherwise the phone's language when this menu offers it.
   function changeLanguage(lang: string) {
+    // A dish page's own text is rendered on the server: it reloads in the new language.
+    if (onDishPage) {
+      try {
+        const url = new URL(window.location.href)
+        url.searchParams.set('lang', lang)
+        window.location.assign(url.toString())
+        return
+      } catch {
+        // falls through to the in-place switch
+      }
+    }
     setSelectedLanguage(lang)
     try {
       const url = new URL(window.location.href)
@@ -301,7 +321,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     }
   }
   useEffect(() => {
-    if (supportedLanguages.length < 2) return
+    // A dish page keeps the language its server-rendered text was written in.
+    if (onDishPage || supportedLanguages.length < 2) return
     if (new URLSearchParams(window.location.search).has('lang')) return
     const match = matchDeviceLanguage(navigator.languages?.length ? navigator.languages : [navigator.language], supportedLanguages)
     if (match && match !== selectedLanguage) setSelectedLanguage(match)
@@ -888,7 +909,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       setDeliveryNotes(screen.draft.deliveryNotes)
       setTipCents(screen.draft.tipCents)
     }
-    const openProductAgain = screen.productId ? products.find(p => p.id === screen.productId) : undefined
+    // A dish page shows its dish itself: a sheet left open on the menu does not reopen over it.
+    const openProductAgain = screen.productId && !onDishPage ? products.find(p => p.id === screen.productId) : undefined
     if (openProductAgain) setSelectedProduct(openProductAgain)
     setFeedIndex(screen.feedIndex)
     setRestored(true)
@@ -1046,7 +1068,34 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     ? `${canonicalBaseUrl.replace(/\/$/, '')}/${menu.slug}/${dishSlug(product)}` : undefined
   const menusLabel = ({ en: 'Menus', pt: 'Cardápios', es: 'Cartas' } as Record<string, string>)[selectedLanguage.split('-')[0]] ?? 'Menus'
 
+  // The order as a dish page's DishCartButton sees it: the plain dish goes straight in, like the
+  // + on a card; a dish with choices opens its sheet.
+  const productById = (productId: string) => products.find(p => p.id === productId)
+  const dishPageCart: DishPageCart | null = onDishPage ? {
+    enabled: directOrdersEnabled,
+    needsChoices: hasCustomization,
+    quantity: productId => cart.find(item => item.cartKey === buildCartKey(productId, {}))?.quantity ?? 0,
+    add: productId => {
+      const product = productById(productId)
+      if (product) addToCart(product, {}, product.price, undefined, undefined, undefined, 'detail')
+    },
+    decrease: productId => {
+      const key = buildCartKey(productId, {})
+      const quantity = cart.find(item => item.cartKey === key)?.quantity ?? 0
+      if (quantity > 0) updateCartQuantity(key, quantity - 1)
+    },
+    choose: productId => {
+      const product = productById(productId)
+      if (product) openProduct(product, 'detail')
+    },
+    openCart: () => setCartOpen(true),
+    primaryColor,
+    onPrimary,
+    copy: { addToOrder: copy.addToOrder, decrease: copy.decrease, increase: copy.increase, viewOrder: copy.viewOrder, addNamed: copy.addNamed },
+  } : null
+
   return (
+    <DishPageCartContext.Provider value={dishPageCart}>
     <div className="menu-root min-h-screen bg-menu text-zinc-900" lang={localeFor(selectedLanguage)}>
       {/* Header: banner, then identity with the logo overlapping its edge */}
       <header className="relative">
@@ -1089,7 +1138,11 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
               <div className="flex size-full items-center justify-center text-xl font-semibold text-zinc-700">{getInitials(tenant.name)}</div>
             )}
           </a>
-          <h1 className="mt-3 text-[26px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[32px]"><a href={restaurantHome} className="hover:underline hover:decoration-2 hover:underline-offset-4">{tenant.name}</a></h1>
+          {(() => {
+            // On a dish page the dish is the page's h1; the restaurant keeps the same look.
+            const Name = onDishPage ? 'p' : 'h1'
+            return <Name className="mt-3 text-[26px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[32px]"><a href={restaurantHome} className="hover:underline hover:decoration-2 hover:underline-offset-4">{tenant.name}</a></Name>
+          })()}
           {(contextParts.length > 0 || openLabel || hasHours) && (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-zinc-500">
               {contextParts.map((part, i) => (
@@ -1149,7 +1202,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       </header>
 
       {/* Sticky category tabs */}
-      {activeMenuView === 'list' && (tabs.length > 0 || showSearch) && (
+      {activeMenuView === 'list' && !onDishPage && (tabs.length > 0 || showSearch) && (
         <nav className="sticky top-0 z-30 mt-5 border-b border-zinc-200/70 bg-menu/90 backdrop-blur-md" aria-label={copy.viewMenu}>
           <div className="mx-auto flex max-w-5xl items-center px-2 sm:px-6">
             {showSearch ? (
@@ -1203,7 +1256,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       )}
 
       {/* Featured: a quiet row you swipe yourself */}
-      {activeMenuView === 'list' && featured.length > 0 && !narrowed && (
+      {activeMenuView === 'list' && !onDishPage && featured.length > 0 && !narrowed && (
         <section
           ref={el => { categoryRefs.current[FEATURED_TAB] = el }}
           data-category-id={FEATURED_TAB}
@@ -1279,7 +1332,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         </section>
       )}
 
-      <main
+      {onDishPage ? (
+        <main className="mx-auto max-w-5xl px-5 pt-6 sm:px-8 sm:pt-8">{dishPage}</main>
+      ) : <main
         className="mx-auto max-w-5xl space-y-8 px-4 pt-6 sm:px-8 sm:pt-8"
         style={{ paddingBottom: showContactFooter ? 0 : showOrderBar ? 112 : 48 }}
       >
@@ -1408,7 +1463,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
             ))}
           </>
         ) : null}
-      </main>
+      </main>}
 
       {/* Contact and credits: tappable cards (call, WhatsApp, Instagram, email, map), then the credit line */}
       {showContactFooter && (
@@ -1718,6 +1773,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         />
       )}
     </div>
+    </DishPageCartContext.Provider>
   )
 }
 

@@ -18,6 +18,12 @@ vi.mock('@/components/delivery-image', () => ({ DeliveryImage: mocks.image }))
 vi.mock('@/components/seo/JsonLdScript', () => ({ default: () => null }))
 vi.mock('@/lib/menu/dish-pages-runtime', () => ({ loadPublicDish: mocks.dish }))
 vi.mock('@/lib/site/runtime', () => ({ loadTenantSite: mocks.site }))
+// The dish page is drawn inside the menu: the menu's data and MenuPage itself are stand-ins here.
+const menuMocks = vi.hoisted(() => ({ menuData: vi.fn(), menuPage: vi.fn() }))
+vi.mock('@/lib/menu/public-menu-data', () => ({ loadPublicMenuData: menuMocks.menuData, withMenuPrices: (data: unknown) => data }))
+vi.mock('@/lib/menu/local-navigation', () => ({ loadLocalNavigation: async () => [] }))
+vi.mock('@/lib/data/tenant-pages-runtime', () => ({ loadPublicPageNav: async () => [] }))
+vi.mock('@/components/menu/MenuPage', () => ({ default: menuMocks.menuPage }))
 
 import { generateMetadata as blogMetadata } from '@/app/(marketing)/blog/page'
 import { nativePlatformSitemap } from '@/lib/blog/native/sitemap'
@@ -39,6 +45,10 @@ beforeEach(() => {
   mocks.ownedBlog.mockResolvedValue({ posts: [], tags: [], archive: [] })
   mocks.site.mockResolvedValue(platformSite)
   mocks.image.mockImplementation(({ src, alt, sizes }: { src: string; alt: string; sizes: string }) => createElement('img', { src, alt, sizes }))
+  menuMocks.menuData.mockResolvedValue({ kind: 'menu', tenant: { ...tenant, id: 'tenant' }, menu: { id: 'menu', name: 'Dinner', language: 'en' }, categories: [], products: [],
+    optionGroupsByProductId: {}, productIngredientsByProductId: {}, productMediaByProductId: {}, productArModelByProductId: {}, deliveryZones: [],
+    capabilities: { guestOrdering: true }, footerBrand: 'Xprout' })
+  menuMocks.menuPage.mockImplementation(({ dishPage }: { dishPage: unknown }) => createElement('div', { 'data-menu-page': '' }, dishPage as never))
 })
 
 describe('empty platform blogs stay out of discovery', () => {
@@ -92,25 +102,27 @@ describe('responsive dish images keep separate UI and metadata URL contracts', (
 })
 
 describe('dish page navigation', () => {
-  it('leads back to the menu through the breadcrumb only, with no menu button beside the dish', async () => {
+  it('is drawn inside the menu (its header, footer and order) and leads back only through the breadcrumb', async () => {
     mocks.site.mockResolvedValue(dishSite)
     mocks.dish.mockResolvedValue({ tenant: { ...tenant, tenant_settings: { currency: 'USD' } },
-      menu: { name: 'Dinner' }, product: { name: 'Soup', description: 'Roasted tomatoes.', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: 12.5, tags: ['gluten-free'] }, price: { amount: 12.5, from: false } })
+      menu: { name: 'Dinner', language: 'en' }, product: { id: 'soup', name: 'Soup', description: 'Roasted tomatoes.', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: 12.5, tags: ['gluten-free'] }, price: { amount: 12.5, from: false } })
     const html = renderToStaticMarkup(await DishPage({ params: params() }))
+    const props = menuMocks.menuPage.mock.calls[0][0]
+    expect(props).toMatchObject({ initialLanguage: 'en', capabilities: { guestOrdering: true }, canonicalBaseUrl: dishSite.baseUrl })
+    expect(props.dishPage).toBeTruthy()
     const menuHref = `href="${dishSite.baseUrl}/dinner"`
     const breadcrumb = html.match(/<nav aria-label="Breadcrumb"[\s\S]*?<\/nav>/)?.[0] ?? ''
     const article = html.match(/<article[\s\S]*?<\/article>/)?.[0] ?? ''
-    const header = html.match(/<header[\s\S]*?<\/header>/)?.[0] ?? ''
+    expect(html).toMatch(/<div data-menu-page="">[\s\S]*<h1/)
     expect(breadcrumb).toContain(menuHref)
-    expect(header).not.toContain(menuHref)
     expect(article).not.toBe('')
     expect(article).not.toContain(menuHref)
     expect(article).not.toMatch(/>Dinner</)
   })
-  it('shows the category, sizes, ingredients, where it is served and other dishes linking to their own pages', async () => {
+  it('shows the category, sizes, ingredients and other dishes linking to their own pages', async () => {
     mocks.site.mockResolvedValue(dishSite)
-    mocks.dish.mockResolvedValue({ tenant: { ...tenant, tenant_settings: { currency: 'USD', address: '1 Main St', city: 'Springfield', phone: '+16175550142', country: 'US' } },
-      menu: { name: 'Dinner' }, product: { name: 'Soup', description: 'Roasted tomatoes.', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: 12.5, original_price: null, tags: [] },
+    mocks.dish.mockResolvedValue({ tenant: { ...tenant, tenant_settings: { currency: 'USD' } },
+      menu: { name: 'Dinner', language: 'en' }, product: { id: 'soup', name: 'Soup', description: 'Roasted tomatoes.', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: 12.5, original_price: null, tags: [] },
       price: { amount: 9, from: true }, category: 'Starters', ingredients: ['Tomato', 'Basil'],
       sizes: [{ id: 'size', name: 'Size', type: 'single', options: [{ id: 's', name: 'Cup', base_price: 9, price_modifier: 0 }, { id: 'l', name: 'Bowl', base_price: 14, price_modifier: 0 }] }],
       related: [{ id: 'r', name: 'Bread', slug: 'bread-111111111111', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: { amount: 4, from: false } }] })
@@ -118,9 +130,19 @@ describe('dish page navigation', () => {
     expect(html).toContain('Starters')
     expect(html).toMatch(/Cup<\/span><span[^>]*>\$9\.00/)
     expect(html).toContain('Tomato, Basil')
-    expect(html).toContain('1 Main St, Springfield')
-    expect(html).toContain('href="https://www.google.com/maps/dir/?api=1&amp;destination=1%20Main%20St%2C%20Springfield')
-    expect(html).toContain('href="tel:+16175550142"')
     expect(html).toContain(`href="${dishSite.baseUrl}/dinner/bread-111111111111"`)
+  })
+  it('reads in the language asked for when the menu offers it, else the site language', async () => {
+    mocks.site.mockResolvedValue(dishSite)
+    mocks.dish.mockResolvedValue({ tenant: { ...tenant, tenant_settings: { currency: 'USD' } },
+      menu: { name: 'Dinner', language: 'en', supported_languages: ['en', 'pt'], translations: { pt: { name: 'Jantar' } } },
+      product: { id: 'soup', name: 'Soup', description: 'Roasted tomatoes.', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: 12.5, tags: [] }, price: { amount: 12.5, from: false } })
+    const html = renderToStaticMarkup(await DishPage({ params: params(), searchParams: Promise.resolve({ lang: 'pt' }) }))
+    expect(mocks.dish).toHaveBeenCalledWith('pizza', 'dinner', 'soup', 'pt')
+    expect(menuMocks.menuPage.mock.calls[0][0]).toMatchObject({ initialLanguage: 'pt' })
+    expect(html).toContain('>Jantar</a>')
+    menuMocks.menuPage.mockClear()
+    renderToStaticMarkup(await DishPage({ params: params(), searchParams: Promise.resolve({ lang: 'ja' }) }))
+    expect(menuMocks.menuPage.mock.calls[0][0]).toMatchObject({ initialLanguage: 'en' })
   })
 })

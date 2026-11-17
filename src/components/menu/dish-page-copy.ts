@@ -5,28 +5,24 @@
 export interface DishPageCopy {
   /** Heading over the other dishes at the foot of the page. */
   moreDishes: string
-  /** Caption over the restaurant's name in its card. */
-  servedAt: string
-  directions: string
-  call: string
 }
 
 const COPY: Record<string, DishPageCopy> = {
-  en: { moreDishes: 'More dishes', servedAt: 'Served at', directions: 'Directions', call: 'Call' },
-  pt: { moreDishes: 'Mais pratos', servedAt: 'Servido em', directions: 'Como chegar', call: 'Ligar' },
-  es: { moreDishes: 'Más platos', servedAt: 'Se sirve en', directions: 'Cómo llegar', call: 'Llamar' },
-  fr: { moreDishes: 'Plus de plats', servedAt: 'Servi chez', directions: 'Itinéraire', call: 'Appeler' },
-  de: { moreDishes: 'Weitere Gerichte', servedAt: 'Serviert bei', directions: 'Route', call: 'Anrufen' },
-  it: { moreDishes: 'Altri piatti', servedAt: 'Servito da', directions: 'Indicazioni', call: 'Chiama' },
-  nl: { moreDishes: 'Meer gerechten', servedAt: 'Geserveerd bij', directions: 'Route', call: 'Bellen' },
-  pl: { moreDishes: 'Więcej dań', servedAt: 'Podawane w', directions: 'Dojazd', call: 'Zadzwoń' },
-  tr: { moreDishes: 'Diğer yemekler', servedAt: 'Servis edildiği yer', directions: 'Yol tarifi', call: 'Ara' },
-  ru: { moreDishes: 'Другие блюда', servedAt: 'Подают в', directions: 'Маршрут', call: 'Позвонить' },
-  hi: { moreDishes: 'और व्यंजन', servedAt: 'यहाँ परोसा जाता है', directions: 'रास्ता देखें', call: 'कॉल करें' },
-  ja: { moreDishes: 'ほかの料理', servedAt: '提供店舗', directions: '経路', call: '電話する' },
-  ko: { moreDishes: '다른 메뉴', servedAt: '제공 매장', directions: '길찾기', call: '전화하기' },
-  zh: { moreDishes: '更多菜品', servedAt: '供应餐厅', directions: '路线', call: '致电' },
-  'zh-TW': { moreDishes: '更多菜色', servedAt: '供應餐廳', directions: '路線', call: '撥打電話' },
+  en: { moreDishes: 'More dishes' },
+  pt: { moreDishes: 'Mais pratos' },
+  es: { moreDishes: 'Más platos' },
+  fr: { moreDishes: 'Plus de plats' },
+  de: { moreDishes: 'Weitere Gerichte' },
+  it: { moreDishes: 'Altri piatti' },
+  nl: { moreDishes: 'Meer gerechten' },
+  pl: { moreDishes: 'Więcej dań' },
+  tr: { moreDishes: 'Diğer yemekler' },
+  ru: { moreDishes: 'Другие блюда' },
+  hi: { moreDishes: 'और व्यंजन' },
+  ja: { moreDishes: 'ほかの料理' },
+  ko: { moreDishes: '다른 메뉴' },
+  zh: { moreDishes: '更多菜品' },
+  'zh-TW': { moreDishes: '更多菜色' },
 }
 
 export function getDishPageCopy(lang: string | null | undefined): DishPageCopy {
