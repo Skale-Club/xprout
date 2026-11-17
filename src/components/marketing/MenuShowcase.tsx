@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { ArrowRight, ArrowUpRight, BookOpen } from 'lucide-react'
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { ArrowUpRight } from 'lucide-react'
 import { DeliveryImage } from '@/components/delivery-image'
+import { useMarketingMotionPreference } from './MarketingMotion'
 
 const examples = [
   {
@@ -12,7 +13,6 @@ const examples = [
     description: 'Browse a photo-led menu and open the dish details, with selected dishes to explore from every angle in 3D.',
     image: '/marketing/v3/demo-photo-menu.webp',
     alt: 'Illustrative photo feed showing a dish, description and price',
-    label: 'Photo menu demonstration',
   },
   {
     name: 'Italian menu', category: 'Italian menu', href: '/bella-vista',
@@ -20,22 +20,80 @@ const examples = [
     description: 'Browse an Italian menu with generous dish photography and the detail guests want before they choose.',
     image: '/marketing/v3/demo-italian-menu.webp',
     alt: 'Illustrative Italian menu showing a pasta dish in the photo feed',
-    label: 'Italian menu demonstration',
   },
   {
-    name: 'Dessert feed', category: 'Dessert feed', href: '/celes',
+    // Celes is a real prospect, not a demo: this example opens the demo store instead.
+    name: 'Dessert feed', category: 'Dessert feed', href: '/demo',
     title: 'Save a little room for something sweet.',
     description: 'See a different expression of the same platform: a confectionery menu made around its own food and identity.',
     image: '/marketing/v3/demo-dessert-feed.webp',
     alt: 'Illustrative dessert feed showing a full-screen dish photograph',
-    label: 'Dessert feed demonstration',
   },
 ] as const
 
 /** Real, optional destinations rather than a simulated checkout or embedded app. */
 export default function MenuShowcase() {
-  const [selected, setSelected] = useState(0)
+  // An endless turn: `position` only ever counts up or down; the menu in front is position mod 3.
+  const [position, setPosition] = useState(0)
+  const count = examples.length
+  const selected = ((position % count) + count) % count
   const example = examples[selected]
+  const motion = useMarketingMotionPreference()
+  const stage = useRef<HTMLDivElement>(null)
+  const [stageWidth, setStageWidth] = useState(480)
+  const [drag, setDrag] = useState<{ start: number; x: number } | null>(null)
+  const [hovered, setHovered] = useState(false)
+  const [manual, setManual] = useState(false)
+
+  useEffect(() => {
+    const element = stage.current
+    if (!element || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) => setStageWidth(entry.contentRect.width))
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  // A slow turn on its own until someone takes over (hover, drag, a choice).
+  useEffect(() => {
+    if (motion !== 'playing' || hovered || drag || manual) return
+    const timer = setTimeout(() => setPosition(current => current + 1), 5000)
+    return () => clearTimeout(timer)
+  }, [motion, hovered, drag, manual, position])
+
+  const turnTo = (next: number) => { setManual(true); setPosition(next) }
+  // Relative turns add up even when several land before a render (fast keys).
+  const turnBy = (steps: number) => { setManual(true); setPosition(current => current + steps) }
+  // Distance between the front phone and the ones behind it, from the room the stage has.
+  const step = Math.max(80, Math.min(170, stageWidth / 2 - 70))
+  const shift = drag ? Math.max(-1, Math.min(1, (drag.x - drag.start) / step)) : 0
+
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setDrag({ start: event.clientX, x: event.clientX })
+  }
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (drag) setDrag({ ...drag, x: event.clientX })
+  }
+  const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (!drag) return
+    const moved = event.clientX - drag.start
+    setDrag(null)
+    if (Math.abs(moved) < 6) {
+      // A tap on a phone behind brings it to the front.
+      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-phone]')
+      if (target) turnTo(Number(target.dataset.phone))
+      return
+    }
+    if (Math.abs(moved) > step * 0.25) turnBy(moved < 0 ? 1 : -1)
+  }
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowRight') { event.preventDefault(); turnBy(1) }
+    if (event.key === 'ArrowLeft') { event.preventDefault(); turnBy(-1) }
+  }
+  // Five slots around the front (-2..2): the outer two are invisible, so a phone leaves on one
+  // side while the next one comes in on the other, forever, without crossing the front.
+  const slots = [-2, -1, 0, 1, 2].map(slot => position + slot)
 
   return <section id="demo-store" className="mk-experience mk-section scroll-mt-24" aria-labelledby="examples-title">
     <div id="experience" className="mk-container">
@@ -44,29 +102,38 @@ export default function MenuShowcase() {
           <p className="mk-eyebrow mb-4">Try Xprout</p>
           <h2 id="examples-title" className="mk-h2 max-w-xl">Visit the demo store.</h2>
         </div>
-        <p className="mk-lead max-w-md md:justify-self-end">Browse a complete menu, explore the photo feed and open selected dishes in 3D. Choose a demonstration to try the guest experience.</p>
+        <p className="mk-lead max-w-md md:justify-self-end">Browse a complete menu and open selected dishes in 3D. Choose a demonstration to try the guest experience.</p>
       </div>
 
-      <div role="group" aria-label="Choose a menu example" className="mb-6 flex flex-wrap gap-2">
-        {examples.map((item, index) => <button key={item.name} type="button" aria-pressed={selected === index}
-          onClick={() => setSelected(index)}
-          className={`mk-example-choice min-h-12 rounded-full border px-5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--mk-wine)] ${selected === index ? 'border-[var(--mk-wine)] bg-[var(--mk-wine)] text-[var(--mk-paper)]' : 'border-[var(--mk-line)] bg-transparent text-[var(--mk-ink)] hover:bg-[var(--mk-panel)]'}`}>
-          {item.name}
-        </button>)}
-      </div>
 
-      <div data-example={selected} className="mk-showcase-stage grid overflow-hidden rounded-3xl border border-[var(--mk-line)] bg-[var(--mk-panel)] md:grid-cols-2">
+      <div data-example={selected} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className="mk-showcase-stage grid overflow-hidden rounded-3xl border border-[var(--mk-line)] bg-[var(--mk-panel)] md:grid-cols-2">
         <figure className="m-0 flex min-w-0 flex-col items-center justify-center gap-6 bg-[color-mix(in_srgb,var(--mk-forest)_8%,var(--mk-paper))] p-6 sm:p-10">
           <p className="mk-eyebrow text-center">Guest menu preview</p>
-          <div key={example.image} className="mk-phone-swap w-full max-w-[240px] overflow-hidden rounded-[32px] border-[6px] border-[var(--mk-forest)] bg-[var(--mk-forest)] shadow-[0_16px_36px_rgb(20_39_29_/_0.15)]">
-            <DeliveryImage src={example.image} alt={example.alt} width={390} height={844}
-              sizes="(max-width: 359px) 220px, 240px" className="h-auto w-full" />
+          {/* The chosen menu in front, the other two behind it; drag, tap a phone or use the arrow keys. */}
+          <div ref={stage} role="group" aria-roledescription="carousel" aria-label="Menu examples, use the arrow keys to turn" tabIndex={0}
+            className={`mk-phone-carousel ${drag ? 'is-dragging' : ''}`}
+            onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => setDrag(null)} onKeyDown={onKeyDown}>
+            {slots.map(virtual => {
+              const item = examples[((virtual % count) + count) % count]
+              // -1 left, 0 front, 1 right (±2 hidden just outside), moved along while dragging.
+              const offset = virtual - position + shift
+              const distance = Math.min(2, Math.abs(offset))
+              const depth = Math.min(1, distance)
+              const front = virtual === position
+              return <div key={virtual} data-phone={virtual} aria-hidden={!front}
+                className="mk-phone-card w-[min(210px,54%)] overflow-hidden rounded-[32px] border-[6px] border-[var(--mk-forest)] bg-[var(--mk-forest)]"
+                style={{
+                  transform: `translateX(${offset * step}px) rotateY(${Math.max(-2, Math.min(2, offset)) * -16}deg) scale(${1 - distance * 0.16})`,
+                  zIndex: 10 - Math.round(distance * 4),
+                  opacity: Math.max(0, Math.min(1, 2 - distance)),
+                  filter: `brightness(${1 - depth * 0.18}) saturate(${1 - depth * 0.25})`,
+                  transition: drag ? 'none' : undefined,
+                }}>
+                <DeliveryImage src={item.image} alt={front ? item.alt : ''} width={390} height={844} draggable={false}
+                  sizes="210px" className="pointer-events-none h-auto w-full select-none" />
+              </div>
+            })}
           </div>
-          <figcaption className="text-center text-sm text-[var(--mk-ink)]">
-            <span className="block font-semibold">{example.label}</span>
-            <span className="mk-muted mt-1 block text-xs tabular-nums">Preview / {String(selected + 1).padStart(2, '0')} of {String(examples.length).padStart(2, '0')}</span>
-            <span className="mk-muted mt-1 block text-xs">An illustrative preview. Open the demo to explore.</span>
-          </figcaption>
         </figure>
         <div className="flex min-w-0 flex-col justify-center p-6 sm:p-10 lg:p-14">
           <div aria-live="polite" aria-atomic="true"><div key={example.name} className="mk-copy-swap">
@@ -78,21 +145,8 @@ export default function MenuShowcase() {
             Visit the demo store <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
             <span className="sr-only"> menu in a new tab</span>
           </a>
-          <a href={`${example.href}?view=feed`} target="_blank" rel="noopener noreferrer"
-            className="mt-4 inline-flex min-h-11 items-center gap-2 self-start text-sm font-semibold underline decoration-[var(--mk-line)] underline-offset-4">
-            Explore the photo feed <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
-            <span className="sr-only"> in a new tab</span>
-          </a>
-          <p className="mk-muted mt-4 text-sm leading-relaxed">3D is available for dishes with a model. Camera viewing requires a supported phone.</p>
-          <div className="mt-10 flex items-start gap-3 border-t border-[var(--mk-line)] pt-6">
-            <BookOpen className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-            <p className="mk-muted text-sm leading-relaxed">Explore these demonstrations to try the menu, dish details and photo feed. Available features vary by setup.</p>
-          </div>
         </div>
       </div>
-      <a href="#how-it-works" className="mt-6 inline-flex min-h-11 items-center gap-2 text-sm font-semibold underline decoration-[var(--mk-line)] underline-offset-4">
-        A menu like this, made for your restaurant <ArrowRight className="size-4" aria-hidden="true" />
-      </a>
     </div>
   </section>
 }

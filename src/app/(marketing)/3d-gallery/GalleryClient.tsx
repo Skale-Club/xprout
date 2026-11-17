@@ -212,7 +212,6 @@ function DishViewer({ dish, category, dishes, onClose, onStep }: {
           <ModelViewer
             src={dish.glb}
             iosSrc={dish.usdz}
-            poster={dish.photo}
             alt={`${dish.name} in 3D`}
             realScale
             ar={false}

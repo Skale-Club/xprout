@@ -2,9 +2,7 @@ import type { Metadata } from 'next'
 import { PLATFORM_SOCIAL_IMAGE } from '@/lib/platform-brand'
 import PricingClient from './PricingClient'
 import { LAUNCH_SLOTS, PROJECTS, PLANS, formatUsd } from '@/lib/marketing/pricing'
-import { createServiceClient } from '@/lib/supabase/server'
-import { platformSettingsOwned } from '@/lib/data/platform-settings'
-import type { FooterData } from '@/components/marketing/MarketingChrome'
+import { getMarketingChrome } from '@/lib/marketing/marketing-chrome'
 
 export const revalidate = 60
 
@@ -20,24 +18,6 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title, description, images: [PLATFORM_SOCIAL_IMAGE] },
 }
 
-async function getPricingBrand() {
-  try {
-    let settings: { app_name: string | null; favicon_url: string | null; landing: unknown } | null
-    if (platformSettingsOwned()) {
-      const { readOwnedPlatformSettings } = await import('@/lib/data/platform-settings-runtime')
-      settings = await readOwnedPlatformSettings(['app_name', 'favicon_url', 'landing']) as typeof settings
-    } else {
-      const service = createServiceClient()
-      settings = (await service.from('platform_settings').select('app_name, favicon_url, landing').single()).data
-    }
-    const landing = settings?.landing && typeof settings.landing === 'object' ? settings.landing as { footer?: FooterData } : null
-    return { appName: settings?.app_name ?? null, logoUrl: settings?.favicon_url ?? null, footerData: landing?.footer ?? null }
-  } catch {
-    // An owned-source failure uses the defaults, never a legacy database fallback.
-    return { appName: null, logoUrl: null, footerData: null }
-  }
-}
-
 export default async function PricingPage() {
-  return <PricingClient {...await getPricingBrand()} />
+  return <PricingClient {...await getMarketingChrome()} />
 }

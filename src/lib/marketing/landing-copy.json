@@ -4,7 +4,7 @@
     "heading": "Let guests explore.",
     "heading_highlight": "Before the first bite.",
     "subheading": "Bring your dishes to life with photography and interactive 3D. Let guests see selected dishes on their own table, then choose the ordering tools that fit your service.",
-    "cta_primary": "Start your project",
+    "cta_primary": "Get started",
     "cta_secondary": "Explore the experience"
   },
   "how_it_works": {
@@ -21,17 +21,17 @@
     "subtitle": "From the first photo to the next step in service, bring your food and your restaurant together in one menu.",
     "items": [
       { "icon": "BookOpen", "title": "Make the choice visual", "desc": "Invite guests into a photo feed, then give each dish room for its description, details and price." },
-      { "icon": "Box", "title": "Put a dish on their table", "desc": "Let guests turn selected dishes in interactive 3D, or use a supported phone to see them on their own table." },
+      { "icon": "Box", "title": "Put a dish on their table", "desc": "Let guests turn selected dishes in 3D, then place them on their own table with the phone camera." },
       { "icon": "Palette", "title": "Keep your restaurant’s character", "desc": "Bring your own logo, colors and menu sections into an experience that feels like your restaurant." },
       { "icon": "Globe", "title": "Welcome guests in their language", "desc": "Offer your menu in the languages you choose, so guests can explore your dishes in a language they know." },
-      { "icon": "ShoppingCart", "title": "Connect the menu to service", "desc": "Choose staff ordering with tables and a kitchen display, or guest ordering and payments, according to your plan and enabled services." },
-      { "icon": "MessageCircle", "title": "Add a menu assistant", "desc": "An optional AI add-on can help guests explore dishes and ask questions when enabled for your menu." }
+      { "icon": "ShoppingCart", "title": "Connect the menu to service", "desc": "Choose staff ordering with tables and a kitchen display, or guest ordering and payments." },
+      { "icon": "MessageCircle", "title": "Add a menu assistant", "desc": "An AI assistant helps guests explore your dishes and answers their questions." }
     ]
   },
   "cta": {
     "heading": "Give guests a feel for the dish.",
     "text": "Bring your food, your identity and the way you serve into one visual menu. Choose your setup, then add the experiences that make sense for your restaurant.",
-    "button": "Start your project"
+    "button": "Get started"
   },
   "seo": {
     "titleSuffix": "Visual menus & 3D dishes",

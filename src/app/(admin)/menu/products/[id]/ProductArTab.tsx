@@ -331,7 +331,6 @@ export default function ProductArTab({ productId, tenantId, canManage, ownedSour
                 key={model.glb_url}
                 src={model.glb_url}
                 iosSrc={model.usdz_url}
-                poster={model.poster_url}
                 alt="3D preview"
                 realScale={model.real_scale}
                 arLabel="View on a table"

@@ -10,5 +10,7 @@ export async function loadPublicDish(slug: string, menuSlug: string, productSlug
   const priced = withMenuPrices(base)
   const matches = priced.products.filter((product: Product) => dishSlug(product) === productSlug && isIndexableDish(product)) as Product[]
   return matches.length === 1 ? { tenant: base.tenant, menu: base.menu, product: matches[0],
-    price: displayPrice(matches[0].price, priced.optionGroupsByProductId[matches[0].id]) } : null
+    price: displayPrice(matches[0].price, priced.optionGroupsByProductId[matches[0].id]),
+    // The dish's 3D model, for the page's own 3D view and "see it on your table".
+    arModel: base.productArModelByProductId?.[matches[0].id] ?? null } : null
 }

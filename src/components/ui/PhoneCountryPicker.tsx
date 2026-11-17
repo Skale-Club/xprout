@@ -43,9 +43,10 @@ export default function PhoneCountryPicker({ value, onChange, label, searchLabel
   /** The restaurant's country: top of the list. */
   first?: CountryCode | null
   /** 'dark' on the platform's dark sign-in card. */
-  tone?: 'light' | 'dark'
+  tone?: 'light' | 'dark' | 'ivory'
 }) {
   const dark = tone === 'dark'
+  const ivory = tone === 'ivory'
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
@@ -173,11 +174,11 @@ export default function PhoneCountryPicker({ value, onChange, label, searchLabel
         aria-controls={POPUP_ID}
         aria-label={`${label}: ${current?.name ?? value} +${callingCode}`}
         data-testid="phone-country"
-        className={`flex h-12 items-center gap-1.5 rounded-xl border pl-2.5 pr-2 text-[16px] transition-[border-color,box-shadow] focus:border-[var(--accent,#18181b)] focus:outline-none focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent,#18181b)_22%,transparent)] ${dark ? 'border-white/15 bg-white/[0.04] text-white hover:border-white/25' : 'border-zinc-300 bg-white text-zinc-950 hover:border-zinc-400'}`}
+        className={`flex h-12 items-center gap-1.5 rounded-xl border pl-2.5 pr-2 text-[16px] transition-[border-color,box-shadow] focus:border-[var(--accent,#18181b)] focus:outline-none focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent,#18181b)_22%,transparent)] ${dark ? 'border-white/15 bg-white/[0.04] text-white hover:border-white/25' : ivory ? 'border-[#283F32]/20 bg-[#F3EFE5] text-[#283F32] hover:border-[#283F32]/40' : 'border-zinc-300 bg-white text-zinc-950 hover:border-zinc-400'}`}
       >
         <CountryFlag iso={value} />
         <span className="tabular-nums">+{callingCode}</span>
-        <ChevronDown className={`size-4 transition-transform ${dark ? 'text-white/50' : 'text-zinc-500'} ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+        <ChevronDown className={`size-4 transition-transform ${dark ? 'text-white/50' : ivory ? 'text-[#283F32]/60' : 'text-zinc-500'} ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
       {open && position && createPortal(
         <div

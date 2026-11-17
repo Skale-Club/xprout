@@ -75,7 +75,8 @@ export default function PhoneField({
   className?: string
   describedBy?: string
   /** 'dark' on the platform's dark sign-in card (the country picker follows). */
-  tone?: 'light' | 'dark'
+  /** ivory: the marketing sign-in card (forest ink on ivory). */
+  tone?: 'light' | 'dark' | 'ivory'
   /** Show the rest of the country's example faintly while typing (the field must use px-4 and 16px text). */
   ghost?: boolean
 }) {
@@ -137,7 +138,7 @@ export default function PhoneField({
           // Same box and type as the input: the typed part is invisible, the rest of the example shows faintly.
           <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre border border-transparent px-4 text-[16px] tabular-nums">
             <span className="invisible">{display}</span>
-            <span className={tone === 'dark' ? 'text-white/25' : 'text-zinc-400'}>{ghostText}</span>
+            <span className={tone === 'dark' ? 'text-white/25' : tone === 'ivory' ? 'text-[#283F32]/40' : 'text-zinc-400'}>{ghostText}</span>
           </span>
         ) : null}
       </div>

@@ -9,6 +9,7 @@ import MenuPage from '@/components/menu/MenuPage'
 import { formatWeekday, getMenuCopy } from '@/components/menu/menu-i18n'
 import { withBranchPublicFacts } from '@/lib/menu/branch-public-facts'
 import TenantPageView from '@/components/pages/TenantPageView'
+import { phoneLabel, telUrl } from '@/components/menu/showcase'
 import { loadPublicPageTarget, pageMetadata } from '@/lib/pages/public-page'
 import { loadPublicPageNav } from '@/lib/data/tenant-pages-runtime'
 import { resolveSlugTarget } from '@/lib/pages/page-rules'
@@ -242,7 +243,7 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
         <h1 id="branch-heading" className="text-3xl font-semibold tracking-tight text-zinc-950">{tenant.name} – {location.name}{location.city ? `, ${location.city}` : ''}</h1>
         <address className="mt-4 space-y-2 text-base not-italic text-zinc-700">
           {(location.address || location.city) && <p>{[location.address, location.city, location.region, location.postal_code, location.country].filter(Boolean).join(', ')}</p>}
-          {location.phone && <p><a href={`tel:${location.phone.replace(/[^+\d]/g, '')}`} className="underline underline-offset-4">{location.phone}</a></p>}
+          {location.phone && <p><a href={telUrl(location.phone, { country: location.country ?? tenant.tenant_settings?.country, currency: tenant.tenant_settings?.currency }) ?? undefined} className="underline underline-offset-4">{phoneLabel(location.phone, { country: location.country ?? tenant.tenant_settings?.country, currency: tenant.tenant_settings?.currency })}</a></p>}
         </address>
         {location.business_hours && <dl className="mt-5 grid max-w-md grid-cols-2 gap-2 text-sm text-zinc-700">{Object.entries(location.business_hours).filter(([, hours]) => typeof hours === 'string' && hours.trim()).map(([day, hours]) => <div key={day} className="contents"><dt className="font-medium capitalize">{weekdays[day] === undefined ? day : formatWeekday(weekdays[day], branchLanguage)}</dt><dd>{String(hours)}</dd></div>)}</dl>}
         <div className="mt-5 flex flex-wrap gap-4 text-sm font-semibold">

@@ -179,7 +179,8 @@ input[type="file"] {
 .no-text-cursor textarea,
 .no-text-cursor select,
 .no-text-cursor label,
-.no-text-cursor [role="button"] {
+.no-text-cursor [role="button"],
+.no-text-cursor :is(a, button, summary, label, [role="button"]) * {
   cursor: pointer !important;
 }
 

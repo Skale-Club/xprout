@@ -145,7 +145,6 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
           </button>
           <a href="#demo-store" className="mk-button mk-button--outline">{s.cta_secondary ?? landingCopy.hero.cta_secondary}</a>
         </div>
-        <p className="mk-muted mt-4 text-sm leading-relaxed">3D for selected dishes. Camera view on supported phones. No app download.</p>
       </div>
       <div className="mk-hero-art relative min-w-0"><HeroTableShowcase /></div>
     </div>
@@ -212,21 +211,21 @@ function PricingTeaser() {
   return <section className="mk-pricing-teaser mk-section" aria-labelledby="pricing-title">
     <div className="mk-container grid gap-10 md:grid-cols-[1.15fr_1fr] md:items-center">
       <div><p className="mk-eyebrow mb-4">A place to start</p><h2 id="pricing-title" className="mk-h2 max-w-xl">A clear price.<br />Room to grow.</h2>
-        <p className="mk-lead mt-6 max-w-lg">A one-time setup where our team builds your menu, then a plan to keep it running.</p>
+        <p className="mk-lead mt-6 max-w-lg">Our team builds your menu with you. After that, one monthly plan keeps it fresh.</p>
         <a href={PRICING_PATH} className="mk-button mk-button--outline mt-8">Explore pricing <ArrowRight className="size-4" aria-hidden="true" /></a>
       </div>
       <div className="mk-panel min-w-0 p-7 sm:p-10">
         <p className="mk-eyebrow mb-5">Menu project · from</p>
         <p className="mk-price text-5xl sm:text-6xl">{formatUsd(PROJECTS.we.launch)}</p>
         <p className="mk-muted mt-3 text-base">One-time setup</p>
-        <div className="mt-8 border-t border-[var(--mk-line)] pt-6"><p className="text-lg font-semibold">Then from {formatUsd(PLANS.menu.monthly)} / month</p><p className="mk-muted mt-2 text-sm leading-relaxed">The first month is included in the project. Full options, add-ons and terms are on our pricing page.</p></div>
+        <div className="mt-8 border-t border-[var(--mk-line)] pt-6"><p className="text-lg font-semibold">Then from {formatUsd(PLANS.menu.monthly)} / month</p><p className="mk-muted mt-2 text-sm leading-relaxed">Your first month comes with the setup. Every plan and add-on is on the pricing page.</p></div>
       </div>
     </div>
   </section>
 }
 
 function FAQ() {
-  return <section className="mk-section border-t border-[var(--mk-line)]" aria-labelledby="faq-title">
+  return <section className="mk-faq mk-section border-t border-[var(--mk-line)]" aria-labelledby="faq-title">
     <div className="mk-container grid items-start gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
       <div><p className="mk-eyebrow mb-4">A few things to know</p><h2 id="faq-title" className="mk-h2">Before we<br className="hidden lg:block" /> set the table.</h2><p className="mk-lead mt-5 max-w-sm">Straight answers, so you can get back to what you do best.</p></div>
       <div className="min-w-0 border-t border-[var(--mk-line)]">

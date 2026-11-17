@@ -1,6 +1,7 @@
 import { googleReviewLink } from '@/lib/site/review-link'
+import { phoneLabel, telUrl } from '@/components/menu/showcase'
 
-export type FooterSettings = { address?: string | null; city?: string | null; phone?: string | null; language?: string | null; google_review_url?: string | null }
+export type FooterSettings = { address?: string | null; city?: string | null; phone?: string | null; language?: string | null; google_review_url?: string | null; country?: string | null; currency?: string | null }
 export type FooterLink = { title: string; href: string }
 
 /** Merchant-provided facts and public links; no inferred location or business type. */
@@ -8,8 +9,9 @@ export default function TenantPublicFooter({ name, settings, links }: {
   name: string; settings: FooterSettings | null; links: readonly FooterLink[]
 }) {
   const address = [settings?.address?.trim(), settings?.city?.trim()].filter(Boolean).join(', ')
-  const phone = settings?.phone?.trim()
-  const dial = phone?.replace(/[^\d+]/g, '')
+  // Always written the restaurant country's way, e.g. "(617) 555-0142".
+  const phone = settings?.phone?.trim() ? phoneLabel(settings.phone, settings) : ''
+  const dial = settings?.phone ? telUrl(settings.phone, settings) : null
   const review = googleReviewLink(settings?.google_review_url, settings?.language)
   const unique = links.filter((link, index) => links.findIndex(other => other.href === link.href) === index).slice(0, 300)
   return <footer className="mt-8 border-t border-zinc-200/70">
@@ -17,7 +19,7 @@ export default function TenantPublicFooter({ name, settings, links }: {
       <address className="not-italic">
         <p className="font-semibold text-zinc-900">{name}</p>
         {address && <p>{address}</p>}
-        {phone && <p>{dial ? <a href={`tel:${dial}`} className="underline-offset-2 hover:underline">{phone}</a> : phone}</p>}
+        {phone && <p>{dial ? <a href={dial} className="underline-offset-2 hover:underline">{phone}</a> : phone}</p>}
       </address>
       {review && <a href={review.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center font-medium underline-offset-2 hover:text-zinc-900 hover:underline">{review.label}</a>}
       {unique.length > 0 && <nav aria-label={name}><ul className="flex flex-wrap gap-x-5 gap-y-2">

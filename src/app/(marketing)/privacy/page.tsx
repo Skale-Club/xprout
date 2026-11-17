@@ -7,9 +7,8 @@ export const revalidate = 60
 
 export async function generateMetadata() {
   await partnerLegalRoute('privacy')
-  // Bare title on purpose: the root layout's '%s | Xprout' template appends
-  // the brand, so adding it here too would double the suffix.
-  return { title: legalTitle('privacy', await getLegalDoc('privacy')) }
+  // Absolute, with the brand: the marketing layout's title has no template, as on /pricing.
+  return { title: { absolute: `${legalTitle('privacy', await getLegalDoc('privacy'))} — Xprout` }, alternates: { canonical: '/privacy' } }
 }
 
 export default async function PrivacyPage() {

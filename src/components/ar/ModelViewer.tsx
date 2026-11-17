@@ -33,7 +33,6 @@ export interface ModelViewerProps {
   src: string
   /** Optional USDZ for iOS Quick Look. */
   iosSrc?: string | null
-  poster?: string | null
   alt: string
   /** AR at the modelled size (metres): guests see the real portion. */
   realScale?: boolean
@@ -59,7 +58,6 @@ type ModelViewerElement = HTMLElement & { canActivateAR?: boolean }
 export default function ModelViewer({
   src,
   iosSrc,
-  poster,
   alt,
   realScale = true,
   arLabel,
@@ -97,6 +95,20 @@ export default function ModelViewer({
       if (typeof total === 'number') setProgress(total)
     }
     const handleLoad = () => {
+      // Aim near the base, not at the middle of the box: seen from above (58°), aiming at the box
+      // centre left plated dishes low in the frame. 0.41 of the height below the centre was measured
+      // on the rendered pixels to centre the dish vertically.
+      const viewer = el as ModelViewerElement & {
+        getBoundingBoxCenter?: () => { x: number; y: number; z: number }
+        getDimensions?: () => { x: number; y: number; z: number }
+        cameraTarget?: string
+        jumpCameraToGoal?: () => void
+      }
+      const center = viewer.getBoundingBoxCenter?.(), size = viewer.getDimensions?.()
+      if (center && size) {
+        viewer.cameraTarget = `${center.x}m ${center.y - size.y * 0.41}m ${center.z}m`
+        viewer.jumpCameraToGoal?.()
+      }
       setLoaded(true)
       callbacks.current.onArAvailability?.(el.canActivateAR === true)
     }
@@ -104,6 +116,8 @@ export default function ModelViewer({
     el.addEventListener('progress', handleProgress)
     el.addEventListener('load', handleLoad)
     el.addEventListener('error', handleError)
+    // A cached model can finish before this listener exists.
+    if ((el as ModelViewerElement & { loaded?: boolean }).loaded) handleLoad()
     return () => {
       el.removeEventListener('progress', handleProgress)
       el.removeEventListener('load', handleLoad)
@@ -124,7 +138,6 @@ export default function ModelViewer({
       ref={viewerRef}
       src={src}
       ios-src={iosSrc ?? undefined}
-      poster={poster ?? undefined}
       alt={alt}
       {...(ar ? {
         ar: true,
@@ -157,8 +170,10 @@ export default function ModelViewer({
         {arLabel}
       </button>}
       {!loaded && (
-        <div slot="progress-bar" className="absolute inset-x-0 top-0 h-1 bg-zinc-200">
-          <div className="h-full bg-zinc-900 transition-[width] duration-200" style={{ width: `${Math.round(progress * 100)}%` }} />
+        // Loading: a quiet spinner in the middle of the frame (a bar along the top edge read as a broken border).
+        <div slot="progress-bar" role="status" aria-label={`${Math.round(progress * 100)}%`} className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
+          <Loader2 className="size-6 animate-spin text-zinc-400" aria-hidden />
+          <span className="text-[12px] font-medium tabular-nums text-zinc-400">{Math.round(progress * 100)}%</span>
         </div>
       )}
     </model-viewer>

@@ -81,6 +81,11 @@ describe('bounded crawlable local navigation', () => {
       { title: 'Downtown', href: 'https://pizza.com/downtown', kind: 'branch' },
     ])
   })
+  it('does not offer a menu that has no available dish', () => {
+    const empty = { id: 'drinks', slug: 'drinks', name: 'Drinks', is_default: false, is_private: false, has_products: false }
+    const links = localNavigationLinks([{ ...menu, has_products: true }, empty], [], 'https://pizza.com')
+    expect(links.map(link => link.title)).toEqual(['Dinner'])
+  })
   it('scopes every navigation query to one tenant and bounds the read', async () => {
     const query = vi.fn(async (sql: string, _values?: unknown[]) => ({ rows: sql.includes('public.menus') ? [menu] : [] }))
     await readLocalNavigation(query, 'tenant-id')

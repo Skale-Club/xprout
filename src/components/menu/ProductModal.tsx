@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import DishPhoto from './DishPhoto'
 import OptionThumb from './OptionThumb'
-import { Box, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Minus, Plus, Share2, ShoppingBag, X } from 'lucide-react'
+import { Box, Check, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Minus, Plus, ShoppingBag, X } from 'lucide-react'
 import ArButton, { useIsComputer, type ArCart, type ArSequenceItem } from '@/components/ar/ArButton'
 import ModelViewer from '@/components/ar/ModelViewer'
 import { getArCopy } from '@/components/ar/ar-copy'
@@ -20,7 +20,6 @@ import { ctaStyle, ui } from './menu-ui'
 import { readableTextColor, computePrimaryForeground } from '@/lib/color-utils'
 import { baseName } from '@/lib/menu-translations'
 import { getGuestCopy } from './guest-copy'
-import { dishShareUrl } from '@/lib/menu/dish-link'
 import { displayPrice, optionPriceList, orderedItemText, showcaseItemText } from './showcase'
 import ModalPortal from '@/components/ui/ModalPortal'
 import { keepFieldVisible, useVisibleBox } from '@/components/ui/keyboard-fields'
@@ -81,8 +80,7 @@ function VideoSlide({ url }: { url: string }) {
   )
 }
 
-export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart, noticeMinutes = 0, shareUrl }: {
-  shareUrl?: string
+export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart, noticeMinutes = 0 }: {
   /** Notice this dish needs, in minutes (0 = none); shown only when the restaurant takes scheduled orders. */
   noticeMinutes?: number
   /** Adds one of this dish from the AR camera without closing the sheet (no upsell). */
@@ -471,44 +469,6 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
     onAddToCart(opts, finalUnitPrice, itemNote || undefined, mods, editorState, 1)
   }
 
-  // Share: the native sheet when the browser has one, else copy the link.
-  const [linkCopied, setLinkCopied] = useState(false)
-  useEffect(() => {
-    if (!linkCopied) return
-    const timer = window.setTimeout(() => setLinkCopied(false), 2000)
-    return () => window.clearTimeout(timer)
-  }, [linkCopied])
-  async function shareDish() {
-    const url = shareUrl ?? dishShareUrl(window.location.href, product.id)
-    try {
-      if (typeof navigator.share === 'function') {
-        await navigator.share({ title: product.name, url })
-        return
-      }
-      await navigator.clipboard.writeText(url)
-      setLinkCopied(true)
-    } catch {
-      // A cancelled share sheet or a blocked clipboard is not an error to show.
-    }
-  }
-  const shareButton = (
-    <>
-      <button
-        type="button"
-        onClick={shareDish}
-        aria-label={copy.share}
-        className="flex size-10 items-center justify-center rounded-full bg-white/95 text-zinc-900 shadow-sm transition-colors hover:bg-white"
-      >
-        <Share2 className="size-5" />
-      </button>
-      {linkCopied && (
-        <div role="status" className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[70] mx-auto max-w-sm rounded-2xl bg-zinc-900 px-4 py-3 text-center text-sm text-white shadow-float">
-          {copy.linkCopied}
-        </div>
-      )}
-    </>
-  )
-
   const closeButton = (
     <button
       type="button"
@@ -614,7 +574,6 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                     key={arModel.glb_url}
                     src={arModel.glb_url}
                     iosSrc={arModel.usdz_url}
-                    poster={mediaSlides.find(slide => slide.type === 'image')?.url ?? null}
                     alt={product.name}
                     realScale={arModel.real_scale}
                     arLabel={arCopy.viewOnTable}
@@ -636,7 +595,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
                 />
               )}
               {view3dButton && <div className={`absolute left-3 z-10 ${hasManySlides && !showing3d ? 'bottom-9' : 'bottom-3'}`}>{view3dButton}</div>}
-              <div className="absolute top-3 right-3 z-10 flex gap-2">{shareButton}{closeButton}</div>
+              <div className="absolute top-3 right-3 z-10 flex gap-2">{closeButton}</div>
               {feature && !showing3d && (
                 <div className="pointer-events-none absolute top-3 left-3 right-16 flex">
                   <DishFeaturePill tag={feature} lang={lang} tone="glass" />
@@ -675,7 +634,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
               )}
             </div>
           ) : (
-            <div className={`flex px-3 pt-3 ${view3dButton ? 'justify-between' : 'justify-end'}`}>{view3dButton}<div className="flex gap-2">{shareButton}{closeButton}</div></div>
+            <div className={`flex px-3 pt-3 ${view3dButton ? 'justify-between' : 'justify-end'}`}>{view3dButton}<div className="flex gap-2">{closeButton}</div></div>
           )}
 
           <div className="space-y-4 px-5 pt-4 pb-6" onTouchStart={handleBodyTouchStart} onTouchEnd={handleBodyTouchEnd}>

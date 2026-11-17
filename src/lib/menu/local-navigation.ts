@@ -4,13 +4,14 @@ import { pickDefaultMenu, pickSectionMenu } from './public-menu-model'
 import type { AdminMenuQuery } from '@/lib/data/admin-menus'
 
 export interface LocalNavigationLink { title: string; href: string; kind?: 'menu' | 'branch' }
-type Menu = { id: string; slug: string; name: string; is_default: boolean; is_private: boolean }
+/** has_products: false for a menu with no available dish (not offered as a link); unknown counts as present. */
+type Menu = { id: string; slug: string; name: string; is_default: boolean; is_private: boolean; has_products?: boolean }
 type Branch = { name: string; slug: string; menu_id: string | null }
 const validSlug = (value: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(value)
 
 export function localNavigationLinks(menus: Menu[], branches: Branch[], baseUrl: string): LocalNavigationLink[] {
   const root = baseUrl.replace(/\/$/u, ''), defaultMenu = pickDefaultMenu(menus)
-  const links: LocalNavigationLink[] = menus.filter(menu => menu.is_private === false && validSlug(menu.slug))
+  const links: LocalNavigationLink[] = menus.filter(menu => menu.is_private === false && menu.has_products !== false && validSlug(menu.slug))
     .map(menu => ({ title: menu.name, href: menu === defaultMenu && branches.length < 2 ? root : `${root}/${menu.slug}`, kind: 'menu' as const }))
   for (const branch of branches) {
     const menu = pickSectionMenu(menus, branch.slug, branch)
@@ -21,7 +22,9 @@ export function localNavigationLinks(menus: Menu[], branches: Branch[], baseUrl:
 
 export async function readLocalNavigation(query: AdminMenuQuery, tenantId: string) {
   const [menus, branches] = await Promise.all([
-    query('SELECT id,slug,name,is_default,is_private FROM public.menus WHERE tenant_id=$1 AND is_active=true ORDER BY position,id LIMIT 100', [tenantId]),
+    query(`SELECT m.id,m.slug,m.name,m.is_default,m.is_private,EXISTS(SELECT 1 FROM public.products p LEFT JOIN public.categories c ON c.id=p.category_id AND c.tenant_id=p.tenant_id
+      WHERE p.tenant_id=m.tenant_id AND p.is_available=true AND (p.menu_id=m.id OR c.menu_id=m.id)) AS has_products
+      FROM public.menus m WHERE m.tenant_id=$1 AND m.is_active=true ORDER BY m.position,m.id LIMIT 100`, [tenantId]),
     query('SELECT name,slug,menu_id FROM public.locations WHERE tenant_id=$1 AND is_active=true ORDER BY created_at,id LIMIT 100', [tenantId]),
   ])
   return { menus: menus.rows as unknown as Menu[], branches: branches.rows as unknown as Branch[] }
@@ -34,13 +37,17 @@ const readNavigation = cache(async (tenantId: string) => {
   }
   const { createServiceClient } = await import('@/lib/supabase/server')
   const service = createServiceClient()
-  const [menus, branches] = await Promise.all([
+  const [menus, branches, stocked] = await Promise.all([
     service.from('menus').select('id,slug,name,is_default,is_private').eq('tenant_id', tenantId).eq('is_active', true).order('position').limit(100),
     service.from('locations').select('name,slug,menu_id').eq('tenant_id', tenantId).eq('is_active', true).order('created_at').limit(100),
+    service.from('products').select('menu_id').eq('tenant_id', tenantId).eq('is_available', true).not('menu_id', 'is', null).limit(5000),
   ])
   if (menus.error) throw menus.error
   if (branches.error) throw branches.error
-  return { menus: (menus.data ?? []) as Menu[], branches: (branches.data ?? []) as Branch[] }
+  // Unknown stock (a failed read) leaves every menu linked rather than hiding real ones.
+  const withProducts = stocked.error ? null : new Set((stocked.data ?? []).map(row => row.menu_id as string))
+  const rows = (menus.data ?? []) as Menu[]
+  return { menus: withProducts ? rows.map(menu => ({ ...menu, has_products: withProducts.has(menu.id) })) : rows, branches: (branches.data ?? []) as Branch[] }
 })
 
 /** Optional navigation never prevents the cached guest menu from rendering. */

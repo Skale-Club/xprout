@@ -90,3 +90,19 @@ describe('responsive dish images keep separate UI and metadata URL contracts', (
     expect(metadata.openGraph).toMatchObject({ images: [{ url: `https://${host}/brands/aurora-kitchen-bar/artisan-burger.webp`, alt: 'Soup' }] })
   })
 })
+
+describe('dish page navigation', () => {
+  it('leads back to the menu through the breadcrumb only, with no menu button beside the dish', async () => {
+    mocks.site.mockResolvedValue(dishSite)
+    mocks.dish.mockResolvedValue({ tenant: { ...tenant, tenant_settings: { currency: 'USD' } },
+      menu: { name: 'Dinner' }, product: { name: 'Soup', description: 'Roasted tomatoes.', image_url: '/brands/aurora-kitchen-bar/artisan-burger.webp', price: 12.5, tags: ['gluten-free'] }, price: { amount: 12.5, from: false } })
+    const html = renderToStaticMarkup(await DishPage({ params: params() }))
+    const menuHref = `href="${dishSite.baseUrl}/dinner"`
+    const breadcrumb = html.match(/<nav aria-label="Breadcrumb"[\s\S]*?<\/nav>/)?.[0] ?? ''
+    const article = html.match(/<article[\s\S]*?<\/article>/)?.[0] ?? ''
+    expect(breadcrumb).toContain(menuHref)
+    expect(article).not.toBe('')
+    expect(article).not.toContain(menuHref)
+    expect(article).not.toMatch(/>Dinner</)
+  })
+})

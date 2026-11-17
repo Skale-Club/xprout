@@ -16,11 +16,11 @@ import { type CartItem, type CartAddedVia, type CartEditorState, buildCartKey, g
 import { arOrderSummary, dishQuantity, lineToDecrement } from './ar-cart'
 import { getGuestCopy } from './guest-copy'
 import WaiterCallButtons from './WaiterCallButtons'
-import { fill, formatMoney, translateTag, formatWeekday, getMenuCopy, localeFor, matchDeviceLanguage } from './menu-i18n'
+import { fill, formatMoney, formatWeekday, getMenuCopy, localeFor, matchDeviceLanguage } from './menu-i18n'
 import { computeOpenState, resolveTimeZone } from '@/lib/chat-context'
 import NoticePill from './NoticePill'
 import { NO_CAPABILITIES, type TenantCapabilities } from '@/lib/service-modes'
-import { contactLinks, displayPrice, whatsappUrl } from './showcase'
+import { contactLinks, displayPrice, phoneLabel, whatsappUrl } from './showcase'
 import { resolveMenuActionLinks, visibleFooterBrand } from '@/lib/menu-action-links'
 import FeaturedCarousel from './FeaturedCarousel'
 import { GuestAccountButton } from './GuestSignIn'
@@ -56,8 +56,7 @@ import {
 import BottomSheet from '@/components/ui/BottomSheet'
 import LanguagePicker from './LanguagePicker'
 import { findDishByParam, readDishParam, withDishParam } from '@/lib/menu/dish-link'
-import { dishSlug, isIndexableDish } from '@/lib/menu/dish-pages'
-import { dishFeature, dishTagOptions, filterByDishTags } from '@/lib/menu/dish-tags'
+import { dishFeature } from '@/lib/menu/dish-tags'
 import DishFeaturePill from './DishFeaturePill'
 import { ui } from './menu-ui'
 import { buildCartSuggestions, canQuickAdd } from './upsell'
@@ -122,7 +121,7 @@ interface Props {
   footerBrand?: string
   /** The restaurant's published website pages that show in the navigation ("More" menu and footer links). */
   pageLinks?: ReadonlyArray<{ slug: string; title: string }>
-  navigationLinks?: ReadonlyArray<{ title: string; href: string }>
+  navigationLinks?: ReadonlyArray<{ title: string; href: string; kind?: 'menu' | 'branch' }>
   canonicalBaseUrl?: string
   dishDiscoveryEnabled?: boolean
   publicNap?: { name: string; address?: string | null; city?: string | null; phone?: string | null }
@@ -159,7 +158,7 @@ function getTranslatedMenuField(
   return typeof value === 'string' && value.trim() ? value : fallback
 }
 
-export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, dishDiscoveryEnabled = true, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
+export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null }: Props) {
   const router = useRouter()
   const [feedPreview, setFeedPreview] = useState(false)
   const feedEnabled = (tenant.tenant_settings?.visual_feed_enabled ?? true) || feedPreview
@@ -192,8 +191,6 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   // A table link means the guest is eating here: the order goes to that table.
   const defaultOrderType: string = defaultOrderTypeFor(capabilities, atTable)
   const [search, setSearch] = useState('')
-  // Client-side diet filter: the tags the guest switched on (AND).
-  const [dietFilter, setDietFilter] = useState<string[]>([])
   // Tabs scroll to a section instead of filtering; the list is never narrowed to one category.
   const activeCategory: string | null = null
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
@@ -338,9 +335,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     }
   }, [activeMenuView])
 
-  const dietOptions = useMemo(() => dishTagOptions(products), [products])
-  const narrowed = search !== '' || dietFilter.length > 0
-  const filtered = filterByDishTags(products, dietFilter).filter(p => {
+  const narrowed = search !== ''
+  const filtered = products.filter(p => {
     const matchSearch = search === '' ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.description ?? '').toLowerCase().includes(search.toLowerCase())
@@ -1040,9 +1036,11 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const activeTab = visibleCategory ?? tabs[0]?.id ?? null
   const showOrderBar = directOrdersEnabled && cart.length > 0 && !cartOpen && !checkoutOpen && activeMenuView === 'list'
   const showContactFooter = true
-  const footerDishes = dishDiscoveryEnabled && !feedPreview && canonicalBaseUrl && menu?.slug && menu.is_private === false
-    ? baseProducts.filter(isIndexableDish).slice(0, 100).map(product => ({ title: product.name, href: `${canonicalBaseUrl}/${menu.slug}/${dishSlug(product)}` })) : []
-  const exploreDishes = ({ en: 'Explore dishes', pt: 'Conheça os pratos', es: 'Descubre los platos' } as Record<string, string>)[selectedLanguage.split('-')[0]] ?? 'Explore dishes'
+  // The restaurant's menus, as a switcher under its name (branches and pages stay in the footer).
+  const menuLinks = navigationLinks.filter(link => link.kind === 'menu')
+  // The restaurant's home as a path on this host: "/" on its own domain, "/slug" on the platform.
+  const restaurantHome = (() => { try { return canonicalBaseUrl ? new URL(canonicalBaseUrl).pathname || '/' : `/${tenant.slug}` } catch { return `/${tenant.slug}` } })()
+  const menusLabel = ({ en: 'Menus', pt: 'Cardápios', es: 'Cartas' } as Record<string, string>)[selectedLanguage.split('-')[0]] ?? 'Menus'
 
   return (
     <div className="menu-root min-h-screen bg-menu text-zinc-900" lang={localeFor(selectedLanguage)}>
@@ -1079,14 +1077,15 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         </div>
 
         <div className="mx-auto max-w-5xl px-5 sm:px-8">
-          <div className="relative -mt-9 size-[72px] overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-black/5 sm:-mt-12 sm:size-24">
+          {/* The logo and the name go back to the restaurant's home. */}
+          <a href={restaurantHome} aria-label={tenant.name} className="relative -mt-9 block size-[72px] overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-black/5 transition-[scale] active:scale-95 sm:-mt-12 sm:size-24">
             {settings?.logo_url ? (
-              <Image src={settings.logo_url} alt={tenant.name} fill priority sizes="96px" className="object-contain p-2" />
+              <Image src={settings.logo_url} alt="" fill priority sizes="96px" className="object-contain p-2" />
             ) : (
               <div className="flex size-full items-center justify-center text-xl font-semibold text-zinc-700">{getInitials(tenant.name)}</div>
             )}
-          </div>
-          <h1 className="mt-3 text-[26px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[32px]">{tenant.name}</h1>
+          </a>
+          <h1 className="mt-3 text-[26px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[32px]"><a href={restaurantHome} className="hover:underline hover:decoration-2 hover:underline-offset-4">{tenant.name}</a></h1>
           {(contextParts.length > 0 || openLabel || hasHours) && (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-zinc-500">
               {contextParts.map((part, i) => (
@@ -1125,6 +1124,22 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           )}
           {settings?.tagline && (
             <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-zinc-600">{settings.tagline}</p>
+          )}
+          {menuLinks.length > 1 && (
+            <nav aria-label={menusLabel} className="-mx-5 mt-2 overflow-x-auto px-5 py-2 [scrollbar-width:none] sm:-mx-2 sm:px-2 [&::-webkit-scrollbar]:hidden">
+              <ul className="flex w-max gap-2">
+                {menuLinks.map(link => {
+                  const current = link.title === menu?.name
+                  return <li key={link.href}>
+                    <a href={link.href} aria-current={current ? 'page' : undefined}
+                      className={`inline-flex h-10 items-center whitespace-nowrap rounded-full px-4 text-[14px] font-semibold transition-[background-color,box-shadow,scale] active:scale-[0.97] ${current ? 'shadow-[0_2px_8px_rgb(0_0_0/0.12)]' : 'bg-white text-zinc-800 shadow-[0_1px_4px_rgb(0_0_0/0.08)] ring-1 ring-black/[0.06] hover:bg-zinc-50'}`}
+                      style={current ? { backgroundColor: primaryColor, color: onPrimary } : undefined}>
+                      {link.title}
+                    </a>
+                  </li>
+                })}
+              </ul>
+            </nav>
           )}
         </div>
       </header>
@@ -1180,30 +1195,6 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
             </button>
             <GuestAccountButton slug={tenant.slug} primaryColor={primaryColor} copy={copy} lang={selectedLanguage} locale={localeFor(selectedLanguage)} phoneContext={{ country: settings?.country, currency }} bannerUrl={settings?.banner_url} logoUrl={settings?.logo_url} restaurantName={tenant.name} />
           </div>
-          {dietOptions.length > 0 && (
-            <div role="group" aria-label={copy.dietFilter} className="scrollbar-hide mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-4 pb-3 sm:px-8">
-              {dietOptions.map(tag => {
-                const on = dietFilter.includes(tag)
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => setDietFilter(cur => (cur.includes(tag) ? cur.filter(t => t !== tag) : [...cur, tag]))}
-                    className={`h-8 shrink-0 whitespace-nowrap rounded-full border px-3 text-[13px] font-medium transition-colors ${on ? 'text-white' : 'border-zinc-300 bg-white/70 text-zinc-700 hover:bg-zinc-100'}`}
-                    style={on ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
-                  >
-                    {translateTag(tag, selectedLanguage)}
-                  </button>
-                )
-              })}
-              {dietFilter.length > 0 && (
-                <button type="button" onClick={() => setDietFilter([])} className="h-8 shrink-0 whitespace-nowrap rounded-full px-2 text-[13px] font-medium text-zinc-600 underline-offset-2 hover:underline">
-                  {copy.clearFilters}
-                </button>
-              )}
-            </div>
-          )}
         </nav>
       )}
 
@@ -1449,27 +1440,19 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
             <address className="mt-6 space-y-1 text-sm not-italic text-zinc-600">
               <p className="font-medium text-zinc-800">{publicNap?.name ?? tenant.name}</p>
               <p>{[publicNap ? publicNap.address : settings?.address, publicNap ? publicNap.city : settings?.city].filter(Boolean).join(', ')}</p>
-              {(publicNap ? publicNap.phone : settings?.phone) && <p>{publicNap ? publicNap.phone : settings?.phone}</p>}
+              {(publicNap ? publicNap.phone : settings?.phone) && <p>{phoneLabel(publicNap ? publicNap.phone : settings?.phone, { country: settings?.country, currency })}</p>}
             </address>
             {review && <a href={review.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm font-medium text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{review.label}</a>}
-            {(pageLinks.length > 0 || navigationLinks.length > 0) && (
+            {(pageLinks.length > 0 || navigationLinks.some(link => link.kind !== 'menu')) && (
               <nav aria-label={copy.pagesMore} className={hasContact ? 'mt-6' : ''}>
                 <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">
-                  {navigationLinks.filter(link => !(canonicalBaseUrl && menu?.slug && link.href.startsWith(`${canonicalBaseUrl}/${menu.slug}/`))).map(link => <li key={link.href}><a href={link.href} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>)}
+                  {navigationLinks.filter(link => link.kind !== 'menu' && !(canonicalBaseUrl && menu?.slug && link.href.startsWith(`${canonicalBaseUrl}/${menu.slug}/`))).map(link => <li key={link.href}><a href={link.href} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>)}
                   {pageLinks.map(link => (
                     <li key={link.slug}><a href={`${canonicalBaseUrl ?? `/${tenant.slug}`}/${link.slug}`} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>
                   ))}
                 </ul>
               </nav>
             )}
-            {footerDishes.length > 0 && <details className="mt-6 text-sm text-zinc-700">
-              <summary className="min-h-11 cursor-pointer py-3 font-medium">{exploreDishes}</summary>
-              <nav aria-label={exploreDishes} className="pt-2">
-                <ul className="flex flex-wrap gap-x-5 gap-y-2">
-                  {footerDishes.map(dish => <li key={dish.href} className="min-w-0 max-w-full"><a href={dish.href} className="inline-flex min-h-11 max-w-full items-center break-words underline-offset-4 hover:text-zinc-950 hover:underline">{dish.title}</a></li>)}
-                </ul>
-              </nav>
-            </details>}
             {shownFooterBrand && (
               <p className={`flex items-center gap-1 text-[12px] text-zinc-500 ${hasContact || pageLinks.length > 0 ? 'mt-8' : ''}`}>
                 {copy.poweredBy}
@@ -1510,10 +1493,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         const nextProduct = navIndex >= 0 && navIndex < orderedProducts.length - 1 ? orderedProducts[navIndex + 1] : null
         return (
         <ProductModal
-          product={shownProduct}
-          shareUrl={canonicalBaseUrl && menu?.slug && menu.is_private === false && isIndexableDish(shownProduct)
-            ? `${canonicalBaseUrl}/${menu.slug}/${dishSlug(shownProduct)}` : undefined}
-          details={dishDetailsFor(tenant.slug, shownProduct)}
+          product={shownProduct}          details={dishDetailsFor(tenant.slug, shownProduct)}
           extraImages={extraDishImagesFor(tenant.slug, shownProduct)}
           onPrevProduct={!editingCartKey && !returnToCart && prevProduct ? () => openProduct(prevProduct, 'detail') : undefined}
           onNextProduct={!editingCartKey && !returnToCart && nextProduct ? () => openProduct(nextProduct, 'detail') : undefined}

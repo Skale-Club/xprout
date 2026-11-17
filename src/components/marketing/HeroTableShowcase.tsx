@@ -35,6 +35,8 @@ export default function HeroTableShowcase() {
   const [manual, setManual] = useState(false)
   const [manipulatedModel, setManipulatedModel] = useState('')
   const [announcement, setAnnouncement] = useState('')
+  // The dish being replaced, fading out before the next one fades in.
+  const [outgoing, setOutgoing] = useState<{ index: number; turn: number } | null>(null)
   const dish = dishes[selected]
   const source = `/marketing/v3/dish-${dish.id}`
   const modelSource = `${source}.glb${retry > 0 ? `?retry=${retry}` : ''}`
@@ -135,7 +137,10 @@ export default function HeroTableShowcase() {
 
   useEffect(() => {
     if (motion !== 'playing' || !visible || !activeDocument || !(enabled ? ready : idle) || failed || hovered || focused || manual) return
-    const timer = setTimeout(() => setSelected(current => (current + 1) % dishes.length), 7000)
+    const timer = setTimeout(() => {
+      setOutgoing(current => ({ index: selected, turn: (current?.turn ?? 0) + 1 }))
+      setSelected((selected + 1) % dishes.length)
+    }, 7000)
     return () => clearTimeout(timer)
   }, [motion, visible, activeDocument, enabled, ready, idle, failed, hovered, focused, manual, selected])
 
@@ -147,11 +152,16 @@ export default function HeroTableShowcase() {
     return () => element.pause?.()
   }, [ready, failed, motion, visible, activeDocument, hovered, focused, modelKey, libraryReady, manipulatedModel])
 
+  function go(index: number) {
+    if (index === selected) return
+    setOutgoing(current => ({ index: selected, turn: (current?.turn ?? 0) + 1 }))
+    setSelected(index)
+  }
   const choose = (index: number) => {
     setManual(true)
     if (index !== selected) setManipulatedModel('')
     setFailed(false)
-    setSelected(index)
+    go(index)
     setAnnouncement(`${dishes[index].name}, ${index + 1} of ${dishes.length}`)
   }
   const controlClass = 'min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current'
@@ -164,9 +174,22 @@ export default function HeroTableShowcase() {
       <DeliveryImage src="/marketing/v3/table-photo.webp" alt="" aria-hidden="true" draggable={false} className="mk-table-photo"
         width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px" preload
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-      <DeliveryImage key={dish.id} src={`${source}.webp`} alt={`${dish.name} served on a photographed restaurant table`} draggable={false}
+      {/* Every poster stays mounted (and loaded), so switching never waits on an image. */}
+      {dishes.map((item, index) => {
+        const current = index === selected
+        return <DeliveryImage key={item.id} src={`/marketing/v3/dish-${item.id}.webp`} alt={current ? `${item.name} served on a photographed restaurant table` : ''}
+          aria-hidden={current ? undefined : true} draggable={false}
+          width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px"
+          className="mk-table-poster" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain',
+            opacity: current && !(ready && !failed) ? 1 : 0,
+            // A new dish fades in only after the old one has faded out (never two dishes at once);
+            // its poster fades out when its own 3D takes over.
+            transition: !current || motion === 'reduced' ? 'none' : ready && !failed ? 'opacity 450ms ease' : 'opacity 280ms ease 200ms' }} />
+      })}
+      {outgoing ? <DeliveryImage key={`out-${outgoing.turn}`} src={`/marketing/v3/dish-${dishes[outgoing.index].id}.webp`} alt="" aria-hidden draggable={false}
         width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px"
-        className="mk-table-poster" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: ready && !failed ? 0 : 1 }} />
+        className="mk-table-poster-out" onAnimationEnd={() => setOutgoing(current => current?.turn === outgoing.turn ? null : current)}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}
       {enabled && libraryReady ? <model-viewer key={modelKey} ref={viewer} src={modelSource}
         alt={`3D ${dish.name} on a photographed restaurant table`} poster={`${source}.webp`}
         className="mk-table-viewer" camera-orbit="0deg 62deg 0.55m" camera-target="0m 0.04m 0m" field-of-view="30deg"

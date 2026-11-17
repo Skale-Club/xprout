@@ -81,52 +81,56 @@ export default function SignInFrameDialog({ src, unavailable, title, closeLabel,
     const content = doc?.querySelector('main')
     // Error documents (including a host-rejected 404) must not collapse the card.
     if (!frame || !content) { setLoadError(true); return }
-    setReady(true)
     // The sign-in itself, not the frame document (which can report a taller box: a blank strip).
     const measure = () => setHeight(Math.max(160, Math.ceil(content.getBoundingClientRect().height)))
-    measure()
     observer.current = new ResizeObserver(measure)
     observer.current.observe(content)
+    // Show the card only once its fonts are in and it has settled, already at its final height:
+    // no empty card first and no jump when the content arrives.
+    const fonts = doc?.fonts?.ready ?? Promise.resolve()
+    const settled = Promise.race([fonts, new Promise(resolve => window.setTimeout(resolve, 800))])
+    void settled.then(() => window.requestAnimationFrame(() => window.requestAnimationFrame(() => { measure(); setReady(true) })))
   }
 
+  const shown = ready || unavailable || loadError
   return (
     <ModalPortal closeOnEscape={false}>
       <div className="fixed inset-0 z-50" onClick={onClose}>
-        <div className={`absolute inset-0 backdrop-blur-sm ${marketing ? 'bg-[#14271d]/55' : dark ? 'bg-black/70' : 'bg-black/60'}`} />
+        {/* The marketing popup only dims the page: no frosted blur behind it. */}
+        <div className={`absolute inset-0 ${marketing ? 'bg-black/50' : dark ? 'bg-black/70 backdrop-blur-sm' : 'bg-black/60 backdrop-blur-sm'}`} />
         <div
           className="absolute inset-x-0 flex items-center justify-center p-4"
           style={view.height ? { top: view.top, height: view.height } : { inset: 0 }}
         >
+          {!shown && (
+            <span aria-hidden="true" className={`absolute size-7 animate-spin rounded-full border-2 ${marketing || dark ? 'border-white/25 border-t-white' : 'border-white/30 border-t-white'}`} />
+          )}
           <div
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className={`relative w-full overflow-hidden ${marketing ? 'max-w-[420px] rounded-[28px] border border-platform-forest/15 bg-platform-ivory shadow-[0_24px_80px_rgba(0,0,0,0.3)]' : dark ? 'max-w-sm rounded-[1.25rem] border border-white/10 bg-zinc-900 shadow-[0_24px_80px_rgba(0,0,0,0.45)]' : 'max-w-[400px] rounded-2xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.45)]'}`}
+            aria-busy={!shown}
+            className={`relative w-full overflow-hidden transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${shown ? 'opacity-100 scale-100' : 'pointer-events-none scale-[0.98] opacity-0'} ${marketing ? 'max-w-[420px] rounded-[28px] border border-white/10 bg-[#323A35] shadow-[0_24px_80px_rgba(0,0,0,0.35)]' : dark ? 'max-w-sm rounded-[1.25rem] border border-white/10 bg-zinc-900 shadow-[0_24px_80px_rgba(0,0,0,0.45)]' : 'max-w-[400px] rounded-2xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.45)]'}`}
             onClick={e => e.stopPropagation()}
           >
-            {dark ? <GradientTopLine glow={false} /> : null}
-            {marketing ? <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-platform-brand-accent" /> : null}
+            {/* Xpot's thin gradient line, fading out before the rounded corners. */}
+            {dark || marketing ? <GradientTopLine glow={false} /> : null}
             <button
               type="button"
               onClick={onClose}
               aria-label={closeLabel}
               style={{ top: closeTop }}
-              className={`absolute right-3 z-10 flex size-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${marketing ? 'text-platform-forest hover:bg-platform-forest/5' : dark ? 'bg-white/5 text-zinc-300 hover:bg-white/10' : 'bg-white/95 text-zinc-900 shadow-sm hover:bg-white'}`}
+              className={`absolute right-3 z-10 flex size-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${marketing ? 'text-platform-ivory hover:bg-white/10' : dark ? 'bg-white/5 text-zinc-300 hover:bg-white/10' : 'bg-white/95 text-zinc-900 shadow-sm hover:bg-white'}`}
             >
               <X className="size-[18px]" />
             </button>
             {unavailable || loadError ? (
-              <div className={`px-6 pb-8 pt-16 text-center text-[15px] leading-6 ${marketing ? 'text-platform-forest' : dark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+              <div className={`px-6 pb-8 pt-16 text-center text-[15px] leading-6 ${marketing ? 'text-platform-ivory' : dark ? 'text-zinc-300' : 'text-zinc-700'}`}>
                 <p role="alert">Sign-in could not load. Please try again.</p>
                 {loadError && !unavailable ? <button type="button" onClick={() => { setReady(false); setLoadError(false) }} className="mt-5 min-h-11 rounded-full border border-current px-6 font-semibold">Try again</button> : null}
               </div>
             ) : (
               <>
-                {!ready && (
-                  <div className="flex h-[440px] items-center justify-center" aria-hidden="true">
-                    <span className={`size-6 animate-spin rounded-full border-2 ${marketing ? 'border-platform-forest/20 border-t-platform-forest' : dark ? 'border-white/20 border-t-white' : 'border-zinc-200 border-t-zinc-700'}`} />
-                  </div>
-                )}
                 {src && (
                   <iframe
                     ref={frameRef}

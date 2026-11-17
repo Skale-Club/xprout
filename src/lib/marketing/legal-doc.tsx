@@ -56,7 +56,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
           <a
             key={`${keyPrefix}-a${i}`}
             href={href}
-            className="text-zinc-900 underline underline-offset-2 hover:text-zinc-600 transition-colors"
+            className="mk-legal-link"
             {...(href.startsWith('mailto:') ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
           >
             {label}
@@ -75,6 +75,31 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   return out
 }
 
+/** "3. How we use information" -> number "3" and label "How we use information". */
+function splitNumber(text: string): { number: string | null; label: string } {
+  const match = /^(\d{1,2})[.)]\s+(.+)$/.exec(text)
+  return match ? { number: match[1], label: match[2] } : { number: null, label: text }
+}
+
+/** A stable anchor for a section heading, also used by the page's table of contents. */
+export function legalAnchor(text: string): string {
+  const slug = text.toLowerCase().replace(/\*\*|\[|\]\([^)]*\)/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  return `section-${slug || 'part'}`
+}
+
+export interface LegalSection { id: string; number: string | null; label: string }
+
+/** The `##` sections of a document, in order, for the table of contents. */
+export function legalOutline(body: string): LegalSection[] {
+  return body.replace(/\r\n/g, '\n').split(/\n{2,}/).map(block => block.trim())
+    .filter(block => block.startsWith('## '))
+    .map(block => {
+      const text = block.slice(3).split('\n')[0].trim()
+      const { number, label } = splitNumber(text)
+      return { id: legalAnchor(text), number, label: label.replace(/\*\*/g, '') }
+    })
+}
+
 /** Parses the Markdown subset into React nodes. */
 export function renderLegalBody(body: string): ReactNode[] {
   // Normalise CRLF so blocks split identically regardless of where the copy
@@ -90,7 +115,7 @@ export function renderLegalBody(body: string): ReactNode[] {
 
     if (block.startsWith('### ')) {
       nodes.push(
-        <h3 key={`h3-${bi}`} className="text-lg font-bold text-zinc-900 mt-8 mb-2">
+        <h3 key={`h3-${bi}`}>
           {renderInline(block.slice(4), `h3-${bi}`)}
         </h3>,
       )
@@ -98,9 +123,12 @@ export function renderLegalBody(body: string): ReactNode[] {
     }
 
     if (block.startsWith('## ')) {
+      const heading = block.slice(3).split('\n')[0].trim()
+      const { number, label } = splitNumber(heading)
       nodes.push(
-        <h2 key={`h2-${bi}`} className="text-xl font-bold text-zinc-900 mt-10 mb-3">
-          {renderInline(block.slice(3), `h2-${bi}`)}
+        <h2 key={`h2-${bi}`} id={legalAnchor(heading)}>
+          {number ? <span className="mk-legal-num" aria-hidden="true">{number.padStart(2, '0')}</span> : null}
+          <span>{renderInline(label, `h2-${bi}`)}</span>
         </h2>,
       )
       return
@@ -108,7 +136,7 @@ export function renderLegalBody(body: string): ReactNode[] {
 
     if (lines.every(l => l.startsWith('- '))) {
       nodes.push(
-        <ul key={`ul-${bi}`} className="list-disc pl-5 space-y-1.5 my-4 text-zinc-600">
+        <ul key={`ul-${bi}`}>
           {lines.map((l, li) => (
             <li key={li}>{renderInline(l.slice(2), `ul-${bi}-${li}`)}</li>
           ))}
@@ -119,7 +147,7 @@ export function renderLegalBody(body: string): ReactNode[] {
 
     if (lines.every(l => /^\d+\.\s/.test(l))) {
       nodes.push(
-        <ol key={`ol-${bi}`} className="list-decimal pl-5 space-y-1.5 my-4 text-zinc-600">
+        <ol key={`ol-${bi}`}>
           {lines.map((l, li) => (
             <li key={li}>{renderInline(l.replace(/^\d+\.\s/, ''), `ol-${bi}-${li}`)}</li>
           ))}
@@ -129,7 +157,7 @@ export function renderLegalBody(body: string): ReactNode[] {
     }
 
     nodes.push(
-      <p key={`p-${bi}`} className="text-base text-zinc-600 leading-relaxed my-4">
+      <p key={`p-${bi}`}>
         {renderInline(lines.join(' '), `p-${bi}`)}
       </p>,
     )

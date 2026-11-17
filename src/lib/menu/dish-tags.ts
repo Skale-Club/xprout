@@ -102,18 +102,3 @@ export function validateDishTags(input: unknown): string[] {
   return [tag]
 }
 
-/** The tags present in a menu, known tags first in priority order: the chips of the diet filter. */
-export function dishTagOptions(products: ReadonlyArray<{ tags?: ReadonlyArray<string> | null }>): string[] {
-  const seen = new Set<string>()
-  for (const p of products) for (const tag of normalizeTags(p.tags)) seen.add(tag)
-  return sortTags([...seen])
-}
-
-/** Dishes carrying EVERY selected tag (AND); an empty selection keeps all. */
-export function filterByDishTags<T extends { tags?: ReadonlyArray<string> | null }>(products: readonly T[], selected: readonly string[]): T[] {
-  if (!selected.length) return [...products]
-  return products.filter(p => {
-    const own = new Set((p.tags ?? []).map(t => (typeof t === 'string' ? t.trim().toLowerCase() : '')))
-    return selected.every(tag => own.has(tag.trim().toLowerCase()))
-  })
-}

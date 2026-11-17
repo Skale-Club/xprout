@@ -360,7 +360,7 @@ function Estimator() {
               <span className="mk-muted"> / month from month two{e.paymentFeePercent ? `, plus ${e.paymentFeePercent}% of payments through Xprout` : ''}</span>
             </p>
           </div>
-          <a href={PRICING_CTA_HREF} className={`${ctaBtn} mk-button--light w-full sm:w-fit`}>Start your project <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
+          <a href={PRICING_CTA_HREF} className={`${ctaBtn} mk-button--light w-full sm:w-fit`}>Get started <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
         </div>
       </div>
     </section>
@@ -407,7 +407,7 @@ export default function PricingClient({ appName, logoUrl, footerData }: {
               <h1 className="mk-display max-w-3xl">One setup.<br />One monthly plan.</h1>
               <p className="mk-lead max-w-2xl">We build your menu website, add your dishes and photos, and keep it up to date. You pay once for the setup, then a monthly plan.</p>
               <div className="flex flex-wrap gap-3">
-                <a href={PRICING_CTA_HREF} className={ctaBtn}>Start your project <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
+                <a href={PRICING_CTA_HREF} className={ctaBtn}>Get started <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
                 <a href="#estimate" className="mk-button mk-button--outline">Estimate your price</a>
               </div>
             </div>
@@ -425,7 +425,7 @@ export default function PricingClient({ appName, logoUrl, footerData }: {
             <p>Launch prices are valid for our first {LAUNCH_SLOTS} restaurants or until {LAUNCH_ENDS}, whichever comes first. Crossed-out prices are our regular prices. 3D is made for the dishes you choose; seeing a dish on the table needs a supported phone.</p>
             <p>Setup paid {PAYMENT_SPLIT.start}% to start and {PAYMENT_SPLIT.launch}% at launch. Plans have a {MIN_MONTHS}-month minimum, then month to month. All prices in US dollars, before tax. {NFC_NOTE}</p>
           </div>
-          <a href={PRICING_CTA_HREF} className={`${ctaBtn} mt-2 w-fit max-w-full`}>Start your project <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
+          <a href={PRICING_CTA_HREF} className={`${ctaBtn} mt-2 w-fit max-w-full`}>Get started <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
         </section>
       </main>
       <Footer data={footerData} appName={appName} logoUrl={logoUrl} />

@@ -1,9 +1,9 @@
-import Image from 'next/image'
 import TenantPublicFooter, { type FooterLink } from './TenantPublicFooter'
 import { ctaStyle, ui } from '@/components/menu/menu-ui'
 import { formatWeekday, getMenuCopy, localeFor } from '@/components/menu/menu-i18n'
 import PageContactForm from './PageContactForm'
-import PageLinksMenu from './PageLinksMenu'
+import TenantSiteHeader from './TenantSiteHeader'
+import { phoneLabel, telUrl, type PhoneContext } from '@/components/menu/showcase'
 import type { PublicLocation, PublicPage } from '@/lib/data/tenant-pages'
 import { splitParagraphs, type PageSection } from '@/lib/pages/sections'
 import { BRAND_PRIMARY } from '@/lib/brand'
@@ -13,8 +13,6 @@ import { computePrimaryForeground, safeCssColor } from '@/lib/color-utils'
 
 const WEEK = [{ key: 'mon', index: 1 }, { key: 'tue', index: 2 }, { key: 'wed', index: 3 }, { key: 'thu', index: 4 }, { key: 'fri', index: 5 }, { key: 'sat', index: 6 }, { key: 'sun', index: 0 }]
 
-const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join('')
-const phoneHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`
 const mapsHref = (location: PublicLocation) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([location.address, location.city].filter(Boolean).join(', '))}`
 
 function Heading({ text }: { text?: string }) {
@@ -25,8 +23,8 @@ function Paragraphs({ body }: { body: string }) {
   return <div className="space-y-4 text-[16px] leading-relaxed text-zinc-700">{splitParagraphs(body).map((part, index) => <p key={index} className="whitespace-pre-line">{part}</p>)}</div>
 }
 
-function LocationCard({ location, tenantSlug, lang, copy, primary, foreground }: {
-  location: PublicLocation; tenantSlug: string; lang: string; copy: ReturnType<typeof getMenuCopy>; primary: string; foreground: string
+function LocationCard({ location, tenantSlug, lang, copy, primary, foreground, phoneContext }: {
+  location: PublicLocation; tenantSlug: string; lang: string; copy: ReturnType<typeof getMenuCopy>; primary: string; foreground: string; phoneContext: PhoneContext
 }) {
   const hours = location.business_hours
   const hasHours = !!hours && Object.values(hours).some(Boolean)
@@ -35,7 +33,7 @@ function LocationCard({ location, tenantSlug, lang, copy, primary, foreground }:
     <li className="rounded-2xl bg-white p-5 shadow-card">
       {location.name && <h3 className="text-[18px] font-bold tracking-tight text-zinc-900">{location.name}</h3>}
       {address && <p className="mt-1 text-[15px] text-zinc-600">{address}</p>}
-      {location.phone && <p className="mt-1 text-[15px] tabular-nums"><a href={phoneHref(location.phone)} className="font-medium text-zinc-900 underline-offset-2 hover:underline">{location.phone}</a></p>}
+      {location.phone && <p className="mt-1 text-[15px] tabular-nums"><a href={telUrl(location.phone, phoneContext) ?? undefined} className="font-medium text-zinc-900 underline-offset-2 hover:underline">{phoneLabel(location.phone, phoneContext)}</a></p>}
       {hasHours && (
         <dl className="mt-4 text-[14px]">
           <dt className={`mb-1 text-zinc-500 ${ui.label}`}>{copy.hoursTitle}</dt>
@@ -57,7 +55,7 @@ function LocationCard({ location, tenantSlug, lang, copy, primary, foreground }:
   )
 }
 
-function Section({ section, page, tenant, locations, lang, primary, foreground }: {
+function Section({ section, page, tenant, locations, lang, primary, foreground, phoneContext }: {
   section: PageSection
   page: PublicPage
   tenant: { slug: string }
@@ -65,6 +63,7 @@ function Section({ section, page, tenant, locations, lang, primary, foreground }
   lang: string
   primary: string
   foreground: string
+  phoneContext: PhoneContext
 }) {
   const copy = getMenuCopy(lang)
   switch (section.type) {
@@ -120,7 +119,7 @@ function Section({ section, page, tenant, locations, lang, primary, foreground }
           <Heading text={section.heading} />
           <ul className="grid gap-4 md:grid-cols-2">
             {locations.map((location, index) => (
-              <LocationCard key={`${location.slug ?? 'main'}-${index}`} location={location} tenantSlug={tenant.slug} lang={lang} copy={copy} primary={primary} foreground={foreground} />
+              <LocationCard key={`${location.slug ?? 'main'}-${index}`} location={location} tenantSlug={tenant.slug} lang={lang} copy={copy} primary={primary} foreground={foreground} phoneContext={phoneContext} />
             ))}
           </ul>
         </section>
@@ -158,7 +157,7 @@ function Section({ section, page, tenant, locations, lang, primary, foreground }
  */
 export default function TenantPageView({ tenant, settings, page, nav, lang, baseUrl, navigationLinks = [] }: {
   tenant: { name: string; slug: string }
-  settings: { logo_url?: string | null; primary_color?: string | null; accent_color?: string | null; address?: string | null; city?: string | null; phone?: string | null } | null
+  settings: { logo_url?: string | null; primary_color?: string | null; accent_color?: string | null; address?: string | null; city?: string | null; phone?: string | null; country?: string | null; currency?: string | null } | null
   page: PublicPage
   nav: ReadonlyArray<{ slug: string; title: string }>
   lang: string
@@ -172,28 +171,14 @@ export default function TenantPageView({ tenant, settings, page, nav, lang, base
   return (
     <div className="menu-root min-h-screen bg-menu text-zinc-900" lang={localeFor(lang)}>
       <style>{`:root{--primary:${primary};--primary-foreground:${foreground};}`}</style>
-      <header className="border-b border-zinc-200/70 bg-white/80">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3 sm:px-8">
-          <a href={base || '/'} className="flex min-w-0 items-center gap-3" aria-label={tenant.name}>
-            <span className="relative size-11 shrink-0 overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-black/5">
-              {settings?.logo_url
-                ? <Image src={settings.logo_url} alt="" fill sizes="44px" className="object-contain p-1.5" />
-                : <span className="flex size-full items-center justify-center text-sm font-semibold text-zinc-700">{initials(tenant.name)}</span>}
-            </span>
-            <span className="truncate text-[17px] font-bold tracking-tight text-zinc-900">{tenant.name}</span>
-          </a>
-          <div className="flex shrink-0 items-center gap-2">
-            <a href={base || '/'} className="hidden h-10 items-center rounded-full bg-white px-4 text-[14px] font-medium text-zinc-900 shadow-card ring-1 ring-black/5 sm:flex">{baseUrl !== undefined ? tenant.name : copy.pageViewMenu}</a>
-            <PageLinksMenu tenantSlug={tenant.slug} links={nav} label={copy.pagesMore} variant="bar" baseUrl={base} />
-          </div>
-        </div>
-      </header>
+      <TenantSiteHeader tenant={tenant} logoUrl={settings?.logo_url} base={base} nav={nav}
+        menuLabel={baseUrl !== undefined ? tenant.name : copy.pageViewMenu} pagesLabel={copy.pagesMore} />
 
       <main className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
         <h1 className="text-[28px] font-bold leading-tight tracking-tight text-zinc-900 sm:text-[36px]">{page.title}</h1>
         <div className="mt-8 space-y-10 sm:mt-10 sm:space-y-12">
           {page.sections.map(section => (
-            <Section key={section.id} section={section} page={page} tenant={tenant} locations={page.locations} lang={lang} primary={primary} foreground={foreground} />
+            <Section key={section.id} section={section} page={page} tenant={tenant} locations={page.locations} lang={lang} primary={primary} foreground={foreground} phoneContext={{ country: settings?.country, currency: settings?.currency }} />
           ))}
         </div>
       </main>

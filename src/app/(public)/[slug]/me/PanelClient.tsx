@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/utils'
 import { rewardProgress } from '@/lib/orders/loyalty'
 import type { Order, OrderItem } from '@/types/database'
 import { useState } from 'react'
+import { phoneLabel } from '@/components/menu/showcase'
 
 type OrderWithItems = Order & { order_items: OrderItem[] }
 
@@ -284,7 +285,7 @@ export default function PanelClient({ tenant, orders, customerPhone,ownedAuth = 
             {tenant.settings.phone && (
               <div className="flex items-center gap-3">
                 <PhoneIcon className="w-4 h-4 text-zinc-500 shrink-0" />
-                <span className="text-sm font-medium text-zinc-700">{tenant.settings.phone}</span>
+                <span className="text-sm font-medium text-zinc-700">{phoneLabel(tenant.settings.phone, { currency: tenant.settings.currency })}</span>
               </div>
             )}
           </div>

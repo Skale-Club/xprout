@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Building2, MapPin, Phone, Clock } from 'lucide-react'
+import { phoneLabel } from './showcase'
 
 interface BranchLocation {
   id: string
@@ -55,7 +56,7 @@ export default function BranchPicker({ tenantName, tenantSlug, locations, initia
                   {loc.phone && (
                     <span className="flex items-center gap-1 text-xs font-medium text-zinc-400">
                       <Phone className="w-3 h-3 shrink-0" />
-                      {loc.phone}
+                      {phoneLabel(loc.phone)}
                     </span>
                   )}
                   {loc.business_hours && Object.values(loc.business_hours).some(Boolean) && (

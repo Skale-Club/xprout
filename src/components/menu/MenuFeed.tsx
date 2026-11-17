@@ -644,7 +644,6 @@ function FeedMedia({
                   key={slide.url}
                   ref={videoRef}
                   src={slide.url}
-                  poster={images[0]}
                   muted
                   playsInline
                   loop={slides.length === 1}

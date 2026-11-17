@@ -97,7 +97,10 @@ export async function readHostBrand(query: AdminMenuQuery, host: string): Promis
 
 export async function readTenantSitemapEntries(query: AdminMenuQuery, tenantId: string) {
   const [menus, locations] = await Promise.all([
-    query('SELECT id, slug, is_default, is_private FROM public.menus WHERE tenant_id=$1 AND is_active=true ORDER BY position, id LIMIT 1000', [tenantId]),
+    // A menu with no available dish is not listed anywhere, the sitemap included.
+    query(`SELECT m.id, m.slug, m.is_default, m.is_private, EXISTS(SELECT 1 FROM public.products p LEFT JOIN public.categories c ON c.id=p.category_id AND c.tenant_id=p.tenant_id
+      WHERE p.tenant_id=m.tenant_id AND p.is_available=true AND (p.menu_id=m.id OR c.menu_id=m.id)) AS has_products
+      FROM public.menus m WHERE m.tenant_id=$1 AND m.is_active=true ORDER BY m.position, m.id LIMIT 1000`, [tenantId]),
     query('SELECT slug, menu_id, updated_at FROM public.locations WHERE tenant_id=$1 AND is_active=true ORDER BY created_at ASC, id LIMIT 1000', [tenantId]),
   ])
   return tenantSitemapCatalog(menus.rows, locations.rows)
@@ -111,7 +114,7 @@ export function tenantSitemapCatalog(menuRows: Record<string, unknown>[], locati
   const publicLocations = locations.filter(location => pickSectionMenu(menus, location.slug, location)?.is_private !== true)
   return {
     rootIsPublic: locations.length >= 2 || defaultMenu?.is_private !== true,
-    menus: menus.filter(menu => !menu.is_private && !locations.some(loc => loc.slug === menu.slug))
+    menus: menus.filter((menu, index) => !menu.is_private && menuRows[index]?.has_products !== false && !locations.some(loc => loc.slug === menu.slug))
       .map(menu => ({ slug: menu.slug, is_default: menu === defaultMenu })),
     locations: publicLocations.map(({ slug, updated_at }) => ({ slug, updated_at })),
   }
