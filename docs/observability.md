@@ -207,7 +207,24 @@ node --test scripts/ops/xprout-deploy-image.test.mjs
 Measured on Surface (2026-11-17): targeted Python tests ~0.1 s and deploy Node
 fixtures ~8.3 s; no local full builds were run.
 
-### Dedicated host watchdog
+### Shared infrastructure monitoring and rollback-only dedicated helper
+
+Since 2026-11-17, host disk/RAM/swap and all managed-container health/memory
+alerts use **@skaleclubbot → Skale Club | Infra**. The shared
+`/etc/cron.d/skale-watchdog` runs `/usr/local/bin/skale-watchdog.sh` every ten
+minutes with root-only `/etc/skale-watchdog.env`. Its old-bot setting was
+corrected; detector thresholds and memory history were preserved. Xprout and
+Xphere are both covered, so their redundant dedicated host timers are disabled.
+App CI/deployment/rollback and external availability alerts stay in **Xprout | Ops**.
+
+All active operations messages use Portuguese severity labels: **🔴 Crítico**
+(failure/down), **🟠 Atenção** (warning/degraded/cancelled), **🔵 Informação**
+(start/progress), and **🟢 Resolvido** (verified success/recovery). Readable blocks
+identify the app/environment, facts, short release SHA and run URL. Diagnostics
+remain literal; existing thresholds, transitions and deduplication are unchanged.
+
+The dedicated helper described below remains available for rollback. Review
+duplicate coverage and routing before enabling it alongside the shared monitor.
 
 `scripts/ops/telegram-host-watchdog.py` runs outside Docker on the application
 host. It checks disk (85%), memory (90%), swap (50%), and the current app
@@ -222,7 +239,7 @@ files. Install the versioned `xprout-ops-watchdog.service` and `.timer` in
 `/etc/systemd/system/`. The service loads `/etc/xprout-ops.env` (root only, 0600),
 which contains the dedicated `OPS_TELEGRAM_*` credentials and explicit enable
 switch. The timer runs every ten minutes, with a short randomized delay.
-The existing shared `/etc/skale-watchdog.env` and its recipients are unchanged.
+The shared watchdog is the active host alert source; this timer is disabled.
 
 Persistent state and a nonblocking lock live in `/var/lib/xprout-ops/` (0700).
 Each problem class has a six-hour repeat window and one recovery notification.
@@ -245,7 +262,8 @@ the process/database/host checks above.
 
 The owner-selected existing `@skaleclubbot` posts to **Xprout | Ops**. Its
 existing Xphere webhook is preserved; the operations integration only sends
-outbound messages. GitHub notifications and the dedicated host timer are enabled.
+outbound messages. GitHub notifications are enabled. The initially enabled
+dedicated host timer was superseded by the shared Infra monitor the same day.
 Host source hashes, root-only credential/state permissions, service exit status
 and repeated automatic timer executions were verified. The initial Telegram
 smoke was acknowledged as message 6.
