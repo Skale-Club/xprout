@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRequestContext } from '../observability/context'
+import { log } from '../observability/log'
 import { AdminMenuError } from '../data/admin-menus'
 import type { AdminChatContext } from '../data/admin-chat'
 import type { UserRole } from '@/types/database'
@@ -24,5 +25,6 @@ export async function adminChatContext(effective: { tenantId: string; role: User
   return { tenantId: effective.tenantId, role: effective.role, actorId }
 }
 export function adminChatError(error: unknown) {
+  if (!(error instanceof AdminMenuError) && !(error instanceof SyntaxError)) log.error('admin.chat_unexpected_error', { err: error })
   return NextResponse.json({ error: error instanceof AdminMenuError ? error.message : 'Chat service is unavailable' }, { status: error instanceof AdminMenuError ? error.status : error instanceof SyntaxError ? 400 : 503 })
 }

@@ -11,6 +11,7 @@ import { readOwnedPublicChatAudio, readOwnedPublicChatTurn, saveOwnedPublicChatT
 import { log } from './observability/log'
 
 function rejected(error: unknown) {
+  if (!(error instanceof ChatLimitError) && !(error instanceof AdminMenuError)) log.error('chat.unexpected_error', { err: error })
   const body = error instanceof ChatLimitError ? { error: error.message, limit: error.limit, used: error.used }
     : { error: error instanceof AdminMenuError ? error.message : 'Assistant temporarily unavailable' }
   return NextResponse.json(body, { status: error instanceof AdminMenuError ? error.status : 503 })

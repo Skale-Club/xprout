@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { log } from '@/lib/observability/log'
 import { getEffectiveTenant } from '@/lib/get-effective-tenant'
 import { getActiveMenuForTenant } from '@/lib/get-active-menu'
 import { AdminMenuError } from '@/lib/data/admin-menus'
@@ -10,6 +11,7 @@ const json = (body: unknown, status = 200) => NextResponse.json(body, { status, 
 function errorResponse(error: unknown, label: string) {
   if (error instanceof AdminMenuError && error.status < 500) return json({ error: error.message }, error.status)
   if (error instanceof SyntaxError) return json({ error: 'Invalid request body' }, 400)
+  if (!(error instanceof AdminMenuError)) log.error('admin.store_operations_unexpected_error', { label, err: error })
   return json({ error: `${label} service is unavailable` }, 503)
 }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { log } from '@/lib/observability/log'
 import { getEffectiveTenant } from '@/lib/get-effective-tenant'
 import { AdminMenuError } from '@/lib/data/admin-menus'
 import { adminMenusOwned } from '@/lib/data/admin-menus'
@@ -33,6 +34,7 @@ export async function ownedMenuStagingHttp(request: Request, id: string) {
     return NextResponse.json(result, { status: action === 'create' ? 201 : 200 })
   } catch (error) {
     if (error instanceof AdminMenuError) return NextResponse.json({ error: error.message }, { status: error.status })
+    log.error('admin.menu_staging_unexpected_error', { err: error })
     return NextResponse.json({ error: 'Menu service is unavailable' }, { status: 503 })
   }
 }
