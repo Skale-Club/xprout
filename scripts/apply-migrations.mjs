@@ -50,7 +50,17 @@ const INVOCATION = 'npm run db:migrate'
 // ─── fim do carregamento de env; daqui para baixo é igual nos cinco repos ────
 
 import pg from 'pg'
+import tls from 'node:tls'
 import { migrationTarget } from './lib/database-target.mjs'
+
+// The development database is a Supabase project whose server chain ends at Supabase's own root CA, which is
+// not in Node's store (sslmode=verify-full then fails with "self-signed certificate in certificate chain").
+// npm run dev trusts it through NODE_EXTRA_CA_CERTS (scripts/lib/dev-environment.mjs); this script adds the
+// same pinned certificate to the defaults, so a migration needs no extra environment.
+if (typeof tls.setDefaultCACertificates === 'function') {
+  const supabaseCa = new URL('./ops/fixtures/supabase-prod-ca.crt', import.meta.url)
+  tls.setDefaultCACertificates([...tls.getCACertificates('default'), __read(supabaseCa, 'utf8')])
+}
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
