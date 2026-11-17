@@ -56,7 +56,12 @@ it('metering preserves the provider response and never falls back to a source us
   expect(await response.json()).toEqual(body); expect(state.usage).toHaveBeenCalledTimes(1); expect(state.source).not.toHaveBeenCalled()
 })
 it('tenant settings use exact bound scope and normalize PostgreSQL timestamps for the existing DTO', async () => {
-  const timestamp = new Date(), query = vi.fn().mockResolvedValue({ rows: [{ billing_mode: 'own_key', last_key_error_at: timestamp }] })
-  expect(await readTenantAiRecord(query, tenantId)).toMatchObject({ last_key_error_at: timestamp.toISOString() })
-  expect(query.mock.calls[0][1]).toEqual([tenantId]); expect(query.mock.calls[0][0]).toContain('WHERE tenant_id=$1')
+  const timestamp = new Date(), query = vi.fn().mockResolvedValue({ rows: [{ has_settings: true, billing_mode: 'own_key', last_key_error_at: timestamp }] })
+  expect(await readTenantAiRecord(query, tenantId)).toMatchObject({ last_key_error_at: timestamp.toISOString(), is_demo: false })
+  expect(query.mock.calls[0][1]).toEqual([tenantId]); expect(query.mock.calls[0][0]).toContain('WHERE t.id=$1')
+})
+it('a demo company without AI settings still reports itself as a demo; any other client without settings has none', async () => {
+  expect(await readTenantAiRecord(vi.fn().mockResolvedValue({ rows: [{ has_settings: false, is_demo: true }] }), tenantId)).toMatchObject({ is_demo: true, billing_mode: null, openrouter_api_key: null })
+  expect(await readTenantAiRecord(vi.fn().mockResolvedValue({ rows: [{ has_settings: false, is_demo: false }] }), tenantId)).toBeNull()
+  expect(await readTenantAiRecord(vi.fn().mockResolvedValue({ rows: [] }), tenantId)).toBeNull()
 })

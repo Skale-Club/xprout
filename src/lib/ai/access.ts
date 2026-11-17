@@ -45,6 +45,8 @@ export interface TenantAiSettings {
   lastKeyErrorAt: string | null
   /** Off by default: only the platform sets this client's key until a superadmin lets the client manage it. */
   clientKeyAllowed: boolean
+  /** A demo company (tenants.is_demo): same features, AI never billed. */
+  isDemo: boolean
 }
 
 function decryptOrNull(value: string | null | undefined): string | null {
@@ -74,12 +76,23 @@ export async function loadPlatformAiSettings(): Promise<PlatformAiSettings> {
 }
 
 export async function loadTenantAiSettings(tenantId: string): Promise<TenantAiSettings> {
-  const { data } = adminMenusOwned() ? { data: await readOwnedTenantAiRecord(tenantId) } : await createServiceClient()
+  if (adminMenusOwned()) {
+    const record = await readOwnedTenantAiRecord(tenantId)
+    return tenantAiSettings(record, record?.is_demo === true)
+  }
+  const supabase = createServiceClient()
+  const [{ data }, { data: tenantRow }] = await Promise.all([supabase
     .from('tenant_ai_settings')
     // '*' so the optional client_key_allowed column is read when present (absent = not allowed).
     .select('*')
     .eq('tenant_id', tenantId)
-    .maybeSingle()
+    .maybeSingle(),
+    supabase.from('tenants').select('*').eq('id', tenantId).maybeSingle()])
+  return tenantAiSettings(data, (tenantRow as { is_demo?: unknown } | null)?.is_demo === true)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the two readers return the same untyped row
+function tenantAiSettings(data: any, isDemo: boolean): TenantAiSettings {
   return {
     mode: parseBillingMode(data?.billing_mode),
     key: decryptOrNull(data?.openrouter_api_key),
@@ -87,6 +100,7 @@ export async function loadTenantAiSettings(tenantId: string): Promise<TenantAiSe
     lastKeyError: data?.last_key_error ?? null,
     lastKeyErrorAt: data?.last_key_error_at ?? null,
     clientKeyAllowed: data?.client_key_allowed === true,
+    isDemo,
   }
 }
 
@@ -113,6 +127,7 @@ export async function resolveAiAccess(tenantId: string | null, feature: AiFeatur
     platformKey: platform.platformKey,
     defaultMode: platform.defaultMode,
     defaultMarkupPct: platform.defaultMarkupPct,
+    tenantIsDemo: tenant?.isDemo === true,
   })
   if (!plan) return null
   return {

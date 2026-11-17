@@ -14,11 +14,14 @@ export async function readPlatformAiRecord(query: AdminMenuQuery) {
     default_markup_pct: row.default_markup_pct, usd_to_brl: row.usd_to_brl } : null
 }
 export async function readTenantAiRecord(query: AdminMenuQuery, tenantId: string) {
-  // client_key_allowed read through to_jsonb so this works before its column is added (absent = not allowed).
-  const row = unique((await query(`SELECT billing_mode,openrouter_api_key,markup_pct,last_key_error,last_key_error_at,
-    (to_jsonb(s)->>'client_key_allowed')='true' AS client_key_allowed FROM public.tenant_ai_settings s WHERE tenant_id=$1 LIMIT 2`, [tenantId])).rows)
+  // client_key_allowed / is_demo read through to_jsonb so this works whether or not those columns exist (absent = false).
+  const row = unique((await query(`SELECT s.tenant_id IS NOT NULL AS has_settings,s.billing_mode,s.openrouter_api_key,s.markup_pct,s.last_key_error,s.last_key_error_at,
+    (to_jsonb(s)->>'client_key_allowed')='true' AS client_key_allowed,(to_jsonb(t)->>'is_demo')='true' AS is_demo
+    FROM public.tenants t LEFT JOIN public.tenant_ai_settings s ON s.tenant_id=t.id WHERE t.id=$1 LIMIT 2`, [tenantId])).rows)
+  if (row && row.has_settings !== true) return row.is_demo === true ? { billing_mode: null, openrouter_api_key: null, markup_pct: null,
+    client_key_allowed: false, is_demo: true, last_key_error: null, last_key_error_at: null } : null
   return row ? { billing_mode: row.billing_mode as AiBillingMode | null, openrouter_api_key: text(row.openrouter_api_key), markup_pct: row.markup_pct,
-    client_key_allowed: row.client_key_allowed === true,
+    client_key_allowed: row.client_key_allowed === true, is_demo: row.is_demo === true,
     last_key_error: text(row.last_key_error), last_key_error_at: row.last_key_error_at instanceof Date ? row.last_key_error_at.toISOString() : text(row.last_key_error_at) } : null
 }
 export async function recordTenantAiKeyError(query: AdminMenuQuery, tenantId: string, message: string, occurredAt: string) {
