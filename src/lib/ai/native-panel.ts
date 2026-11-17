@@ -22,7 +22,7 @@ export async function nativeAiTenantPayload(context: AdminActorContext, superadm
   return { billing_mode: tenant.mode, effective_mode: tenant.mode ?? platform.defaultMode, openrouter_api_key: maskedOrEmpty(tenant.key),
     markup_pct: tenant.markupPct, effective_markup_pct: tenant.markupPct ?? platform.defaultMarkupPct,
     last_key_error: tenant.lastKeyError, last_key_error_at: tenant.lastKeyErrorAt, global_key_configured: platform.platformKeySource !== 'none',
-    usd_to_brl: platform.usdToBrl, month, unbilled_charge_usd: unbilled, can_bill: canBill, client_key_allowed: tenant.clientKeyAllowed, chat }
+    usd_to_brl: platform.usdToBrl, month, unbilled_charge_usd: unbilled, can_bill: canBill, client_key_allowed: tenant.clientKeyAllowed, chat, is_demo: tenant.isDemo }
 }
 export async function nativeAiGlobalPayload(context: AdminActorContext) {
   const [platform, tenants, usage] = await Promise.all([loadPlatformAiSettings(), readOwnedAiPanelTenants(context), usageByTenant(startOfMonthIso())])

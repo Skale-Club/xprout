@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { log } from '../observability/log'
 import { revalidatePath } from 'next/cache'
 import { createHash } from 'node:crypto'
 import { headers } from 'next/headers'
@@ -41,6 +42,7 @@ async function superActor(tenantId: string): Promise<SubscriptionActor> {
 }
 const dependencies = () => ({ database: subscriptionTransactions, gateway: subscriptionGateway, baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000' })
 function errorResponse(error: unknown, portal = false) {
+  if (!(error instanceof AdminMenuError) && !(error instanceof PlanChangeError) && !(error instanceof SyntaxError)) log.error('billing.subscription_unexpected_error', { err: error })
   const status = error instanceof AdminMenuError || error instanceof PlanChangeError ? error.status : error instanceof SyntaxError ? 400 : 503
   return NextResponse.json({ error: error instanceof AdminMenuError || error instanceof PlanChangeError ? error.message : error instanceof SyntaxError ? 'Invalid request body' : 'Subscription service is unavailable', ...(portal && error instanceof PlanChangeError ? { portal: status === 409 } : {}) }, { status })
 }

@@ -11,6 +11,7 @@
  * one is stored, and sends the masked sentinel to mean "leave it alone".
  */
 import { useState, useTransition } from 'react'
+import BlogOperationsPanel from './BlogOperationsPanel'
 import {nativeEffectFetch} from '@/lib/tenant-effects/browser'
 import {
   AlertCircle, CheckCircle2, Clock, Loader2, Play, RefreshCw, Rss, Send, Trash2,
@@ -643,6 +644,9 @@ export default function BlogAutomationClient({ initialState,nativeBlog=false }: 
           </div>
         )}
       </section>
+
+      {/* Native blog only: operations that never finished block the next generation until closed. */}
+      {nativeBlog && <BlogOperationsPanel card={CARD} />}
     </div>
   )
 }

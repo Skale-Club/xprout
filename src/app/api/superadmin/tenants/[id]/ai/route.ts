@@ -46,6 +46,7 @@ export async function tenantAiPayload(tenantId: string) {
     unbilled_charge_usd: unbilled,
     can_bill: !!sub?.stripe_customer_id,
     client_key_allowed: tenant.clientKeyAllowed,
+    is_demo: tenant.isDemo,
     chat: chatControls({ ...(chatRow ?? {}), has_subscription: !!sub, chat_addon_override: sub?.chat_addon_override,
       chat_addon_active: sub?.chat_addon_active, chat_addon_available: plan?.chat_addon_available }),
   }
@@ -127,6 +128,8 @@ async function handlePUT(request: Request, { params }: Ctx) {
     row.client_key_allowed = body.client_key_allowed
   }
   const key = nextStoredKey(body.openrouter_api_key)
+  // A key saved on the platform default is meant to be used (same rule as writeAiTenantSettings): an explicit mode wins.
+  if (key && (body.billing_mode === undefined ? (await loadTenantAiSettings(id)).mode === null : row.billing_mode === null)) row.billing_mode = 'own_key'
   if (key !== undefined) {
     row.openrouter_api_key = key
     // A new key clears the old failure warning.

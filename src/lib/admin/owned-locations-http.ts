@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { log } from '@/lib/observability/log'
 import { getEffectiveTenant } from '@/lib/get-effective-tenant'
 import { AdminMenuError } from '@/lib/data/admin-menus'
 import { readOwnedDeliveryZones, readOwnedLocations, mutateOwnedDeliveryZone, mutateOwnedLocation } from '@/lib/data/admin-locations-runtime'
@@ -12,6 +13,7 @@ function sameOrigin(request: Request) {
 function errorResponse(error: unknown, label: string) {
   if (error instanceof AdminMenuError && error.status < 500) return json({ error: error.message }, error.status)
   if (error instanceof SyntaxError) return json({ error: 'Invalid request body' }, 400)
+  if (!(error instanceof AdminMenuError)) log.error('admin.locations_unexpected_error', { label, err: error })
   return json({ error: `${label} service is unavailable` }, 503)
 }
 

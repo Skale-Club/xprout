@@ -123,6 +123,10 @@ export async function writeAiTenantSettings(query: AdminMenuQuery, context: Admi
     }
   }
   if (key !== undefined) { row.openrouter_api_key = key; row.last_key_error = null; row.last_key_error_at = null }
+  // A superadmin who saves a client's key on the platform default means that key to be used: an explicit mode wins.
+  if (!ownerOnly && key && (body.billing_mode === undefined
+    ? (await query('SELECT billing_mode FROM public.tenant_ai_settings WHERE tenant_id=$1', [tenantId])).rows[0]?.billing_mode == null
+    : row.billing_mode === null)) row.billing_mode = 'own_key'
   const columns = Object.keys(row)
   await query(`INSERT INTO public.tenant_ai_settings(tenant_id,${columns.join(',')}) VALUES($1,${columns.map((_, index) => `$${index + 2}`).join(',')})
     ON CONFLICT(tenant_id) DO UPDATE SET ${columns.map(column => `${column}=EXCLUDED.${column}`).join(',')}`, [tenantId, ...Object.values(row)])

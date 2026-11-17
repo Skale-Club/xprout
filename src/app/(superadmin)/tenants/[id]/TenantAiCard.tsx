@@ -24,6 +24,8 @@ interface Payload {
   client_key_allowed: boolean
   /** The chat on this client's menu: on/off (whatever the plan) and its channels. */
   chat: { on: boolean; text: boolean; voice: boolean; has_subscription: boolean }
+  /** A demo company (tenants.is_demo): same features as any client, AI never billed. */
+  is_demo: boolean
 }
 
 interface BillResult {
@@ -98,7 +100,9 @@ export default function TenantAiCard({ tenantId }: { tenantId: string }) {
         <div className="flex items-center gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600"><Sparkles className="size-4" /></span>
           <div>
-            <h2 id="tenant-ai-title" className="text-sm font-bold text-zinc-950">AI</h2>
+            <h2 id="tenant-ai-title" className="flex items-center gap-2 text-sm font-bold text-zinc-950">AI
+              {data?.is_demo && <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">Demo company · AI never billed</span>}
+            </h2>
             <p className="text-xs text-zinc-500">The menu chat, who pays for this client&apos;s AI calls, and its usage. Defaults live in <Link href="/admin/ai" className="font-semibold text-indigo-700 hover:underline">AI</Link>.</p>
           </div>
         </div>
@@ -142,7 +146,9 @@ export default function TenantAiCard({ tenantId }: { tenantId: string }) {
             )}
             {!data.global_key_configured && (
               <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0" />No global key configured: there is no fallback if this client&apos;s key fails.
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />{data.effective_mode === 'own_key' && data.openrouter_api_key
+                  ? <>No global key configured: there is no fallback if this client&apos;s key fails.</>
+                  : <>No global key configured: this client&apos;s AI cannot run until a global key is set in AI, or it uses its own key.</>}
               </p>
             )}
             <div>
@@ -164,8 +170,13 @@ export default function TenantAiCard({ tenantId }: { tenantId: string }) {
               onChange={setKey}
               testUrl={url}
               onRemove={() => void save({ openrouter_api_key: null })}
-              help="Used when the mode is the client's own key. You manage it; the client only sees it if you allow it below."
+              help="Saving a key on the platform default switches this client to its own key. You manage it; the client only sees it if you allow it below."
             />
+            {data.openrouter_api_key && data.effective_mode !== 'own_key' && (
+              <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />This key is saved but not used: the billing mode is {BILLING_MODE_LABELS[data.effective_mode]}. Choose &quot;{BILLING_MODE_LABELS.own_key}&quot; to run this client&apos;s AI on it.
+              </p>
+            )}
             {/* Off by default: the OpenRouter key is the platform's responsibility. Saved as soon as it changes. */}
             <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 px-3 py-2.5">
               <input type="checkbox" checked={data.client_key_allowed === true} disabled={busy !== null}

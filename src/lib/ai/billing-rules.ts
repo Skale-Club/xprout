@@ -54,10 +54,14 @@ export function planAiAccess(input: {
   platformKey: string | null
   defaultMode: AiBillingMode
   defaultMarkupPct: number
+  /** A demo company (tenants.is_demo, e.g. the showcase stores): its AI runs like any client's but is never billed. */
+  tenantIsDemo?: boolean
 }): AiAccessPlan | null {
   const markup = clampMarkup(input.tenantMarkupPct ?? input.defaultMarkupPct)
-  const platform = (billable: boolean): KeyChoice | null =>
-    input.platformKey ? { apiKey: input.platformKey, keySource: 'platform', billable, markupPct: billable ? markup : 0 } : null
+  const platform = (wanted: boolean): KeyChoice | null => {
+    const billable = wanted && input.tenantIsDemo !== true
+    return input.platformKey ? { apiKey: input.platformKey, keySource: 'platform', billable, markupPct: billable ? markup : 0 } : null
+  }
 
   if (!input.tenantId || PLATFORM_SERVICE.has(input.feature)) {
     const choice = platform(false)

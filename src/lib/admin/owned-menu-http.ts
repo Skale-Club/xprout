@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { log } from '@/lib/observability/log'
 import { getEffectiveTenant } from '@/lib/get-effective-tenant'
 import { AdminMenuError } from '@/lib/data/admin-menus'
 import { findOwnedAdminMenu, listOwnedAdminMenus, mutateOwnedAdminMenu } from '@/lib/data/admin-menus-runtime'
@@ -33,6 +34,7 @@ export async function ownedMenuHttp(request: Request | null, kind: 'list' | 'cre
   } catch (error) {
     if (error instanceof SyntaxError) return NextResponse.json({ error: 'Invalid menu' }, { status: 400 })
     if (error instanceof AdminMenuError) return NextResponse.json({ error: error.message }, { status: error.status })
+    log.error('admin.menu_unexpected_error', { err: error })
     return NextResponse.json({ error: 'Menu service is unavailable' }, { status: 503 })
   }
 }

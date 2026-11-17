@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { decryptApiKey, encryptApiKey } from '@/lib/crypto'
 import { chatControls, readAiUsageSummary, readTenantChatControls, writeAiPlatformSettings, writeAiTenantSettings } from '@/lib/data/ai-panel'
 import { nextStoredKey } from '@/lib/ai/settings-key'
+import { planAiAccess } from '@/lib/ai/billing-rules'
 const tenantId = randomUUID(), actorId = randomUUID()
 const owner = { actorId, tenantId, role: 'store-admin' as const }, global = { actorId, role: 'superadmin' as const }
 const profile = (role = 'store-admin') => ({ id: actorId, role, tenant_id: role === 'superadmin' ? null : tenantId, must_change_password: false, disabled_at: null })
@@ -94,4 +95,24 @@ it('the chat cannot be switched on without a subscription, and one channel alway
   const invalid = vi.fn().mockResolvedValue({ rows: [profile('superadmin')] })
   await expect(writeAiTenantSettings(invalid, { ...global, tenantId }, { chat: { on: 'yes' } }, false)).rejects.toMatchObject({ status: 400 })
   await expect(writeAiTenantSettings(vi.fn().mockResolvedValue({ rows: [profile()] }), owner, { chat: { on: true } }, true)).resolves.toBeUndefined()
+})
+
+it('a demo company runs AI like any client but is never billed, on the platform key or the fallback', () => {
+  const base = { feature: 'chat' as const, tenantId, tenantKey: 'sk-client', tenantMarkupPct: null, platformKey: 'sk-platform', defaultMode: 'platform' as const, defaultMarkupPct: 30 }
+  expect(planAiAccess({ ...base, tenantMode: null })?.primary).toMatchObject({ keySource: 'platform', billable: true, markupPct: 30 })
+  expect(planAiAccess({ ...base, tenantMode: null, tenantIsDemo: true })?.primary).toMatchObject({ keySource: 'platform', billable: false, markupPct: 0 })
+  const own = planAiAccess({ ...base, tenantMode: 'own_key', tenantIsDemo: true })
+  expect(own?.primary).toMatchObject({ keySource: 'tenant', billable: false }); expect(own?.fallback).toMatchObject({ keySource: 'platform', billable: false })
+})
+it('a superadmin key saved on the platform default switches the client to its own key; an explicit mode wins', async () => {
+  const run = async (body: Record<string, unknown>, stored: string | null = null) => {
+    const query = vi.fn().mockResolvedValueOnce({ rows: [profile('superadmin')] }).mockResolvedValueOnce({ rows: [{ billing_mode: stored }] }).mockResolvedValue({ rows: [] })
+    await writeAiTenantSettings(query, { ...global, tenantId }, body, false)
+    const insert = query.mock.calls.find(([sql]) => String(sql).startsWith('INSERT INTO public.tenant_ai_settings'))!
+    return insert[1] as unknown[]
+  }
+  expect(await run({ billing_mode: null, openrouter_api_key: randomUUID() })).toContain('own_key')
+  expect(await run({ openrouter_api_key: randomUUID() })).toContain('own_key')
+  expect(await run({ openrouter_api_key: randomUUID() }, 'included')).not.toContain('own_key')
+  expect(await run({ billing_mode: 'platform', openrouter_api_key: randomUUID() })).toContain('platform')
 })
