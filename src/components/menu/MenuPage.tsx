@@ -8,6 +8,7 @@ import { idempotencyKeyFor, type IdempotencySlot } from '@/lib/orders/idempotenc
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { DeliveryImage } from '@/components/delivery-image'
+import { QuickAddButton } from './QuickAddButton'
 import { prefetchImage, whenIdle } from '@/lib/media/prefetch-image'
 import DishPhoto from './DishPhoto'
 import { getInitials } from '@/lib/utils'
@@ -72,7 +73,6 @@ import {
   Search,
   X,
   Sparkles,
-  Plus,
   UtensilsCrossed,
   Clapperboard,
   ShoppingBag,
@@ -1288,8 +1288,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
               const needsChoice = hasCustomization(p.id)
               const qty = needsChoice ? 0 : cart.find(i => i.cartKey === key)?.quantity ?? 0
               return (
-                // Same pieces as the grid card: the photo carries the tag pill and the
-                // 3D cube, and the + sits beside the price, off the photo.
+                // Same pieces as the grid card: the photo carries the tag pill, the 3D cube
+                // and the quick-add + (DoorDash style); the price stands alone below.
                 <div
                   key={p.id}
                   {...(clone ? {} : { 'data-analytics-product-id': p.id, 'data-analytics-source': 'featured' })}
@@ -1315,32 +1315,22 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                     {productArModelByProductId[p.id] && (
                       <ArBadge lang={selectedLanguage} className="absolute bottom-2 left-2 flex size-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm" />
                     )}
+                    {directOrdersEnabled && (
+                      <QuickAddButton
+                        className="absolute right-0.5 bottom-0.5"
+                        tabIndex={clone ? -1 : undefined}
+                        label={fill(copy.addNamed, { name: p.name })}
+                        quantity={qty}
+                        badgeColor={primaryColor}
+                        badgeText={onPrimary}
+                        // A dish with a required choice opens its sheet instead of going into the order without them.
+                        onAdd={() => needsChoice ? openProduct(p, 'featured') : addToCart(p, {}, p.price, undefined, undefined, undefined, 'featured')}
+                      />
+                    )}
                   </div>
                   <p className={`pointer-events-none mt-2 line-clamp-2 text-[14px] text-zinc-900 sm:text-[15px] ${ui.dishTitleCompact}`}>{p.name}</p>
-                  <div className="pointer-events-none mt-0.5 flex items-center justify-between gap-2">
+                  <div className="pointer-events-none mt-0.5 flex items-center">
                     <p className="min-w-0 truncate text-[14px] font-bold tabular-nums" style={{ color: accentText }}>{priceOf(p).text}</p>
-                    {directOrdersEnabled && (
-                      <button
-                        type="button"
-                        tabIndex={clone ? -1 : undefined}
-                        // A dish with a required choice opens its sheet instead of
-                        // going into the order without them.
-                        onClick={() => needsChoice ? openProduct(p, 'featured') : addToCart(p, {}, p.price, undefined, undefined, undefined, 'featured')}
-                        aria-label={fill(copy.addNamed, { name: p.name })}
-                        className="pointer-events-auto relative z-10 flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-zinc-200 active:bg-zinc-200"
-                      >
-                        <Plus className="size-[18px] shrink-0" strokeWidth={2.5} aria-hidden="true" />
-                        {qty > 0 && (
-                          <span
-                            className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums"
-                            style={{ backgroundColor: primaryColor, color: onPrimary }}
-                            aria-hidden="true"
-                          >
-                            {qty}
-                          </span>
-                        )}
-                      </button>
-                    )}
                   </div>
                 </div>
               )
@@ -1902,34 +1892,14 @@ function ProductCard({ product, lang, currency, primaryColor, accentText, price,
         )}
         {noticeMinutes > 0 && <div className="mt-2 flex"><NoticePill minutes={noticeMinutes} lang={lang} /></div>}
       </div>
-      {/* Unit price and ordering controls share a footer, never the photo. */}
-      {/* One row, never wrapped: the price sits bottom-left on the + button's bottom edge at every phone width
-          (a 360px Android leaves 160px here: price ~50px + 8px + the 44px +). */}
-      <div className="pointer-events-none col-start-1 row-start-2 flex min-w-0 flex-nowrap items-end gap-x-2 px-5 pt-3 pb-5 sm:order-3 sm:mt-auto">
-        <div className="shrink-0">
-          {(price.fromLabel || promo) && (
-            <p className="mb-0.5 text-[11px] font-medium leading-tight text-zinc-500">
-              {price.fromLabel ?? <span className="tabular-nums text-zinc-500 line-through">{formatMoney(promo as number, currency, lang)}</span>}
-            </p>
-          )}
-          {/* Block + trimmed to the baseline, so the digits (not an invisible line box whose size depends on each
-              platform's font metrics) sit on the add button's bottom edge on Android and iOS alike. */}
-          <span className="block whitespace-nowrap text-[15px] leading-none font-extrabold tabular-nums [text-box:trim-end_cap_alphabetic] supports-[not(text-box:trim-end_cap_alphabetic)]:-mb-[0.14em]" style={{ color: accentText }}>{price.amount}</span>
-        </div>
-        {onAdd && (
-          // Only the +, as on the featured rail: each tap adds one, a small badge shows how many are in the
-          // order, and the cart is where the guest takes one out. The stepper left the card (owner, 2026-11-17).
-          <button type="button" onClick={onAdd} aria-label={fill(copy.addNamed, { name: product.name })}
-            className="pointer-events-auto relative z-10 ml-auto flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-zinc-200 active:bg-zinc-200">
-            <Plus className="size-[18px] shrink-0" strokeWidth={2.5} aria-hidden="true" />
-            {quantity > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums"
-                style={{ backgroundColor: primaryColor, color: computePrimaryForeground(primaryColor) }} aria-live="polite">
-                {quantity}
-              </span>
-            )}
-          </button>
+      {/* The price stands alone at the card's bottom-left; the quick-add + lives on the photo (DoorDash style). */}
+      <div className="pointer-events-none col-start-1 row-start-2 min-w-0 px-5 pt-3 pb-5 sm:order-3 sm:mt-auto">
+        {(price.fromLabel || promo) && (
+          <p className="mb-0.5 text-[11px] font-medium leading-tight text-zinc-500">
+            {price.fromLabel ?? <span className="tabular-nums text-zinc-500 line-through">{formatMoney(promo as number, currency, lang)}</span>}
+          </p>
         )}
+        <span className="block whitespace-nowrap text-[15px] font-extrabold tabular-nums" style={{ color: accentText }}>{price.amount}</span>
       </div>
       <div className="pointer-events-none relative col-start-2 row-span-2 row-start-1 min-h-[clamp(8rem,28vw,10rem)] bg-zinc-100 sm:order-1 sm:aspect-[4/3] sm:min-h-0 sm:w-full">
         {image
@@ -1942,6 +1912,16 @@ function ProductCard({ product, lang, currency, primaryColor, accentText, price,
         )}
         {hasArModel && (
           <ArBadge lang={lang} className="absolute bottom-2 left-2 flex size-6 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm sm:bottom-3 sm:left-3" />
+        )}
+        {onAdd && (
+          <QuickAddButton
+            className="absolute right-0.5 bottom-0.5 sm:right-1.5 sm:bottom-1.5"
+            label={fill(copy.addNamed, { name: product.name })}
+            quantity={quantity}
+            onAdd={onAdd}
+            badgeColor={primaryColor}
+            badgeText={computePrimaryForeground(primaryColor)}
+          />
         )}
       </div>
     </article>
