@@ -20,6 +20,9 @@ import { transcribeWithOpenRouter, transcriptionModelId, OpenRouterError } from 
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
 import { adminMenusOwned } from '@/lib/data/admin-menus'
+import { chatErrorBody, PhoneVerificationError } from '@/lib/data/public-chat-errors'
+import { getVerifiedGuestPhone } from '@/lib/auth/verified-guest-phone'
+import { hashPhone } from '@/lib/crypto'
 import { handleOwnedChatAudio } from '@/lib/chat-native'
 
 export const runtime = 'nodejs'
@@ -60,12 +63,15 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
 
   const { data: convo } = await supabase
     .from('chat_conversations')
-    .select('id, tenant_id, status')
+    .select('id, tenant_id, status, phone_hash')
     .eq('id', conversationId)
     .maybeSingle()
   if (!convo || convo.tenant_id !== tenant.id || convo.status === 'blocked') {
     return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 })
   }
+  // Only the signed-in guest whose verified phone owns the conversation may use it.
+  const guestDigits = (await getVerifiedGuestPhone().catch(() => null))?.replace(/\D/g, '') ?? ''
+  if (!guestDigits || hashPhone(guestDigits, tenant.id) !== convo.phone_hash) return NextResponse.json(chatErrorBody(new PhoneVerificationError()), { status: 401 })
 
   // Voice notes are transcribed through OpenRouter, paid like the assistant:
   // the client's key or ours per their AI billing mode; audio_provider picks

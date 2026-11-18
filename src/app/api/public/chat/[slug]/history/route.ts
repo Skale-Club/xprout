@@ -13,6 +13,9 @@ import { HISTORY_LIMIT, historyForDisplay } from '@/lib/chat-agent'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { withApi } from '@/lib/observability/with-api'
 import { adminMenusOwned, AdminMenuError } from '@/lib/data/admin-menus'
+import { chatErrorBody, PhoneVerificationError } from '@/lib/data/public-chat-errors'
+import { getVerifiedGuestPhone } from '@/lib/auth/verified-guest-phone'
+import { hashPhone } from '@/lib/crypto'
 import { readOwnedPublicChatHistory } from '@/lib/data/public-chat-turns-runtime'
 import { log } from '@/lib/observability/log'
 
@@ -29,12 +32,13 @@ async function loadHistory(request: Request, { params }: { params: Promise<{ slu
   const conversationId = new URL(request.url).searchParams.get('conversation_id') ?? ''
   if (!UUID.test(conversationId)) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 })
 
+  const guestPhone = await getVerifiedGuestPhone().catch(() => null)
   if (adminMenusOwned()) {
     try {
-      return NextResponse.json({ messages: historyForDisplay(await readOwnedPublicChatHistory(slug, conversationId)) })
+      return NextResponse.json({ messages: historyForDisplay(await readOwnedPublicChatHistory(slug, conversationId, guestPhone)) })
     } catch (error) {
       if (!(error instanceof AdminMenuError)) log.error('chat.history_error', { err: error })
-      return NextResponse.json({ error: error instanceof AdminMenuError ? error.message : 'History unavailable' }, { status: error instanceof AdminMenuError ? error.status : 503 })
+      return NextResponse.json(error instanceof AdminMenuError ? chatErrorBody(error) : { error: 'History unavailable' }, { status: error instanceof AdminMenuError ? error.status : 503 })
     }
   }
 
@@ -50,6 +54,9 @@ async function loadHistory(request: Request, { params }: { params: Promise<{ slu
     .eq('id', conversationId)
     .maybeSingle()
   if (!convo || convo.tenant_id !== tenant.id) return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 })
+  // The conversation belongs to the phone it was opened with: the guest must be signed in with that phone.
+  const guestDigits = guestPhone?.replace(/\D/g, '') ?? ''
+  if (!guestDigits || hashPhone(guestDigits, tenant.id) !== convo.phone_hash) return NextResponse.json(chatErrorBody(new PhoneVerificationError()), { status: 401 })
   if (convo.status === 'blocked') return NextResponse.json({ error: 'Conversation has been blocked' }, { status: 403 })
   const { data: blocked } = await supabase
     .from('chat_blocked_phones')

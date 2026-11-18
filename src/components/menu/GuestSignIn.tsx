@@ -11,6 +11,59 @@ import type { PhoneContext } from './showcase'
 
 const LoginModal = dynamic(() => import('./LoginModal'), { ssr: false })
 
+export interface GuestSignInDialogProps {
+  open: boolean
+  onClose: () => void
+  /** The guest finished signing in (frame left the sign-in pages, or the phone code was accepted). */
+  onSignedIn: () => void
+  slug: string
+  primaryColor: string
+  /** The menu's texts in the guest's language (labels and the sign-in popup). */
+  copy: MenuCopy
+  /** Menu language code, passed to the embedded platform sign-in. */
+  lang: string
+  /** BCP 47 locale of the menu (country names in the phone picker). */
+  locale: string
+  /** The restaurant's country/currency, for the phone field. */
+  phoneContext?: PhoneContext | null
+  /** The restaurant's banner, logo and name, at the top of the sign-in popup. */
+  bannerUrl?: string | null
+  logoUrl?: string | null
+  restaurantName: string
+}
+
+/**
+ * The sign-in popup over the menu, shared by the account icon and the AI chat:
+ * with the platform's own sign-in it is the customer login page in a same-origin
+ * frame; with the legacy sign-in it is the phone-code modal (LoginModal).
+ */
+export function GuestSignInDialog({ open, onClose, onSignedIn, slug, primaryColor, copy, lang, locale, phoneContext, bannerUrl, logoUrl, restaurantName }: GuestSignInDialogProps) {
+  const [authority, setAuthority] = useState<LoginAuthority | 'unavailable' | null>(null)
+  useEffect(() => {
+    if (!open || authority) return
+    let active = true
+    void readLoginAuthority().then(value => { if (active) setAuthority(value) }).catch(() => { if (active) setAuthority('unavailable') })
+    return () => { active = false }
+  }, [open, authority])
+  if (!open) return null
+  if (authority === 'legacy') {
+    return <LoginModal open onClose={onClose} slug={slug} primaryColor={primaryColor} onSuccess={onSignedIn} logoUrl={logoUrl} restaurantName={restaurantName} copy={copy} phoneContext={phoneContext} locale={locale} bannerUrl={bannerUrl} />
+  }
+  return (
+    <SignInFrameDialog
+      // The sign-in page draws the restaurant's card itself (banner, logo, colour, country, language) from these.
+      src={authority === 'owned' ? `/auth/login?flow=customer&embed=1&tenant=${encodeURIComponent(slug)}&lang=${encodeURIComponent(lang)}&from=${encodeURIComponent(`/${slug}/me`)}` : null}
+      unavailable={authority === 'unavailable'}
+      title={copy.signIn}
+      closeLabel={copy.close}
+      onClose={onClose}
+      onSignedIn={onSignedIn}
+      // Centred on the card's banner (drawn inside the frame); the button is 40 px.
+      closeTop={(GUEST_BANNER_HEIGHT - 40) / 2}
+    />
+  )
+}
+
 /**
  * The guest's account entry on the menu: an icon beside the search button
  * (no text, so the bar stays quiet; the name is in aria-label/title).
@@ -40,7 +93,6 @@ export function GuestAccountButton({ slug, primaryColor, copy, lang, locale, pho
 }) {
   const [signedIn, setSignedIn] = useState(false)
   const [open, setOpen] = useState(false)
-  const [authority, setAuthority] = useState<LoginAuthority | 'unavailable' | null>(null)
 
   useEffect(() => {
     let active = true
@@ -53,8 +105,6 @@ export function GuestAccountButton({ slug, primaryColor, copy, lang, locale, pho
   const activate = () => {
     if (signedIn) { window.location.assign(new URL(`/${slug}/me`, window.location.origin).href); return }
     setOpen(true)
-    if (authority) return
-    void readLoginAuthority().then(setAuthority).catch(() => setAuthority('unavailable'))
   }
   const done = () => { setOpen(false); setSignedIn(true) }
   const label = signedIn ? copy.myAccount : copy.signIn
@@ -74,22 +124,7 @@ export function GuestAccountButton({ slug, primaryColor, copy, lang, locale, pho
           <span aria-hidden="true" className="absolute right-2.5 top-2.5 size-2 rounded-full ring-2 ring-menu" style={{ backgroundColor: primaryColor }} />
         )}
       </button>
-      {open && authority === 'legacy' && (
-        <LoginModal open onClose={() => setOpen(false)} slug={slug} primaryColor={primaryColor} onSuccess={done} logoUrl={logoUrl} restaurantName={restaurantName} copy={copy} phoneContext={phoneContext} locale={locale} bannerUrl={bannerUrl} />
-      )}
-      {open && authority !== 'legacy' && (
-        <SignInFrameDialog
-          // The sign-in page draws the restaurant's card itself (banner, logo, colour, country, language) from these.
-          src={authority === 'owned' ? `/auth/login?flow=customer&embed=1&tenant=${encodeURIComponent(slug)}&lang=${encodeURIComponent(lang)}&from=${encodeURIComponent(`/${slug}/me`)}` : null}
-          unavailable={authority === 'unavailable'}
-          title={copy.signIn}
-          closeLabel={copy.close}
-          onClose={() => setOpen(false)}
-          onSignedIn={done}
-          // Centred on the card's banner (drawn inside the frame); the button is 40 px.
-          closeTop={(GUEST_BANNER_HEIGHT - 40) / 2}
-        />
-      )}
+      <GuestSignInDialog open={open} onClose={() => setOpen(false)} onSignedIn={done} slug={slug} primaryColor={primaryColor} copy={copy} lang={lang} locale={locale} phoneContext={phoneContext} bannerUrl={bannerUrl} logoUrl={logoUrl} restaurantName={restaurantName} />
     </>
   )
 }

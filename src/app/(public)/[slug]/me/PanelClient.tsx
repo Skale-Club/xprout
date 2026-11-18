@@ -1,6 +1,6 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { signOutGuest } from '@/lib/auth/guest-sign-out'
 import { useRouter } from 'next/navigation'
 import { Clock, CheckCircle2, Package, UtensilsCrossed, Truck, LogOut, MapPin, Phone as PhoneIcon, RefreshCw } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
@@ -95,7 +95,6 @@ function OrderStatusBar({ order, primaryColor }: { order: OrderWithItems; primar
 
 export default function PanelClient({ tenant, orders, customerPhone,ownedAuth = false,linkingUnavailable = false,loyalty = null }: Props) {
   const router = useRouter()
-  const supabase = ownedAuth ? null : createClient()
   const [signoutError,setSignoutError] = useState('')
   const primaryColor = tenant.settings.primary_color
   const currency = tenant.settings.currency ?? 'USD'
@@ -108,11 +107,7 @@ export default function PanelClient({ tenant, orders, customerPhone,ownedAuth = 
   )
 
   async function handleSignOut() {
-    if (ownedAuth) {
-      const response = await fetch('/api/identity/logout',{ method: 'POST',credentials: 'same-origin',cache: 'no-store',redirect: 'error',headers: { 'Content-Type': 'application/json' },body: '{}' }).catch(() => null)
-      const result = response?.ok ? await response.json().catch(() => null) : null
-      if (result?.signedOut !== true) { setSignoutError('Sign out could not be confirmed. Try again.'); return }
-    } else await supabase!.auth.signOut()
+    if (!(await signOutGuest(ownedAuth))) { setSignoutError('Sign out could not be confirmed. Try again.'); return }
     router.push(`/${tenant.slug}`)
   }
 

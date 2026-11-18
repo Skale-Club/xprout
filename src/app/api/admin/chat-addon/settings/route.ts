@@ -10,6 +10,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getChatAddonStatus } from '@/lib/chat-addon'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
+import { MAX_MAX_MESSAGES_PER_CONVERSATION, MIN_MAX_MESSAGES_PER_CONVERSATION } from '@/lib/chat-limits'
 import { adminMenusOwned } from '@/lib/data/admin-menus'
 import { adminChatContext, adminChatError } from '@/lib/admin/chat-context'
 import { readOwnedAdminChatSettings, writeOwnedAdminChatSettings } from '@/lib/data/admin-chat-runtime'
@@ -66,6 +67,7 @@ async function handlePUT(request: Request) {
     history_enabled,
     audio_provider,
     rate_limit_per_phone_per_day,
+    max_messages_per_conversation,
   } = body as Record<string, any>
 
   const supabase = createServiceClient()
@@ -84,12 +86,23 @@ async function handlePUT(request: Request) {
   if (typeof rate_limit_per_phone_per_day === 'number') {
     payload.rate_limit_per_phone_per_day = Math.max(1, Math.min(500, Math.floor(rate_limit_per_phone_per_day)))
   }
+  if (max_messages_per_conversation !== undefined && max_messages_per_conversation !== null) {
+    const cap = max_messages_per_conversation
+    if (typeof cap !== 'number' || !Number.isInteger(cap) || cap < MIN_MAX_MESSAGES_PER_CONVERSATION || cap > MAX_MAX_MESSAGES_PER_CONVERSATION) {
+      return NextResponse.json({ error: `Messages per conversation must be a whole number from ${MIN_MAX_MESSAGES_PER_CONVERSATION} to ${MAX_MAX_MESSAGES_PER_CONVERSATION}` }, { status: 400 })
+    }
+    payload.max_messages_per_conversation = cap
+  }
 
   const { error } = await supabase
     .from('chat_addon_settings')
     .upsert(payload, { onConflict: 'tenant_id' })
 
   if (error) {
+    // The column arrives with a schema step that may run after the code deploys.
+    if (payload.max_messages_per_conversation !== undefined && /max_messages_per_conversation/.test(error.message ?? '')) {
+      return NextResponse.json({ error: 'Settings not available yet, try again in a few minutes' }, { status: 409 })
+    }
     log.error('chat_addon_settings.upsert_error', { err: error })
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })
   }

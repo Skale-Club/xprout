@@ -5,6 +5,8 @@
  * owned read that names a missing column would fail (and inside a transaction,
  * abort it), so each read asks first which of the columns exist and names only
  * those. A missing switch means "on" (today's behaviour).
+ * max_messages_per_conversation (docs/owned-schema/20261118120000_chat_conversation_cap.sql)
+ * rides the same probe: it is a number, and a missing column means the default (20).
  *
  * information_schema.columns lists only columns the role can use. Only found
  * columns are remembered: a column that was missing is looked for again on the
@@ -13,7 +15,7 @@
  */
 import type { AdminMenuQuery } from './admin-menus'
 
-export const CHAT_SWITCH_COLUMNS = ['ordering_help_enabled', 'staff_call_enabled', 'suggestions_enabled', 'history_enabled'] as const
+export const CHAT_SWITCH_COLUMNS = ['ordering_help_enabled', 'staff_call_enabled', 'suggestions_enabled', 'history_enabled', 'max_messages_per_conversation'] as const
 export type ChatSwitchColumn = (typeof CHAT_SWITCH_COLUMNS)[number]
 
 const FROM = `FROM information_schema.columns WHERE table_schema='public' AND table_name='chat_addon_settings' AND column_name = ANY($1::text[])`

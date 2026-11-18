@@ -1,6 +1,7 @@
 import { authorizeAdminActor, type AdminActorContext } from './admin-actor'
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import { readPublicChatAddon } from './public-chat-session'
+import { MAX_MAX_MESSAGES_PER_CONVERSATION, MIN_MAX_MESSAGES_PER_CONVERSATION } from '../chat-limits'
 import { CHAT_SWITCH_COLUMNS, chatSelectColumns, presentChatSwitchColumnsFor } from './chat-switch-columns'
 
 export interface AdminChatContext extends AdminActorContext { tenantId: string }
@@ -41,6 +42,14 @@ export async function writeAdminChatSettings(query: AdminMenuQuery, context: Adm
     const present = await presentChatSwitchColumnsFor(query)
     if (wanted.some(field => !present.has(field))) throw new AdminMenuError(409, 'Settings not available yet, try again in a few minutes')
     for (const field of wanted) patch[field] = body[field]
+  }
+  if (body.max_messages_per_conversation !== undefined && body.max_messages_per_conversation !== null) {
+    const cap = body.max_messages_per_conversation
+    if (typeof cap !== 'number' || !Number.isInteger(cap) || cap < MIN_MAX_MESSAGES_PER_CONVERSATION || cap > MAX_MAX_MESSAGES_PER_CONVERSATION) {
+      throw new AdminMenuError(400, `Messages per conversation must be a whole number from ${MIN_MAX_MESSAGES_PER_CONVERSATION} to ${MAX_MAX_MESSAGES_PER_CONVERSATION}`)
+    }
+    if (!(await presentChatSwitchColumnsFor(query)).has('max_messages_per_conversation')) throw new AdminMenuError(409, 'Settings not available yet, try again in a few minutes')
+    patch.max_messages_per_conversation = cap
   }
   // openrouter_model is set by the platform team (superadmin), never by the restaurant: ignored here.
   if (body.audio_provider === null || body.audio_provider === 'whisper' || body.audio_provider === 'deepgram') patch.audio_provider = body.audio_provider
