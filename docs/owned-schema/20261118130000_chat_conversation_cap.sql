@@ -1,7 +1,7 @@
 -- Each restaurant caps how many guest messages one assistant conversation may hold
 -- (default 20, range 1..200). The per-phone daily allowance stays the main credit guard;
 -- this bounds a single conversation (and its prompt history) as well.
--- Legacy counterpart: supabase/migrations/20261118120000_chat_conversation_cap.sql.
+-- Legacy counterpart: supabase/migrations/20261118130000_chat_conversation_cap.sql.
 --
 --   chat_addon_settings.max_messages_per_conversation   integer NOT NULL DEFAULT 20, CHECK 1..200
 --

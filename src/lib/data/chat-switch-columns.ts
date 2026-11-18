@@ -5,7 +5,7 @@
  * owned read that names a missing column would fail (and inside a transaction,
  * abort it), so each read asks first which of the columns exist and names only
  * those. A missing switch means "on" (today's behaviour).
- * max_messages_per_conversation (docs/owned-schema/20261118120000_chat_conversation_cap.sql)
+ * max_messages_per_conversation (docs/owned-schema/20261118130000_chat_conversation_cap.sql)
  * rides the same probe: it is a number, and a missing column means the default (20).
  *
  * information_schema.columns lists only columns the role can use. Only found
