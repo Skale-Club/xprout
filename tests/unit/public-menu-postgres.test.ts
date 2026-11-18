@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import type pg from 'pg'
-import { PUBLIC_MENU_COLUMNS, publicMenuSource, readOwnedPublicMenu, type PublicMenuQuery } from '@/lib/data/public-menu'
+import { PUBLIC_MENU_COLUMNS, publicMenuSource, readOwnedPublicMenu, resetChatSuggestionsProbe, type PublicMenuQuery } from '@/lib/data/public-menu'
 import { createPublicMenuPool, readPublicMenuSnapshot } from '@/lib/data/public-menu-runtime'
 
 const tenantId = randomUUID(), menuId = randomUUID(), productId = randomUUID(), groupId = randomUUID()
@@ -30,6 +30,35 @@ function fixture(patch: Record<string, unknown[]> = {}) {
 }
 
 describe('independent PostgreSQL public catalog', () => {
+  it('reads the suggestions switch only once the column exists, and remembers only a positive probe', async () => {
+    resetChatSuggestionsProbe()
+    const base = fixture({ chat_addon_settings: [{ enabled: true, audio_enabled: true, text_enabled: true, suggestions_enabled: false }] }).query
+    let columnExists = false
+    const chatSql: string[] = [], probes: string[] = []
+    const query: PublicMenuQuery = async (text, values) => {
+      if (text.includes('information_schema.columns') && text.includes("'suggestions_enabled'")) { probes.push(text); return { rows: [{ row: { ready: columnExists } }] } }
+      if (text.includes('FROM public.chat_addon_settings')) {
+        chatSql.push(text)
+        // Like the database: a column the SQL does not name is not in the row.
+        const result = await base(text, values)
+        return { rows: result.rows.map(({ row }) => ({ row: text.includes('suggestions_enabled') ? row : { ...(row as object), suggestions_enabled: undefined } })) }
+      }
+      return base(text, values)
+    }
+    const before = await readOwnedPublicMenu(query, 'restaurant', undefined)
+    if (before.kind !== 'menu') throw Error('Expected the public menu')
+    expect(chatSql[0]).not.toContain('suggestions_enabled')
+    expect(before.chatAddonSuggestionsEnabled).toBe(true)
+    columnExists = true
+    const after = await readOwnedPublicMenu(query, 'restaurant', undefined)
+    if (after.kind !== 'menu') throw Error('Expected the public menu')
+    expect(chatSql[1]).toContain("'suggestions_enabled', suggestions_enabled")
+    expect(after.chatAddonSuggestionsEnabled).toBe(false)
+    expect(probes).toHaveLength(2)
+    await readOwnedPublicMenu(query, 'restaurant', undefined)
+    expect(probes).toHaveLength(2)
+    resetChatSuggestionsProbe()
+  })
   it('delivers an optional saved review destination to the public footer only after schema readiness', async () => {
     const { query } = fixture()
     const destination = 'https://g.page/merchant/review'

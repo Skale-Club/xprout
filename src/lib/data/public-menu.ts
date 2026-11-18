@@ -73,6 +73,26 @@ export interface OwnedPublicMenuOptions {
   previewToken?: string
 }
 
+// The suggestions switch arrives with a later schema step. The probe runs in the
+// same transaction and lists only columns the role can use; a failed read of a
+// missing column would abort it, so the key is simply left out until it exists.
+// Only a positive result is remembered: a migration applied after deploy is picked up.
+const SUGGESTIONS_READY_SQL = `SELECT jsonb_build_object('ready', count(*) = 1) AS row FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='chat_addon_settings' AND column_name='suggestions_enabled'`
+let suggestionsColumnSeen = false
+export function resetChatSuggestionsProbe() { suggestionsColumnSeen = false }
+async function chatSuggestionsReady(query: PublicMenuQuery): Promise<boolean> {
+  if (suggestionsColumnSeen) return true
+  const ready = one(await rows<Row>(query, SUGGESTIONS_READY_SQL, [], 1))?.ready === true
+  if (ready) suggestionsColumnSeen = true
+  return ready
+}
+export function chatSettingsSql(withSuggestions: boolean): string {
+  const suggestions = withSuggestions ? ", 'suggestions_enabled', suggestions_enabled" : ''
+  return `SELECT jsonb_build_object('enabled', enabled, 'audio_enabled', audio_enabled, 'text_enabled', text_enabled${suggestions}) AS row FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`
+}
+
+
 /** All queries run inside the runtime's one read-only repeatable-read snapshot. */
 export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, menuSlug: string | undefined, options: OwnedPublicMenuOptions = {}): Promise<CachedPublicMenu> {
   if (!validSegment(slug) || (menuSlug !== undefined && !validSegment(menuSlug))) return { kind: 'not_found' }
@@ -159,8 +179,7 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
     const features = subscription && ['active', 'trial'].includes(String(subscription.status)) && Array.isArray(subscription.features)
       ? subscription.features.filter((value): value is string => typeof value === 'string') : null
     const capabilities = resolveTenantCapabilities(features, settings)
-    const chat = one(await rows<Row>(query,
-      'SELECT jsonb_build_object(\'enabled\', enabled, \'audio_enabled\', audio_enabled, \'text_enabled\', text_enabled, \'suggestions_enabled\', suggestions_enabled) AS row FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2', [tenantId], 1))
+    const chat = one(await rows<Row>(query, chatSettingsSql(await chatSuggestionsReady(query)), [tenantId], 1))
     const chatActive = subscription?.chat_addon_override === true
       || (subscription?.chat_addon_override !== false && subscription?.chat_addon_available === true && subscription?.chat_addon_active === true)
     const channels = resolveChatChannels(chatActive && chat?.enabled === true
