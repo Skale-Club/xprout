@@ -24,7 +24,7 @@ import {
   type AiFeature,
   type KeyChoice,
 } from './billing-rules'
-import { platformOpenRouterKey } from './openrouter'
+import { OPENROUTER_BASE_URL, platformOpenRouterKey } from './openrouter'
 import { adminMenusOwned } from '@/lib/data/admin-menus'
 import { readOwnedPlatformAiRecord, readOwnedTenantAiRecord, recordOwnedTenantAiKeyError, insertOwnedAiUsageRecord } from '@/lib/data/ai-access-runtime'
 
@@ -199,18 +199,91 @@ export async function recordAiUsage(meta: UsageMeta, body: unknown): Promise<voi
   if (error) log.error('ai.usage_record_failed', { err: error, feature: meta.feature })
 }
 
+/** Last chunk of an SSE body that carries `usage` (OpenRouter puts usage.cost in the final chunk). */
+export function createSseUsageCollector() {
+  let buffer = ''
+  let last: { id?: unknown; model?: unknown; usage: unknown } | null = null
+  const line = (raw: string) => {
+    const text = raw.replace(/\r$/, '')
+    if (!text.startsWith('data:')) return
+    const data = text.slice(5).trim()
+    if (!data || data === '[DONE]') return
+    try {
+      const chunk = JSON.parse(data) as { id?: unknown; model?: unknown; usage?: unknown }
+      if (chunk && typeof chunk === 'object' && chunk.usage && typeof chunk.usage === 'object') last = { id: chunk.id, model: chunk.model, usage: chunk.usage }
+    } catch { /* malformed line: ignored */ }
+  }
+  return {
+    feed(chunk: string) {
+      buffer += chunk
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      lines.forEach(line)
+    },
+    finish() { line(buffer); buffer = ''; return last },
+  }
+}
+
+// Records still being written; settleAiUsageRecords() lets a request wait for them.
+const pendingUsage = new Set<Promise<void>>()
+
+/** Resolves once every streamed call's cost has been written to the ledger. */
+export async function settleAiUsageRecords(): Promise<void> {
+  await Promise.allSettled([...pendingUsage])
+}
+
+async function meterStream(meta: UsageMeta, stream: ReadableStream<Uint8Array>): Promise<void> {
+  const collector = createSseUsageCollector()
+  const decoder = new TextDecoder()
+  try {
+    const reader = stream.getReader()
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      collector.feed(decoder.decode(value, { stream: true }))
+    }
+  } catch (err) {
+    log.error('ai.usage_parse_failed', { err, feature: meta.feature })
+  }
+  try {
+    // A stream that ended without usage still leaves a (zero-cost) row, like a JSON body without it.
+    await recordAiUsage(meta, collector.finish() ?? {})
+  } catch (err) {
+    log.error('ai.usage_parse_failed', { err, feature: meta.feature })
+  }
+}
+
+/** Streaming chat requests to OpenRouter ask for usage accounting in the final chunk. */
+function withStreamUsage(input: Parameters<typeof fetch>[0], init: Parameters<typeof fetch>[1]): Parameters<typeof fetch>[1] {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+  if (!url.startsWith(OPENROUTER_BASE_URL) || typeof init?.body !== 'string') return init
+  try {
+    const body = JSON.parse(init.body) as Record<string, unknown>
+    if (body.stream !== true || body.usage !== undefined) return init
+    return { ...init, body: JSON.stringify({ ...body, usage: { include: true } }) }
+  } catch { return init }
+}
+
 /**
- * fetch for OpenRouter that records each successful JSON response's cost.
- * The response is cloned, so the caller reads it untouched.
+ * fetch for OpenRouter that records each successful response's cost: JSON
+ * bodies from a clone, event streams from a tee'd branch parsed in the
+ * background. The caller always reads its own response untouched.
  */
 export function meteredFetch(meta: UsageMeta): typeof fetch {
   return async (input, init) => {
-    const response = await fetch(input, init)
-    if (response.ok && (response.headers.get('content-type') ?? '').includes('application/json')) {
+    const response = await fetch(input, withStreamUsage(input, init))
+    const type = response.headers.get('content-type') ?? ''
+    if (response.ok && type.includes('application/json')) {
       // Wait for the record so a request's cost is in the ledger when it ends.
       await response.clone().json().then(body => recordAiUsage(meta, body)).catch(err => {
         log.error('ai.usage_parse_failed', { err, feature: meta.feature })
       })
+    } else if (response.ok && type.includes('text/event-stream') && response.body) {
+      const metered = response.clone().body
+      if (metered) {
+        const pending: Promise<void> = meterStream(meta, metered).finally(() => pendingUsage.delete(pending))
+        pendingUsage.add(pending)
+      }
     }
     return response
   }

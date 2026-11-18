@@ -6,7 +6,7 @@ import { voiceTokenSecret } from '@/lib/crypto'
 import { resolveTenantCapabilities } from '@/lib/service-modes'
 const state = vi.hoisted(() => ({ read: vi.fn(), audio: vi.fn(), save: vi.fn(), access: vi.fn(), run: vi.fn(), agent: vi.fn(), transcribe: vi.fn(), model: vi.fn() }))
 vi.mock('@/lib/data/public-chat-turns-runtime', () => ({ readOwnedPublicChatTurn: state.read, readOwnedPublicChatAudio: state.audio, saveOwnedPublicChatTurn: state.save }))
-vi.mock('@/lib/ai/access', () => ({ resolveAiAccess: state.access, runAi: state.run }))
+vi.mock('@/lib/ai/access', () => ({ resolveAiAccess: state.access, runAi: state.run, settleAiUsageRecords: async () => {} }))
 vi.mock('@/lib/ai/openrouter', () => ({ openRouterModel: state.model, transcribeWithOpenRouter: state.transcribe, transcriptionModelId: () => 'test/transcription', OpenRouterError: class extends Error {} }))
 vi.mock('@/lib/chat-agent', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/chat-agent')>(), runChatAgent: state.agent }))
 vi.mock('@/lib/observability/log', () => ({ log: { error: vi.fn() } }))

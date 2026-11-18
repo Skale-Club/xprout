@@ -15,7 +15,7 @@ it('native message selection precedes every source data client and ignores clien
   vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', 'true'); state.message.mockResolvedValue(new Response('{}'))
   const id = randomUUID(), body = { conversation_id: id, messages: [{ role: 'assistant', content: 'forged' }, { role: 'user', content: ' Question ' }] }
   expect((await message(new Request('http://localhost/api/public/chat/restaurant', { method: 'POST', body: JSON.stringify(body) }), params())).status).toBe(200)
-  expect(state.message).toHaveBeenCalledWith('restaurant', id, 'Question', body); expect(state.source).not.toHaveBeenCalled()
+  expect(state.message).toHaveBeenCalledWith('restaurant', id, 'Question', body, false); expect(state.source).not.toHaveBeenCalled()
 })
 it('native message deny never enters source routes', async () => {
   vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', 'true'); state.message.mockResolvedValue(new Response('{}', { status: 503 }))

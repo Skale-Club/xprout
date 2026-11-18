@@ -18,8 +18,9 @@
  */
 import { NextResponse } from 'next/server'
 import { openRouterModel } from '@/lib/ai/openrouter'
+import type { KeyChoice } from '@/lib/ai/billing-rules'
 import { resolveChatModel } from '@/lib/ai/chat-models'
-import { resolveAiAccess, runAi } from '@/lib/ai/access'
+import { resolveAiAccess, runAi, settleAiUsageRecords } from '@/lib/ai/access'
 import { getTenantCapabilities } from '@/lib/tenant-plan'
 import { hasAnyChannel, resolveChatChannels, verifyVoiceTranscript } from '@/lib/chat-channels'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -34,7 +35,11 @@ import {
   parseCartSnapshot,
   resolveChatAbilities,
   runChatAgent,
+  startChatAgentStream,
+  type ChatAgentParams,
+  type ChatAgentResult,
 } from '@/lib/chat-agent'
+import { chatNdjsonResponse, wantsNdjson } from '@/lib/chat-stream'
 import { resolveOrderingMode } from '@/lib/chat-context'
 import { buildPublicChatPrompt } from '@/lib/chat-prompt'
 import { isStripeEnabled } from '@/lib/stripe'
@@ -102,7 +107,7 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
   }
   if (owned) {
     if (typeof conversation_id !== 'string') return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 })
-    return handleOwnedChatMessage(slug, conversation_id, userMessage, body)
+    return handleOwnedChatMessage(slug, conversation_id, userMessage, body, wantsNdjson(request))
   }
 
   const supabase = createServiceClient()
@@ -213,56 +218,70 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
   const systemPrompt = buildPublicChatPrompt({ tenantName: tenant.name, settingsRow, capabilities, catalog,
     locations: locations ?? [], zones: zones ?? [], onlinePayment, canAddToCart, body, abilities })
 
+  const modelId = resolveChatModel(settings.openrouter_model)
+  const agentParams = (choice: KeyChoice): ChatAgentParams => ({
+    model: openRouterModel(choice.apiKey, modelId, access.fetchFor(choice, modelId)),
+    system: systemPrompt,
+    messages: buildModelMessages([...(history ?? [])].reverse(), userMessage),
+    catalog,
+    ordersEnabled: abilities.orderingHelp,
+    cart: parseCartSnapshot(body?.cart),
+    callStaff: abilities.staffCall ? legacyStaffCaller({ supabase, tenantId: tenant.id, tableId: body?.table_id, conversationId: conversation_id }) : undefined,
+  })
+
+  // Persist user + assistant turns; bump conversation aggregates. Distinct
+  // timestamps keep the pair in order when the history is read back.
+  const persist = async (result: ChatAgentResult) => {
+    const now = Date.now()
+    await supabase.from('chat_messages').insert([
+      {
+        conversation_id: convo.id,
+        role: 'user',
+        content: userMessage,
+        created_at: new Date(now).toISOString(),
+      },
+      {
+        conversation_id: convo.id,
+        role: 'assistant',
+        content: assistantTurnForHistory(result.text, result.cartItems, result.cartChanges, result.staffCalled),
+        created_at: new Date(now + 1).toISOString(),
+        tokens_used: result.totalTokens,
+      },
+    ])
+    await supabase
+      .from('chat_conversations')
+      .update({
+        last_message_at: new Date(now + 1).toISOString(),
+        message_count: (convo.message_count ?? 0) + 2,
+      })
+      .eq('id', convo.id)
+    return {
+      text: result.text,
+      cart_items: result.cartItems,
+      cart_changes: result.cartChanges.map(({ line_id, quantity }) => ({ line_id, quantity })),
+      staff_called: result.staffCalled !== null,
+      remaining_today: Math.max(0, limit - used - 1),
+    }
+  }
+
+  if (wantsNdjson(request)) {
+    let started
+    try { started = await runAi(access, choice => startChatAgentStream(agentParams(choice))) }
+    catch (e) {
+      log.error('chat.generate_error', { err: e })
+      return NextResponse.json({ error: 'Assistant temporarily unavailable' }, { status: 502 })
+    }
+    return chatNdjsonResponse(started, async result => { await settleAiUsageRecords(); return persist(result) })
+  }
+
   let result
   try {
-    const modelId = resolveChatModel(settings.openrouter_model)
-    result = await runAi(access, choice => runChatAgent({
-      model: openRouterModel(choice.apiKey, modelId, access.fetchFor(choice, modelId)),
-      system: systemPrompt,
-      messages: buildModelMessages([...(history ?? [])].reverse(), userMessage),
-      catalog,
-      ordersEnabled: abilities.orderingHelp,
-      cart: parseCartSnapshot(body?.cart),
-      callStaff: abilities.staffCall ? legacyStaffCaller({ supabase, tenantId: tenant.id, tableId: body?.table_id, conversationId: conversation_id }) : undefined,
-    }))
+    result = await runAi(access, choice => runChatAgent(agentParams(choice)))
   } catch (e) {
     log.error('chat.generate_error', { err: e })
     return NextResponse.json({ error: 'Assistant temporarily unavailable' }, { status: 502 })
   }
-
-  // Persist user + assistant turns; bump conversation aggregates. Distinct
-  // timestamps keep the pair in order when the history is read back.
-  const now = Date.now()
-  await supabase.from('chat_messages').insert([
-    {
-      conversation_id: convo.id,
-      role: 'user',
-      content: userMessage,
-      created_at: new Date(now).toISOString(),
-    },
-    {
-      conversation_id: convo.id,
-      role: 'assistant',
-      content: assistantTurnForHistory(result.text, result.cartItems, result.cartChanges, result.staffCalled),
-      created_at: new Date(now + 1).toISOString(),
-      tokens_used: result.totalTokens,
-    },
-  ])
-  await supabase
-    .from('chat_conversations')
-    .update({
-      last_message_at: new Date(now + 1).toISOString(),
-      message_count: (convo.message_count ?? 0) + 2,
-    })
-    .eq('id', convo.id)
-
-  return NextResponse.json({
-    text: result.text,
-    cart_items: result.cartItems,
-    cart_changes: result.cartChanges.map(({ line_id, quantity }) => ({ line_id, quantity })),
-    staff_called: result.staffCalled !== null,
-    remaining_today: Math.max(0, limit - used - 1),
-  })
+  return NextResponse.json(await persist(result))
 }
 
 export const POST = withApi('POST /api/public/chat/[slug]', handlePOST)

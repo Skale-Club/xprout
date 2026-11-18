@@ -6,7 +6,7 @@
  * Everything here except loadMenuCatalog is pure or takes the model as a
  * parameter, so it is unit-tested without Supabase or a real LLM.
  */
-import { generateText, stepCountIs, tool, type LanguageModel, type ModelMessage, type ToolSet } from 'ai'
+import { generateText, stepCountIs, streamText, tool, type LanguageModel, type ModelMessage, type ToolSet } from 'ai'
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CartEditorState } from '@/components/menu/menu-utils'
@@ -661,7 +661,7 @@ export interface ChatAgentResult {
   totalTokens: number | null
 }
 
-export async function runChatAgent(params: {
+export interface ChatAgentParams {
   model: LanguageModel
   system: string
   messages: ModelMessage[]
@@ -672,8 +672,11 @@ export async function runChatAgent(params: {
   cart?: CartSnapshotItem[] | null
   /** callStaff is offered; performs the call (undefined = not offered). */
   callStaff?: (reason: StaffCallReason) => Promise<StaffCallOutcome>
-}): Promise<ChatAgentResult> {
-  const { model, system, messages, catalog, ordersEnabled, cart, callStaff } = params
+}
+
+/** The tools of one turn plus what they collected; shared by the JSON and the streaming agent. */
+function buildChatTools(params: ChatAgentParams) {
+  const { catalog, ordersEnabled, cart, callStaff } = params
   const cartItems: ResolvedCartItem[] = []
   const cartChanges: ResolvedCartLineChange[] = []
   let staffCalled: StaffCallReason | null = null
@@ -725,22 +728,114 @@ export async function runChatAgent(params: {
     })
   }
 
+  return { tools: Object.keys(tools).length ? tools : undefined, cartItems, cartChanges, staffCalled: () => staffCalled }
+}
+
+export async function runChatAgent(params: ChatAgentParams): Promise<ChatAgentResult> {
+  const { model, system, messages } = params
+  const built = buildChatTools(params)
+
   // Without stopWhen the SDK stops after the first step, so a turn that calls
   // addToCart would end before the model writes its reply.
   const result = await generateText({
     model,
     system,
     messages,
-    tools: Object.keys(tools).length ? tools : undefined,
+    tools: built.tools,
     stopWhen: stepCountIs(MAX_AGENT_STEPS),
     maxRetries: 1,
   })
 
   return {
     text: result.text.trim(),
-    cartItems,
-    cartChanges,
-    staffCalled,
+    cartItems: built.cartItems,
+    cartChanges: built.cartChanges,
+    staffCalled: built.staffCalled(),
     totalTokens: result.totalUsage?.totalTokens ?? null,
+  }
+}
+
+/** A running streamed turn: read textDeltas to the end, then finish() has the outcome. */
+export interface StartedChatStream {
+  /** Text as it is written; throws if the model call fails after it started. */
+  textDeltas: AsyncGenerator<string, void>
+  /** Valid once textDeltas is exhausted. */
+  finish: () => ChatAgentResult
+}
+
+/**
+ * Same turn as runChatAgent, streamed. Resolves only once the model has
+ * answered with something (text, a tool call or the end of a step), and
+ * rejects if the call failed before that, so runAi can still retry on the
+ * platform key before a single byte reaches the customer.
+ */
+export async function startChatAgentStream(params: ChatAgentParams): Promise<StartedChatStream> {
+  const { model, system, messages } = params
+  const built = buildChatTools(params)
+  const result = streamText({
+    model,
+    system,
+    messages,
+    tools: built.tools,
+    stopWhen: stepCountIs(MAX_AGENT_STEPS),
+    maxRetries: 1,
+    onError: () => {}, // errors arrive as 'error' parts, handled below
+  })
+
+  // What the guest sees streaming is what is returned and stored: every step's
+  // text in order, steps joined by one newline.
+  let fullText = ''
+  let stepHadText = false
+  let newStep = false
+  let totalTokens: number | null = null
+  const take = (text: string): string => {
+    if (!text) return ''
+    const join = newStep && stepHadText && fullText && !/\s$/.test(fullText) && !/^\s/.test(text) ? '\n' : ''
+    newStep = false
+    stepHadText = true
+    fullText += join + text
+    return join + text
+  }
+  const iterator = result.fullStream[Symbol.asyncIterator]()
+  const COMMIT = new Set(['text-delta', 'tool-call', 'tool-input-start', 'finish-step', 'finish'])
+
+  // Wait for the first part that proves the call was accepted.
+  const buffered: string[] = []
+  let ended = false
+  for (;;) {
+    const next = await iterator.next()
+    if (next.done) { ended = true; break }
+    const part = next.value
+    if (part.type === 'error') throw part.error
+    if (part.type === 'abort') throw new Error('Model stream aborted')
+    if (part.type === 'start-step') newStep = true
+    if (part.type === 'text-delta') { const out = take(part.text); if (out) buffered.push(out) }
+    if (part.type === 'finish') totalTokens = part.totalUsage?.totalTokens ?? null
+    if (COMMIT.has(part.type)) break
+  }
+
+  async function* textDeltas(): AsyncGenerator<string, void> {
+    yield* buffered
+    while (!ended) {
+      const next = await iterator.next()
+      if (next.done) return
+      const part = next.value
+      if (part.type === 'error') throw part.error
+      if (part.type === 'abort') throw new Error('Model stream aborted')
+      if (part.type === 'start-step') newStep = true
+      else if (part.type === 'text-delta') { const out = take(part.text); if (out) yield out }
+      else if (part.type === 'finish') totalTokens = part.totalUsage?.totalTokens ?? null
+    }
+  }
+
+  return {
+    textDeltas: textDeltas(),
+    finish: () => ({
+      text: fullText.trim(),
+      cartItems: built.cartItems,
+      cartChanges: built.cartChanges,
+      staffCalled: built.staffCalled(),
+      totalTokens,
+    }),
   }
 }

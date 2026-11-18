@@ -16,6 +16,7 @@ import PhoneField from '@/components/ui/PhoneField'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useVisibleBox } from '@/components/ui/keyboard-fields'
+import { createChatEventParser, type ChatStreamEvent } from '@/lib/chat-stream-protocol'
 
 interface Props {
   tenantSlug: string
@@ -115,6 +116,8 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  /** The assistant message whose text is still arriving (hides the typing dots). */
+  const [streamingId, setStreamingId] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
   const [recordSeconds, setRecordSeconds] = useState(0)
   const [transcribing, setTranscribing] = useState(false)
@@ -217,20 +220,59 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     setInput('')
     setSending(true)
 
-    const res = await fetch(`/api/public/chat/${tenantSlug}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // Only the new message: the server rebuilds the history from what it stored.
-      body: JSON.stringify({ conversation_id: conversationId, message: text.trim(), menu_id: menuId, location_id: locationId, table_id: tableId, voice_token: voiceToken, language, ...(cart ? { cart } : {}) }),
-    })
+    type ChatReply = { text: string; cart_items?: ResolvedCartItem[]; cart_changes?: Array<{ line_id: string; quantity: number }>; staff_called?: boolean; remaining_today: number }
+    const assistantId = crypto.randomUUID()
+    let data: ChatReply
+    try {
+      const res = await fetch(`/api/public/chat/${tenantSlug}`, {
+        method: 'POST',
+        // The server streams the reply when asked; an older server answers plain JSON.
+        headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json;q=0.9' },
+        // Only the new message: the server rebuilds the history from what it stored.
+        body: JSON.stringify({ conversation_id: conversationId, message: text.trim(), menu_id: menuId, location_id: locationId, table_id: tableId, voice_token: voiceToken, language, ...(cart ? { cart } : {}) }),
+      })
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error || copy.somethingWrong)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setError(err.error || copy.somethingWrong)
+        setSending(false)
+        return
+      }
+      if ((res.headers.get('content-type') ?? '').includes('application/x-ndjson') && res.body) {
+        const parser = createChatEventParser()
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let written = ''
+        const outcome: { final: ChatReply | null; failure: string | null } = { final: null, failure: null }
+        const handle = (event: ChatStreamEvent) => {
+          if (event.type === 'delta') {
+            written += event.text
+            const content = written
+            setStreamingId(assistantId)
+            setMessages((prev) => prev.some((m) => m.id === assistantId)
+              ? prev.map((m) => (m.id === assistantId ? { ...m, content } : m))
+              : [...prev, { id: assistantId, role: 'assistant', content }])
+          } else if (event.type === 'done') outcome.final = event
+          else outcome.failure = event.error
+        }
+        for (;;) {
+          const { done, value } = await reader.read()
+          if (done) break
+          parser.feed(decoder.decode(value, { stream: true })).forEach(handle)
+        }
+        parser.flush().forEach(handle)
+        if (!outcome.final) throw new Error(outcome.failure || 'stream ended early')
+        data = outcome.final
+      } else {
+        data = await res.json() as ChatReply
+      }
+    } catch {
+      // Whatever was written stays on screen; the turn was not confirmed.
+      setError(copy.somethingWrong)
+      setStreamingId(null)
       setSending(false)
       return
     }
-    const data = await res.json() as { text: string; cart_items?: ResolvedCartItem[]; cart_changes?: Array<{ line_id: string; quantity: number }>; staff_called?: boolean; remaining_today: number }
 
     // Apply cart items via parent callback. Options, editor state and unit
     // price were resolved by the server from the menu, exactly as the product
@@ -260,15 +302,17 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     }
 
     const assistantMsg: Message = {
-      id: crypto.randomUUID(),
+      id: assistantId,
       role: 'assistant',
       content: data.text,
       cartItems: addedItems.length ? addedItems : undefined,
       cartChanges: changedLines.length ? changedLines : undefined,
       staffCalled: data.staff_called === true ? true : undefined,
     }
-    setMessages((prev) => [...prev, assistantMsg])
+    // Replace the in-progress message (when text streamed in) with the final one.
+    setMessages((prev) => prev.some((m) => m.id === assistantId) ? prev.map((m) => (m.id === assistantId ? assistantMsg : m)) : [...prev, assistantMsg])
     setRemaining(data.remaining_today)
+    setStreamingId(null)
     setSending(false)
   }
 
@@ -514,7 +558,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
                 )}
               </div>
             ))}
-            {sending && (
+            {sending && !streamingId && (
               <div className="flex justify-start">
                 <div className="rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3.5" role="status" aria-label={copy.sending}>
                   <div className="flex gap-1">

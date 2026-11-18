@@ -8,7 +8,8 @@ vi.mock('@/lib/supabase/server', () => ({ createServiceClient: state.source }))
 vi.mock('@/lib/data/ai-access-runtime', () => ({ readOwnedPlatformAiRecord: state.platform, readOwnedTenantAiRecord: state.tenant, recordOwnedTenantAiKeyError: state.error, insertOwnedAiUsageRecord: state.usage }))
 vi.mock('@/lib/observability/context', () => ({ getRequestContext: () => ({ requestId: 'test-request' }) }))
 vi.mock('@/lib/observability/log', () => ({ log: { error: vi.fn(), warn: vi.fn() } }))
-import { loadPlatformAiSettings, loadTenantAiSettings, meteredFetch, recordAiUsage, runAi, type ResolvedAiAccess } from '@/lib/ai/access'
+import { loadPlatformAiSettings, loadTenantAiSettings, meteredFetch, recordAiUsage, runAi, settleAiUsageRecords, type ResolvedAiAccess } from '@/lib/ai/access'
+import { OPENROUTER_BASE_URL } from '@/lib/ai/openrouter'
 
 beforeEach(() => { vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', 'true'); vi.stubEnv('CHAT_ADDON_ENCRYPTION_KEY', randomBytes(32).toString('hex')) })
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.resetAllMocks() })
@@ -64,4 +65,34 @@ it('a demo company without AI settings still reports itself as a demo; any other
   expect(await readTenantAiRecord(vi.fn().mockResolvedValue({ rows: [{ has_settings: false, is_demo: true }] }), tenantId)).toMatchObject({ is_demo: true, billing_mode: null, openrouter_api_key: null })
   expect(await readTenantAiRecord(vi.fn().mockResolvedValue({ rows: [{ has_settings: false, is_demo: false }] }), tenantId)).toBeNull()
   expect(await readTenantAiRecord(vi.fn().mockResolvedValue({ rows: [] }), tenantId)).toBeNull()
+})
+const sse = (...chunks: unknown[]) => chunks.map(c => `data: ${typeof c === 'string' ? c : JSON.stringify(c)}\n\n`).join('')
+const streamResponse = (text: string) => new Response(new ReadableStream({ start(c) { const enc = new TextEncoder(); for (let i = 0; i < text.length; i += 7) c.enqueue(enc.encode(text.slice(i, i + 7))); c.close() } }), { headers: { 'content-type': 'text/event-stream' } })
+it('meters a streamed call once from the last chunk that carries usage, and the caller reads every byte', async () => {
+  state.usage.mockResolvedValue(undefined)
+  const wire = sse({ id: 'gen-1', model: 'm/x', choices: [{ delta: { content: 'Hi' } }] }, 'not json', { id: 'gen-1', model: 'm/x', choices: [], usage: { cost: 0.002, total_tokens: 9 } }, '[DONE]')
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(streamResponse(wire)))
+  const response = await meteredFetch(meta())('http://unit.invalid')
+  expect(await response.text()).toBe(wire)
+  await settleAiUsageRecords()
+  expect(state.usage).toHaveBeenCalledTimes(1)
+  expect(state.usage.mock.calls[0][0]).toMatchObject({ generation_id: 'gen-1', model: 'm/x', cost_usd: 0.002, markup_pct: 25, charge_usd: 0.0025 })
+})
+it('a stream without usage records zero cost and does not throw', async () => {
+  state.usage.mockResolvedValue(undefined)
+  const wire = sse({ id: 'gen-2', choices: [{ delta: { content: 'Hi' } }] }, '[DONE]')
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(streamResponse(wire)))
+  expect(await (await meteredFetch(meta())('http://unit.invalid')).text()).toBe(wire)
+  await settleAiUsageRecords()
+  expect(state.usage).toHaveBeenCalledTimes(1)
+  expect(state.usage.mock.calls[0][0]).toMatchObject({ cost_usd: 0, charge_usd: 0 })
+})
+it('asks OpenRouter for usage accounting on streaming chat requests only', async () => {
+  const fetchMock = vi.fn().mockImplementation(async () => new Response('{}', { headers: { 'content-type': 'text/plain' } }))
+  vi.stubGlobal('fetch', fetchMock)
+  const url = `${OPENROUTER_BASE_URL}/chat/completions`
+  await meteredFetch(meta())(url, { method: 'POST', body: JSON.stringify({ model: 'm', stream: true }) })
+  await meteredFetch(meta())(url, { method: 'POST', body: JSON.stringify({ model: 'm' }) })
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ stream: true, usage: { include: true } })
+  expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ model: 'm' })
 })
