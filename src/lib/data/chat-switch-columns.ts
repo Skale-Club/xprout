@@ -1,6 +1,6 @@
 /**
  * The assistant's per-restaurant switches arrive with one schema step
- * (docs/owned-schema/20261118100000_chat_feature_switches.sql), applied to the
+ * (docs/owned-schema/20261118110000_chat_feature_switches.sql), applied to the
  * owned database minutes AFTER the code that reads them deploys. Until then an
  * owned read that names a missing column would fail (and inside a transaction,
  * abort it), so each read asks first which of the columns exist and names only

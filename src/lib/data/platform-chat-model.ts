@@ -1,6 +1,6 @@
 /**
  * The platform's default chat model (platform_ai_settings.chat_model) arrives with the schema step
- * docs/owned-schema/20261118100000_chat_feature_switches.sql, applied to the owned database minutes AFTER the code
+ * docs/owned-schema/20261118110000_chat_feature_switches.sql, applied to the owned database minutes AFTER the code
  * that reads it deploys. Until then a read that names the column would fail (and inside a transaction, abort it), so
  * each read asks first whether the column exists and names it only then (missing = no default set = code default).
  * Writers use the same probe to answer 409 instead of failing with a 500. The column also marks the other half of

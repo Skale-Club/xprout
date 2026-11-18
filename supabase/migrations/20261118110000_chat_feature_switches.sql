@@ -5,7 +5,7 @@
 -- Chat model: the platform has a default (platform_ai_settings.chat_model, NULL = the code default) and may set a
 -- model per restaurant (chat_addon_settings.openrouter_model, NULL = follow the default). Restaurants no longer
 -- choose it. Every row holding an id that is not offered any more becomes NULL, so it follows the default.
--- Owned counterpart: docs/owned-schema/20261118100000_chat_feature_switches.sql.
+-- Owned counterpart: docs/owned-schema/20261118110000_chat_feature_switches.sql.
 BEGIN;
 SET LOCAL lock_timeout='2s';
 SET LOCAL statement_timeout='15s';

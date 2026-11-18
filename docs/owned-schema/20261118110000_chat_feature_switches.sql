@@ -1,7 +1,7 @@
 -- Each restaurant switches the AI assistant's abilities on or off: helping guests
 -- order (add/remove/change cart items), calling staff from a table link, and the
 -- suggested-question chips, and whether guests' chat history is kept (off for a shared tablet). Default true keeps every existing assistant as before.
--- Legacy counterpart: supabase/migrations/20261118100000_chat_feature_switches.sql.
+-- Legacy counterpart: supabase/migrations/20261118110000_chat_feature_switches.sql.
 --
 --   chat_addon_settings.ordering_help_enabled   true (default) = addToCart/updateCartItem offered
 --   chat_addon_settings.staff_call_enabled      true (default) = callStaff offered on table links
