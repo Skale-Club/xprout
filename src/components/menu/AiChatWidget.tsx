@@ -8,6 +8,7 @@ import type { CartEditorState } from './menu-utils'
 import { getProductImages } from './menu-utils'
 import type { CartSnapshotItem } from '@/lib/chat-agent'
 import { getGuestCopy } from './guest-copy'
+import { renderChatText } from './chat-text'
 import { fill, formatMoney, getMenuCopy } from './menu-i18n'
 import { ctaStyle, ui } from './menu-ui'
 import type { PhoneContext } from './showcase'
@@ -552,7 +553,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
                   <div className="flex w-full max-w-[88%] flex-col items-start gap-2">
                     {m.content && (
                       <div className={assistantBubble}>
-                        <p className="whitespace-pre-wrap">{m.content}</p>
+                        <p className="whitespace-pre-wrap">{renderChatText(m.content)}</p>
                       </div>
                     )}
                     {m.staffCalled && (
