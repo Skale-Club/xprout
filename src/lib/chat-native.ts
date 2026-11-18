@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { resolveAiAccess, runAi } from './ai/access'
+import { resolveChatModel } from './ai/chat-models'
 import { openRouterModel, OpenRouterError, transcribeWithOpenRouter, transcriptionModelId } from './ai/openrouter'
 import { assistantTurnForHistory, buildModelMessages, MAX_USER_MESSAGE_CHARS, runChatAgent } from './chat-agent'
 import { hasAnyChannel, resolveChatChannels, signVoiceTranscript, verifyVoiceTranscript } from './chat-channels'
@@ -35,7 +36,7 @@ export async function handleOwnedChatMessage(slug: string, conversationId: strin
     const system = buildPublicChatPrompt({ tenantName: context.tenant.name, ...context, body })
     let result
     try {
-      const modelId = context.configuration.openrouter_model || 'openai/gpt-4o-mini'
+      const modelId = resolveChatModel(context.configuration.openrouter_model)
       result = await runAi(access, choice => runChatAgent({ model: openRouterModel(choice.apiKey, modelId, access.fetchFor(choice, modelId)), system,
         messages: buildModelMessages([...context.history].reverse(), userMessage), catalog: context.catalog, ordersEnabled: context.canAddToCart }))
     } catch (error) {

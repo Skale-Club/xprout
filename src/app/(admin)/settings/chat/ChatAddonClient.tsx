@@ -4,16 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Bot, Sparkles, Mic, MessageSquare, AlertCircle, CheckCircle2, Save, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CHAT_MODELS, resolveChatModel } from '@/lib/ai/chat-models'
 
-const MODELS = [
-  { value: 'openai/gpt-4o-mini',                       label: 'GPT-4o mini — fast & cheap' },
-  { value: 'openai/gpt-4o',                            label: 'GPT-4o — high quality' },
-  { value: 'anthropic/claude-haiku-4.5',               label: 'Claude Haiku 4.5 — fast' },
-  { value: 'anthropic/claude-sonnet-4.5',              label: 'Claude Sonnet 4.5 — balanced' },
-  { value: 'google/gemini-2.5-flash',                  label: 'Gemini 2.5 Flash — fast' },
-  { value: 'meta-llama/llama-3.3-70b-instruct',        label: 'Llama 3.3 70B — open weight' },
-  { value: 'mistralai/mixtral-8x7b-instruct',          label: 'Mixtral 8x7B — open weight' },
-]
+const MODELS = CHAT_MODELS
 
 interface Status {
   available: boolean
@@ -34,7 +27,7 @@ interface Settings {
 export default function ChatAddonClient({ initialSettings, status }: { initialSettings: any; status: Status }) {
   const [form, setForm] = useState<Settings>({
     enabled: initialSettings?.enabled ?? false,
-    openrouter_model: initialSettings?.openrouter_model ?? 'openai/gpt-4o-mini',
+    openrouter_model: resolveChatModel(initialSettings?.openrouter_model),
     audio_enabled: initialSettings?.audio_enabled ?? false,
     text_enabled: initialSettings?.text_enabled ?? true,
     audio_provider: initialSettings?.audio_provider ?? 'whisper',

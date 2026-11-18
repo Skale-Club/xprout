@@ -1,6 +1,7 @@
 import { authorizeAdminActor, type AdminActorContext } from './admin-actor'
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import { readPublicChatAddon } from './public-chat-session'
+import { isChatModel } from '../ai/chat-models'
 
 export interface AdminChatContext extends AdminActorContext { tenantId: string }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -32,7 +33,10 @@ export async function writeAdminChatSettings(query: AdminMenuQuery, context: Adm
   await authorized(query, context, true)
   const body = object(input), patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
   for (const field of ['enabled', 'audio_enabled', 'text_enabled'] as const) if (typeof body[field] === 'boolean') patch[field] = body[field]
-  if (typeof body.openrouter_model === 'string') patch.openrouter_model = body.openrouter_model
+  if (typeof body.openrouter_model === 'string') {
+    if (!isChatModel(body.openrouter_model)) throw new AdminMenuError(400, 'Unsupported model')
+    patch.openrouter_model = body.openrouter_model
+  }
   if (body.audio_provider === null || body.audio_provider === 'whisper' || body.audio_provider === 'deepgram') patch.audio_provider = body.audio_provider
   if (typeof body.rate_limit_per_phone_per_day === 'number') {
     if (!Number.isFinite(body.rate_limit_per_phone_per_day)) throw new AdminMenuError(400, 'Invalid rate limit')

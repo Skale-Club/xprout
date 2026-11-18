@@ -141,6 +141,33 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     }
   }, [tenantSlug])
 
+  // Show what the server kept of this conversation (once per conversation id).
+  // A 4xx means the conversation is gone or blocked: forget it so the phone gate shows again.
+  const historyLoadedFor = useRef<string | null>(null)
+  useEffect(() => {
+    if (!conversationId || historyLoadedFor.current === conversationId) return
+    historyLoadedFor.current = conversationId
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/public/chat/${tenantSlug}/history?conversation_id=${encodeURIComponent(conversationId)}`)
+        if (historyLoadedFor.current !== conversationId) return
+        if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+          try { sessionStorage.removeItem(SESSION_KEY_PREFIX + tenantSlug) } catch { /* ignore */ }
+          historyLoadedFor.current = null
+          setConversationId(null)
+          return
+        }
+        if (!res.ok) return
+        const data = await res.json() as { messages?: Array<{ role: string; content: string }> }
+        const past: Message[] = (data.messages ?? [])
+          .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content)
+          .map((m) => ({ id: crypto.randomUUID(), role: m.role as 'user' | 'assistant', content: m.content }))
+        // Anything sent while the request was in flight stays after the stored turns.
+        if (past.length) setMessages((prev) => [...past, ...prev])
+      } catch { /* the greeting shows as before */ }
+    })()
+  }, [conversationId, tenantSlug])
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -211,8 +238,6 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
         addedItems.push({ name: item.name, quantity: item.quantity, unitPrice: item.unit_price, image: getProductImages(product)[0] })
       }
     }
-
-    if (addedItems.length) onOpenCart?.()
 
     const assistantMsg: Message = {
       id: crypto.randomUUID(),

@@ -18,6 +18,7 @@
  */
 import { NextResponse } from 'next/server'
 import { openRouterModel } from '@/lib/ai/openrouter'
+import { resolveChatModel } from '@/lib/ai/chat-models'
 import { resolveAiAccess, runAi } from '@/lib/ai/access'
 import { getTenantCapabilities } from '@/lib/tenant-plan'
 import { hasAnyChannel, resolveChatChannels, verifyVoiceTranscript } from '@/lib/chat-channels'
@@ -206,7 +207,7 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
 
   let result
   try {
-    const modelId = settings.openrouter_model || 'openai/gpt-4o-mini'
+    const modelId = resolveChatModel(settings.openrouter_model)
     result = await runAi(access, choice => runChatAgent({
       model: openRouterModel(choice.apiKey, modelId, access.fetchFor(choice, modelId)),
       system: systemPrompt,

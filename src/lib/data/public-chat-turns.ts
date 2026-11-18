@@ -107,6 +107,11 @@ export async function readPublicChatTurn(query: AdminMenuQuery, slug: string, co
   const connections = canAddToCart && capabilities.plan.stripe ? await rows<Row>(query, 'SELECT stripe_account_id FROM public.stripe_connections WHERE tenant_id=$1 AND is_active=true LIMIT 2', [tenant.id], 2) : []
   return { ...admitted, settingsRow, capabilities, canAddToCart, used, catalog, history, locations, zones, onlinePayment: connections.length === 1 }
 }
+/** Last HISTORY_LIMIT turns for the widget (newest first); same admission as a message, no key or catalog reads. */
+export async function readPublicChatHistory(query: AdminMenuQuery, slug: string, conversationId: string) {
+  const { tenant, conversation } = await admission(query, slug, conversationId)
+  return rows<{ role: string; content: string }>(query, `SELECT m.role,m.content FROM public.chat_messages m JOIN public.chat_conversations c ON c.id=m.conversation_id WHERE m.conversation_id=$1 AND c.tenant_id=$2 ORDER BY m.created_at DESC LIMIT ${HISTORY_LIMIT}`, [conversation.id, tenant.id], HISTORY_LIMIT)
+}
 export async function readPublicChatAudio(query: AdminMenuQuery, slug: string, conversationId: string) {
   const result = await admission(query, slug, conversationId, true)
   if (!result.configuration.audio_enabled) throw new AdminMenuError(503, 'Audio not configured')

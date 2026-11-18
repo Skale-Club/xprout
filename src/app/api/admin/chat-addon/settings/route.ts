@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { getEffectiveTenant } from '@/lib/get-effective-tenant'
 import { createServiceClient } from '@/lib/supabase/server'
+import { isChatModel } from '@/lib/ai/chat-models'
 import { getChatAddonStatus } from '@/lib/chat-addon'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
@@ -68,7 +69,10 @@ async function handlePUT(request: Request) {
   const supabase = createServiceClient()
   const payload: Record<string, unknown> = { tenant_id: effective.tenantId, updated_at: new Date().toISOString() }
   if (typeof enabled === 'boolean') payload.enabled = enabled
-  if (typeof openrouter_model === 'string') payload.openrouter_model = openrouter_model
+  if (typeof openrouter_model === 'string') {
+    if (!isChatModel(openrouter_model)) return NextResponse.json({ error: 'Unsupported model' }, { status: 400 })
+    payload.openrouter_model = openrouter_model
+  }
   if (typeof audio_enabled === 'boolean') payload.audio_enabled = audio_enabled
   if (typeof text_enabled === 'boolean') payload.text_enabled = text_enabled
   if (audio_provider === null || audio_provider === 'whisper' || audio_provider === 'deepgram') {

@@ -517,6 +517,25 @@ export function assistantTurnForHistory(text: string, items: ResolvedCartItem[])
   return `${text}${text ? '\n' : ''}[Added to cart: ${summary}]`
 }
 
+const CART_MARKER = /\n?\[Added to cart: .*\]\s*$/s
+
+export interface DisplayMessage { role: 'user' | 'assistant'; content: string }
+
+/**
+ * Stored rows (newest first, as the history queries return them) as the
+ * widget shows them: oldest first, only the human text (the internal
+ * "[Added to cart: ...]" annotation is dropped), nothing empty.
+ */
+export function historyForDisplay(rowsNewestFirst: StoredMessage[]): DisplayMessage[] {
+  const out: DisplayMessage[] = []
+  for (const row of [...rowsNewestFirst].reverse()) {
+    if (row.role !== 'user' && row.role !== 'assistant') continue
+    const content = (row.role === 'assistant' ? (row.content ?? '').replace(CART_MARKER, '') : row.content ?? '').trim()
+    if (content) out.push({ role: row.role, content })
+  }
+  return out.slice(-HISTORY_LIMIT)
+}
+
 // ── Running the agent ──────────────────────────────────────────────────────
 
 /** Room for: addToCart → (rejected) retry → final answer. */
