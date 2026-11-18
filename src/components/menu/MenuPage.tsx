@@ -1489,8 +1489,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         const footerNav = navigationLinks.filter(link => link.kind !== 'menu' && !(canonicalBaseUrl && menu?.slug && link.href.startsWith(`${canonicalBaseUrl}/${menu.slug}/`)))
         const actionIcon = 'size-5'
         return (
-          <footer className="mt-8" style={{ marginBottom: showOrderBar ? 88 : 0 }}>
-            <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
+          <footer style={{ marginBottom: showOrderBar ? 88 : 0 }}>
+            <div className="mx-auto max-w-5xl px-5 pt-8 pb-8 sm:px-8 sm:pb-10">
               <section aria-label={copy.contactTitle} className="rounded-3xl bg-white p-5 shadow-card sm:p-7">
                 {/* The page's h1 already names the restaurant: the section heading stays for screen readers
                     and the name below is plain text, so there is one heading with the restaurant's name. */}
