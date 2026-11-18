@@ -49,6 +49,7 @@ export function asStagingPreview<T extends Omit<PublicMenuData, 'table' | 'priva
     chatAddonAudioEnabled: false,
     chatAddonTextEnabled: false,
     chatAddonSuggestionsEnabled: false,
+    chatAddonHistoryEnabled: true,
   }
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

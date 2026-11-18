@@ -2,10 +2,11 @@ import { authorizeAdminActor, type AdminActorContext } from './admin-actor'
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import { readPublicChatAddon } from './public-chat-session'
 import { isChatModel } from '../ai/chat-models'
+import { CHAT_SWITCH_COLUMNS, chatSelectColumns, presentChatSwitchColumnsFor } from './chat-switch-columns'
 
 export interface AdminChatContext extends AdminActorContext { tenantId: string }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const SETTINGS = 'tenant_id,enabled,openrouter_model,audio_enabled,text_enabled,ordering_help_enabled,staff_call_enabled,suggestions_enabled,audio_provider,rate_limit_per_phone_per_day,created_at,updated_at'
+const SETTINGS = 'tenant_id,enabled,openrouter_model,audio_enabled,text_enabled,audio_provider,rate_limit_per_phone_per_day,created_at,updated_at'
 const CONVERSATION = 'id,tenant_id,phone_hash,started_at,last_message_at,message_count,status,admin_note'
 const dateValues = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, value instanceof Date ? value.toISOString() : value]))
 async function authorized(query: AdminMenuQuery, context: AdminChatContext, write = false) {
@@ -25,14 +26,23 @@ async function conversation(query: AdminMenuQuery, context: AdminChatContext, co
 }
 export async function readAdminChatSettings(query: AdminMenuQuery, context: AdminChatContext) {
   await authorized(query, context)
-  const result = await query(`SELECT ${SETTINGS} FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`, [context.tenantId])
+  // The switch columns are named only once the schema step created them.
+  const columns = chatSelectColumns(SETTINGS, await presentChatSwitchColumnsFor(query))
+  const result = await query(`SELECT ${columns} FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`, [context.tenantId])
   if (result.rows.length > 1) throw new AdminMenuError(503, 'Settings unavailable')
   return { settings: result.rows[0] ? dateValues(result.rows[0]) : null, status: (await readPublicChatAddon(query, context.tenantId)).status }
 }
 export async function writeAdminChatSettings(query: AdminMenuQuery, context: AdminChatContext, input: unknown) {
   await authorized(query, context, true)
   const body = object(input), patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
-  for (const field of ['enabled', 'audio_enabled', 'text_enabled', 'ordering_help_enabled', 'staff_call_enabled', 'suggestions_enabled'] as const) if (typeof body[field] === 'boolean') patch[field] = body[field]
+  for (const field of ['enabled', 'audio_enabled', 'text_enabled'] as const) if (typeof body[field] === 'boolean') patch[field] = body[field]
+  const wanted = CHAT_SWITCH_COLUMNS.filter(field => typeof body[field] === 'boolean')
+  if (wanted.length) {
+    // The restaurant is saving a switch before the schema step ran: say so instead of failing with a 500.
+    const present = await presentChatSwitchColumnsFor(query)
+    if (wanted.some(field => !present.has(field))) throw new AdminMenuError(409, 'Settings not available yet, try again in a few minutes')
+    for (const field of wanted) patch[field] = body[field]
+  }
   if (typeof body.openrouter_model === 'string') {
     if (!isChatModel(body.openrouter_model)) throw new AdminMenuError(400, 'Unsupported model')
     patch.openrouter_model = body.openrouter_model

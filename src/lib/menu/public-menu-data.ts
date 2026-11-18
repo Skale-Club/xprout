@@ -87,6 +87,8 @@ export interface PublicMenuData {
   chatAddonTextEnabled: boolean
   /** Suggested-question chips in the chat (chat_addon_settings.suggestions_enabled). */
   chatAddonSuggestionsEnabled: boolean
+  /** The widget keeps the guest's conversation (chat_addon_settings.history_enabled); off for a shared tablet. */
+  chatAddonHistoryEnabled: boolean
   /** The ?table= row when guests can order to it or call a waiter from it. */
   table: { id: string; name: string } | null
   /** menu.is_private and checkPrivateAccess() said yes. */
@@ -149,7 +151,7 @@ async function loadPublicMenuFromSource(source: 'legacy' | 'owned-v1', slug: str
     // SEED-024: chat addon status for the widget
     getChatAddonStatus(tenant.id),
     // One tiny row; fetched up front and dropped below when the addon is off.
-    supabase.from('chat_addon_settings').select('audio_enabled, text_enabled, suggestions_enabled').eq('tenant_id', tenant.id).maybeSingle(),
+    supabase.from('chat_addon_settings').select('audio_enabled, text_enabled, suggestions_enabled, history_enabled').eq('tenant_id', tenant.id).maybeSingle(),
     // Every active table: the ?table= of a link is picked from this list per request.
     supabase.from('restaurant_tables').select('id, name').eq('tenant_id', tenant.id).eq('is_active', true),
     // Delivery zones for zone-based checkout pricing; kept below only when guests can order delivery.
@@ -237,6 +239,7 @@ async function loadPublicMenuFromSource(source: 'legacy' | 'owned-v1', slug: str
     chatAddonAudioEnabled: chatChannels.voice,
     chatAddonTextEnabled: chatChannels.text,
     chatAddonSuggestionsEnabled: (chatSettings as { suggestions_enabled?: boolean | null } | null)?.suggestions_enabled !== false,
+    chatAddonHistoryEnabled: (chatSettings as { history_enabled?: boolean | null } | null)?.history_enabled !== false,
     tables,
   }
 }

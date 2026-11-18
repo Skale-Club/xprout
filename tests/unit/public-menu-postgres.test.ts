@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import type pg from 'pg'
-import { PUBLIC_MENU_COLUMNS, publicMenuSource, readOwnedPublicMenu, resetChatSuggestionsProbe, type PublicMenuQuery } from '@/lib/data/public-menu'
+import { PUBLIC_MENU_COLUMNS, publicMenuSource, readOwnedPublicMenu, type PublicMenuQuery } from '@/lib/data/public-menu'
+import { CHAT_SWITCH_COLUMNS, resetChatSwitchProbe } from '@/lib/data/chat-switch-columns'
 import { createPublicMenuPool, readPublicMenuSnapshot } from '@/lib/data/public-menu-runtime'
 
 const tenantId = randomUUID(), menuId = randomUUID(), productId = randomUUID(), groupId = randomUUID()
@@ -18,6 +19,8 @@ function fixture(patch: Record<string, unknown[]> = {}) {
   const queries: Array<{ text: string; values: unknown[] }> = []
   const query: PublicMenuQuery = async (text, values = []) => {
     queries.push({ text, values })
+    // Chat switch columns probe: none exist unless a test says so.
+    if (text.includes("'columns'")) return { rows: [{ row: { columns: [] } }] }
     // Readability probe of the optional AR table: readable when the fixture has it.
     if (text.includes("'readable'")) return { rows: [{ row: { readable: 'product_ar_models' in data, scale: 'ar_scale_column' in data } }] }
     // Column probes (tenants.subdomain, menu staging): present when the fixture says so.
@@ -31,12 +34,12 @@ function fixture(patch: Record<string, unknown[]> = {}) {
 
 describe('independent PostgreSQL public catalog', () => {
   it('reads the suggestions switch only once the column exists, and remembers only a positive probe', async () => {
-    resetChatSuggestionsProbe()
+    resetChatSwitchProbe()
     const base = fixture({ chat_addon_settings: [{ enabled: true, audio_enabled: true, text_enabled: true, suggestions_enabled: false }] }).query
     let columnExists = false
     const chatSql: string[] = [], probes: string[] = []
     const query: PublicMenuQuery = async (text, values) => {
-      if (text.includes('information_schema.columns') && text.includes("'suggestions_enabled'")) { probes.push(text); return { rows: [{ row: { ready: columnExists } }] } }
+      if (text.includes("'columns'")) { probes.push(text); return { rows: [{ row: { columns: columnExists ? [...CHAT_SWITCH_COLUMNS] : [] } }] } }
       if (text.includes('FROM public.chat_addon_settings')) {
         chatSql.push(text)
         // Like the database: a column the SQL does not name is not in the row.
@@ -57,7 +60,7 @@ describe('independent PostgreSQL public catalog', () => {
     expect(probes).toHaveLength(2)
     await readOwnedPublicMenu(query, 'restaurant', undefined)
     expect(probes).toHaveLength(2)
-    resetChatSuggestionsProbe()
+    resetChatSwitchProbe()
   })
   it('delivers an optional saved review destination to the public footer only after schema readiness', async () => {
     const { query } = fixture()
@@ -91,7 +94,7 @@ describe('independent PostgreSQL public catalog', () => {
     expect(result.productMediaByProductId[productId]).toHaveLength(1)
     expect(result.productArModelByProductId).toEqual({})
     expect(queries.some(item => /FROM public\.product_ar_models\b/.test(item.text))).toBe(false)
-    for (const { text, values } of queries.filter(item => !/FROM public\.(tenants|platform_settings)\b/.test(item.text) && !item.text.includes("'readable'") && !item.text.includes("'ready'"))) {
+    for (const { text, values } of queries.filter(item => !/FROM public\.(tenants|platform_settings)\b/.test(item.text) && !item.text.includes("'readable'") && !item.text.includes("'ready'") && !item.text.includes("'columns'"))) {
       expect(values[0]).toBe(tenantId)
       expect(text).toContain('$1')
     }

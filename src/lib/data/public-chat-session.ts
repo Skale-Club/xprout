@@ -1,5 +1,6 @@
 import { hashPhone } from '../crypto'
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
+import { presentChatSwitchColumnsFor, switchOn } from './chat-switch-columns'
 
 function unique(rows: Record<string, unknown>[]) {
   if (rows.length > 1) throw new AdminMenuError(503, 'Chat information is unavailable')
@@ -36,6 +37,21 @@ export async function createPublicChatSession(query: AdminMenuQuery, slug: strin
   const blocked = unique((await query(`SELECT id FROM public.chat_blocked_phones WHERE tenant_id=$1 AND phone_hash=$2 LIMIT 2`, [tenant.id, phoneHash])).rows)
   if (blocked) throw new AdminMenuError(403, 'This number is not allowed to use the assistant')
   const start = new Date(now); start.setUTCHours(0, 0, 0, 0)
+  // history_enabled off (a shared tablet): never reuse an earlier conversation; each
+  // session starts from zero. Limits and the blocklist above/below still go by phone hash.
+  // The column may not exist yet (schema step runs after deploy): missing = on.
+  let historyOn = true
+  if ((await presentChatSwitchColumnsFor(query)).has('history_enabled')) {
+    historyOn = switchOn(unique((await query(`SELECT history_enabled FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`, [tenant.id])).rows)?.history_enabled)
+  }
+  if (!historyOn) {
+    const inserted = await query(`INSERT INTO public.chat_conversations(tenant_id,phone_hash) VALUES($1,$2) RETURNING id`, [tenant.id, phoneHash])
+    if (inserted.rows.length !== 1) throw new AdminMenuError(503, 'Failed to create conversation')
+    // The daily allowance is per phone, whatever conversation the messages were in.
+    const used = await query(`SELECT count(*)::int AS used FROM public.chat_messages m JOIN public.chat_conversations c ON c.id=m.conversation_id
+      WHERE c.tenant_id=$1 AND c.phone_hash=$2 AND m.role='user' AND m.created_at>=$3`, [tenant.id, phoneHash, new Date(now.getTime() - 86400000).toISOString()])
+    return { conversation_id: inserted.rows[0].id, rate_limit: rateLimit, messages_today: Number(used.rows[0]?.used) || 0 }
+  }
   const existing = unique((await query(`SELECT id,message_count FROM public.chat_conversations
     WHERE tenant_id=$1 AND phone_hash=$2 AND started_at>=$3 ORDER BY started_at DESC LIMIT 1`, [tenant.id, phoneHash, start.toISOString()])).rows)
   if (existing) return { conversation_id: existing.id, rate_limit: rateLimit, messages_today: existing.message_count ?? 0 }

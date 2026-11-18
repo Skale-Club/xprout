@@ -19,6 +19,7 @@ const fixture = (existing = false) => vi.fn()
   .mockResolvedValueOnce({ rows: [{ enabled: true, rate_limit_per_phone_per_day: 20 }] })
   .mockResolvedValueOnce({ rows: [] }) // advisory lock
   .mockResolvedValueOnce({ rows: [] }) // blocklist
+  .mockResolvedValueOnce({ rows: [] }) // switch-column probe: history_enabled absent = on
   .mockResolvedValueOnce({ rows: existing ? [{ id: conversationId, message_count: 6 }] : [] })
   .mockResolvedValueOnce({ rows: [{ id: conversationId }] })
 
@@ -27,14 +28,14 @@ it('uses only tenant-scoped phone hashes in SQL and applies the exact UTC-day bo
   expect(await createPublicChatSession(query, 'restaurant', phone, now)).toEqual({ conversation_id: conversationId, rate_limit: 20, messages_today: 0 })
   const hashed = hashPhone('12025550101', tenantId)
   expect(query.mock.calls[4][1]).toEqual([tenantId, hashed])
-  expect(query.mock.calls[5][1]).toEqual([tenantId, hashed, '2026-11-04T00:00:00.000Z'])
-  expect(query.mock.calls[6][1]).toEqual([tenantId, hashed])
+  expect(query.mock.calls[6][1]).toEqual([tenantId, hashed, '2026-11-04T00:00:00.000Z'])
+  expect(query.mock.calls[7][1]).toEqual([tenantId, hashed])
   expect(JSON.stringify(query.mock.calls)).not.toContain('12025550101')
 })
 it('reuses the latest conversation and preserves its message-count acknowledgement', async () => {
   const query = fixture(true)
   expect(await createPublicChatSession(query, 'restaurant', phone)).toEqual({ conversation_id: conversationId, rate_limit: 20, messages_today: 6 })
-  expect(query).toHaveBeenCalledTimes(6)
+  expect(query).toHaveBeenCalledTimes(7)
 })
 it('preserves plan/addon force-on, force-off and settings combinations', async () => {
   for (const [available, active, override, enabled, expected] of [

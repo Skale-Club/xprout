@@ -141,6 +141,7 @@ interface Props {
   /** Typed messages in the AI chat (the restaurant can allow voice notes only). */
   chatAddonTextEnabled?: boolean
   chatAddonSuggestionsEnabled?: boolean
+  chatAddonHistoryEnabled?: boolean
   /**
    * What the plan and the restaurant allow right now (service-modes.ts
    * TenantCapabilities): guest ordering, order types, tips, notes, ingredients,
@@ -171,7 +172,7 @@ function getTranslatedMenuField(
   return typeof value === 'string' && value.trim() ? value : fallback
 }
 
-export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, chatAddonSuggestionsEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null, dishPage }: Props) {
+export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, chatAddonSuggestionsEnabled = true, chatAddonHistoryEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null, dishPage }: Props) {
   const router = useRouter()
   const onDishPage = dishPage !== undefined && dishPage !== null
   const [feedPreview, setFeedPreview] = useState(false)
@@ -1693,6 +1694,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           audioEnabled={chatAddonAudioEnabled}
           textEnabled={chatAddonTextEnabled}
           suggestionsEnabled={chatAddonSuggestionsEnabled}
+          historyEnabled={chatAddonHistoryEnabled}
           products={baseProducts}
           onAddToCart={(product, options, unitPrice, note, mods, editorState) => { if (directOrdersEnabled) addToCart(product, options, unitPrice, note, mods, editorState, undefined, 1, 'chat') }}
           menuId={menu?.id ?? null}

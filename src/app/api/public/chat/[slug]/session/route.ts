@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPhone } from '@/lib/crypto'
-import { getChatAddonStatus } from '@/lib/chat-addon'
+import { countMessagesLast24h, getChatAddonStatus } from '@/lib/chat-addon'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
 import { adminMenusOwned, AdminMenuError } from '@/lib/data/admin-menus'
@@ -67,19 +67,34 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
     return NextResponse.json({ error: 'This number is not allowed to use the assistant' }, { status: 403 })
   }
 
-  // One conversation per phone per UTC day
+  // Addon settings: the daily allowance, and whether the guest's conversation is kept.
+  // history_enabled off (a shared tablet) = every session starts from zero.
+  const settingsRead = await supabase
+    .from('chat_addon_settings')
+    .select('rate_limit_per_phone_per_day, history_enabled')
+    .eq('tenant_id', tenant.id)
+    .maybeSingle()
+  // The column may not exist yet: read what always exists and keep history on.
+  const settings = settingsRead.error
+    ? (await supabase.from('chat_addon_settings').select('rate_limit_per_phone_per_day').eq('tenant_id', tenant.id).maybeSingle()).data
+    : settingsRead.data
+  const keepHistory = (settings as { history_enabled?: boolean | null } | null)?.history_enabled !== false
+
+  // One conversation per phone per UTC day (a new one every session when history is off)
   const startOfDay = new Date()
   startOfDay.setUTCHours(0, 0, 0, 0)
 
-  const { data: existing } = await supabase
-    .from('chat_conversations')
-    .select('id, message_count')
-    .eq('tenant_id', tenant.id)
-    .eq('phone_hash', phoneHash)
-    .gte('started_at', startOfDay.toISOString())
-    .order('started_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const { data: existing } = keepHistory
+    ? await supabase
+      .from('chat_conversations')
+      .select('id, message_count')
+      .eq('tenant_id', tenant.id)
+      .eq('phone_hash', phoneHash)
+      .gte('started_at', startOfDay.toISOString())
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    : { data: null }
 
   let conversationId = existing?.id ?? null
   if (!conversationId) {
@@ -95,17 +110,11 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
     conversationId = inserted.id
   }
 
-  // Rate limit info
-  const { data: settings } = await supabase
-    .from('chat_addon_settings')
-    .select('rate_limit_per_phone_per_day')
-    .eq('tenant_id', tenant.id)
-    .maybeSingle()
-
   return NextResponse.json({
     conversation_id: conversationId,
     rate_limit: settings?.rate_limit_per_phone_per_day ?? 30,
-    messages_today: existing?.message_count ?? 0,
+    // Without history the new conversation is empty, but the allowance is per phone.
+    messages_today: keepHistory ? existing?.message_count ?? 0 : await countMessagesLast24h(supabase, tenant.id, phoneHash),
   })
 }
 

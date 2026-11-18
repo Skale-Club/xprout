@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { Bot, Sparkles, Mic, MessageSquare, ShoppingCart, BellRing, Lightbulb, AlertCircle, CheckCircle2, Save, ChevronRight } from 'lucide-react'
+import { Bot, Sparkles, Mic, MessageSquare, ShoppingCart, BellRing, Lightbulb, History, AlertCircle, CheckCircle2, Save, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CHAT_MODELS, resolveChatModel } from '@/lib/ai/chat-models'
 
@@ -23,6 +23,7 @@ interface Settings {
   ordering_help_enabled: boolean
   staff_call_enabled: boolean
   suggestions_enabled: boolean
+  history_enabled: boolean
   audio_provider: 'whisper' | 'deepgram' | null
   rate_limit_per_phone_per_day: number
 }
@@ -42,6 +43,7 @@ export default function ChatAddonClient({ initialSettings, status, abilityAccess
     ordering_help_enabled: initialSettings?.ordering_help_enabled ?? true,
     staff_call_enabled: initialSettings?.staff_call_enabled ?? true,
     suggestions_enabled: initialSettings?.suggestions_enabled ?? true,
+    history_enabled: initialSettings?.history_enabled ?? true,
     audio_provider: initialSettings?.audio_provider ?? 'whisper',
     rate_limit_per_phone_per_day: initialSettings?.rate_limit_per_phone_per_day ?? 30,
   })
@@ -268,6 +270,13 @@ export default function ChatAddonClient({ initialSettings, status, abilityAccess
             description="Shows quick question buttons when a guest opens an empty chat."
             checked={form.suggestions_enabled}
             onChange={() => setForm(f => ({ ...f, suggestions_enabled: !f.suggestions_enabled }))}
+          />
+          <AbilityToggle
+            icon={<History className="w-4 h-4" />}
+            label="Keep guests' chat history (turn off for a shared tablet)"
+            description="Off: every session starts from zero (the chat clears on close, reload and after 5 idle minutes). Your inbox keeps the conversations either way."
+            checked={form.history_enabled}
+            onChange={() => setForm(f => ({ ...f, history_enabled: !f.history_enabled }))}
           />
         </div>
 

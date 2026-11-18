@@ -227,6 +227,7 @@ export default async function PublicMenuSlugPage({ params, searchParams }: Props
       chatAddonAudioEnabled={data.chatAddonAudioEnabled}
       chatAddonTextEnabled={data.chatAddonTextEnabled}
       chatAddonSuggestionsEnabled={data.chatAddonSuggestionsEnabled}
+      chatAddonHistoryEnabled={data.chatAddonHistoryEnabled}
       capabilities={capabilities}
       pageLinks={pageLinks}
       navigationLinks={navigation}

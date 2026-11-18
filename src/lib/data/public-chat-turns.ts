@@ -5,6 +5,7 @@ import { resolveTenantCapabilities } from '../service-modes'
 import { resolveOrderingMode } from '../chat-context'
 import type { ChatLocation, ChatSettings } from '../chat-prompt'
 import { resolveChatChannels } from '../chat-channels'
+import { chatSelectColumns, presentChatSwitchColumnsFor, switchOn } from './chat-switch-columns'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 type Row = Record<string, unknown>
@@ -23,7 +24,7 @@ export class ChatLimitError extends AdminMenuError {
 // Same fixed context columns requested by the legacy message route; no keys.
 const SETTINGS = 'orders_enabled,direct_orders_enabled,whatsapp_orders_enabled,dine_in_enabled,pickup_enabled,pickup_eta_minutes,delivery_enabled,delivery_fee_cents,tips_enabled,currency,address,city,region,postal_code,country,phone,whatsapp,instagram,business_hours,business_type,tagline,about,price_range'
 type Conversation = { id: string; tenant_id: string; phone_hash: string; status: string; message_count: number }
-type ChatConfiguration = { openrouter_model: string | null; rate_limit_per_phone_per_day: number | null; text_enabled: boolean | null; audio_enabled: boolean | null; audio_provider: string | null; ordering_help_enabled: boolean | null; staff_call_enabled: boolean | null }
+type ChatConfiguration = { openrouter_model: string | null; rate_limit_per_phone_per_day: number | null; text_enabled: boolean | null; audio_enabled: boolean | null; audio_provider: string | null; ordering_help_enabled?: boolean | null; staff_call_enabled?: boolean | null; history_enabled?: boolean | null }
 
 async function admission(query: AdminMenuQuery, slug: string, conversationId: string, audio = false, lock = false) {
   if (!UUID.test(conversationId)) throw new AdminMenuError(400, 'Invalid conversation')
@@ -46,7 +47,9 @@ async function admission(query: AdminMenuQuery, slug: string, conversationId: st
   if (conversation.status === 'blocked') throw new AdminMenuError(audio ? 400 : 403, audio ? 'Invalid conversation' : 'Conversation has been blocked')
   const blocked = await rows<Row>(query, 'SELECT id FROM public.chat_blocked_phones WHERE tenant_id=$1 AND phone_hash=$2 LIMIT 2', [tenant.id, conversation.phone_hash], 1)
   if (blocked.length) throw new AdminMenuError(403, 'This number is blocked')
-  const configuration = one(await rows<ChatConfiguration>(query, `SELECT openrouter_model,rate_limit_per_phone_per_day,text_enabled,audio_enabled,audio_provider,ordering_help_enabled,staff_call_enabled FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`, [tenant.id], 1))
+  // The switch columns are named only once the schema step created them (missing = on).
+  const columns = chatSelectColumns('openrouter_model,rate_limit_per_phone_per_day,text_enabled,audio_enabled,audio_provider', await presentChatSwitchColumnsFor(query), ['ordering_help_enabled', 'staff_call_enabled', 'history_enabled'])
+  const configuration = one(await rows<ChatConfiguration>(query, `SELECT ${columns} FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`, [tenant.id], 1))
   if (!configuration) throw new AdminMenuError(503, audio ? 'Audio not configured' : 'AI assistant not configured')
   const limit = configuration.rate_limit_per_phone_per_day ?? 30
   if (!Number.isInteger(limit) || limit < 1 || limit > 500) throw new AdminMenuError(503, 'AI assistant not configured')
@@ -109,7 +112,9 @@ export async function readPublicChatTurn(query: AdminMenuQuery, slug: string, co
 }
 /** Last HISTORY_LIMIT turns for the widget (newest first); same admission as a message, no key or catalog reads. */
 export async function readPublicChatHistory(query: AdminMenuQuery, slug: string, conversationId: string) {
-  const { tenant, conversation } = await admission(query, slug, conversationId)
+  const { tenant, conversation, configuration } = await admission(query, slug, conversationId)
+  // A shared tablet: nothing from an earlier session is ever handed back.
+  if (!switchOn(configuration.history_enabled)) return []
   return rows<{ role: string; content: string }>(query, `SELECT m.role,m.content FROM public.chat_messages m JOIN public.chat_conversations c ON c.id=m.conversation_id WHERE m.conversation_id=$1 AND c.tenant_id=$2 ORDER BY m.created_at DESC LIMIT ${HISTORY_LIMIT}`, [conversation.id, tenant.id], HISTORY_LIMIT)
 }
 export async function readPublicChatAudio(query: AdminMenuQuery, slug: string, conversationId: string) {

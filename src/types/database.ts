@@ -501,6 +501,8 @@ export interface ChatAddonSettings {
   ordering_help_enabled: boolean
   staff_call_enabled: boolean
   suggestions_enabled: boolean
+  /** The widget keeps the guest's conversation; off = every session starts from zero. */
+  history_enabled: boolean
   audio_provider: 'whisper' | 'deepgram' | null
   audio_api_key: string | null              // encrypted ciphertext at rest
   rate_limit_per_phone_per_day: number

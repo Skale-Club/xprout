@@ -201,6 +201,7 @@ export default async function DishPage({ params, searchParams }: Props) {
       chatAddonAudioEnabled={data.chatAddonAudioEnabled}
       chatAddonTextEnabled={data.chatAddonTextEnabled}
       chatAddonSuggestionsEnabled={data.chatAddonSuggestionsEnabled}
+      chatAddonHistoryEnabled={data.chatAddonHistoryEnabled}
       capabilities={data.capabilities}
       pageLinks={pageLinks}
       navigationLinks={navigation}

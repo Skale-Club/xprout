@@ -47,6 +47,8 @@ interface Props {
   onSetCartLineQuantity?: (lineId: string, quantity: number) => void
   /** Suggested-question chips (the restaurant may switch them off). */
   suggestionsEnabled?: boolean
+  /** Keep the guest's conversation (session storage, history after a reload). Off for a shared tablet: every session starts from zero. */
+  historyEnabled?: boolean
   /** Guests can order on this menu; off (showcase) the box only answers questions about the menu. */
   canOrder?: boolean
   /** restaurant_tables.id when the guest opened a table link. */
@@ -90,6 +92,9 @@ interface Message {
 
 const SESSION_KEY_PREFIX = 'aiChat:'
 
+// Without history, a chat nobody touched for this long is wiped (a shared tablet).
+const IDLE_RESET_MS = 5 * 60 * 1000
+
 // sm and up: the floating panel; below it, a bottom sheet.
 const WIDE = '(min-width: 640px)'
 function subscribeWide(onChange: () => void) {
@@ -98,7 +103,7 @@ function subscribeWide(onChange: () => void) {
   return () => mq.removeEventListener('change', onChange)
 }
 
-export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = null, currency = 'USD', primaryColor = BRAND_PRIMARY, audioEnabled = false, textEnabled = true, products, onAddToCart, menuId = null, locationId = null, onOpenCart, orderBarVisible = false, language = 'en', cart = null, onSetCartLineQuantity, suggestionsEnabled = true, canOrder = true, tableId = null, phoneContext = null, locale = 'en' }: Props) {
+export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = null, currency = 'USD', primaryColor = BRAND_PRIMARY, audioEnabled = false, textEnabled = true, products, onAddToCart, menuId = null, locationId = null, onOpenCart, orderBarVisible = false, language = 'en', cart = null, onSetCartLineQuantity, suggestionsEnabled = true, historyEnabled = true, canOrder = true, tableId = null, phoneContext = null, locale = 'en' }: Props) {
   const copy = getGuestCopy(language)
   const menuCopy = getMenuCopy(language)
   // Text and icons on the brand colour: black or white, whichever reads (never a fixed one).
@@ -130,6 +135,8 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
   const recordStartedRef = useRef(0)
   const discardRecordingRef = useRef(false)
   const streamRef = useRef<MediaStream | null>(null)
+  /** Bumped when the session is wiped, so a reply still in flight is dropped instead of reappearing. */
+  const sessionEpochRef = useRef(0)
 
   // Never leave the microphone on when the widget goes away.
   useEffect(() => () => {
@@ -140,6 +147,11 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
   // Restore session from storage
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (!historyEnabled) {
+      // Nothing of a guest stays on a shared device; forget anything stored before the switch was turned off.
+      try { sessionStorage.removeItem(SESSION_KEY_PREFIX + tenantSlug) } catch { /* ignore */ }
+      return
+    }
     const raw = sessionStorage.getItem(SESSION_KEY_PREFIX + tenantSlug)
     if (raw) {
       try {
@@ -150,7 +162,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
         }
       } catch { /* ignore */ }
     }
-  }, [tenantSlug])
+  }, [tenantSlug, historyEnabled])
 
   // Show what the server kept of this conversation (once per conversation id).
   // A 4xx means the conversation is gone or blocked: forget it so the phone gate shows again.
@@ -158,6 +170,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
   useEffect(() => {
     if (!conversationId || historyLoadedFor.current === conversationId) return
     historyLoadedFor.current = conversationId
+    if (!historyEnabled) return // a fresh conversation: nothing to fetch
     ;(async () => {
       try {
         const res = await fetch(`/api/public/chat/${tenantSlug}/history?conversation_id=${encodeURIComponent(conversationId)}`)
@@ -177,7 +190,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
         if (past.length) setMessages((prev) => [...past, ...prev])
       } catch { /* the greeting shows as before */ }
     })()
-  }, [conversationId, tenantSlug])
+  }, [conversationId, tenantSlug, historyEnabled])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -203,12 +216,46 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     const data = await res.json()
     setConversationId(data.conversation_id)
     setRemaining(Math.max(0, data.rate_limit - data.messages_today))
-    sessionStorage.setItem(
-      SESSION_KEY_PREFIX + tenantSlug,
-      JSON.stringify({ conversation_id: data.conversation_id, phone: phone.trim() }),
-    )
+    if (historyEnabled) {
+      sessionStorage.setItem(
+        SESSION_KEY_PREFIX + tenantSlug,
+        JSON.stringify({ conversation_id: data.conversation_id, phone: phone.trim() }),
+      )
+    }
     // No stored welcome: an empty conversation shows the greeting (client-side only).
   }
+
+  /** Without history: forget the conversation, the phone and everything on screen (and any recording). */
+  function resetSession() {
+    sessionEpochRef.current += 1
+    stopRecording(true)
+    try { sessionStorage.removeItem(SESSION_KEY_PREFIX + tenantSlug) } catch { /* ignore */ }
+    historyLoadedFor.current = null
+    setConversationId(null)
+    setPhone('')
+    setMessages([])
+    setInput('')
+    setError(null)
+    setSending(false)
+    setStreamingId(null)
+    setTranscribing(false)
+    setRemaining(null)
+  }
+  const resetRef = useRef(resetSession)
+  useEffect(() => { resetRef.current = resetSession })
+
+  /** Closing the chat ends the session when history is off. */
+  function closeChat() {
+    setOpen(false)
+    if (!historyEnabled) resetSession()
+  }
+
+  // Idle for 5 minutes (no typing, sending or receiving; not while a reply or a recording is in progress): wipe.
+  useEffect(() => {
+    if (historyEnabled || !conversationId || sending || recording || transcribing) return
+    const timer = setTimeout(() => resetRef.current(), IDLE_RESET_MS)
+    return () => clearTimeout(timer)
+  }, [historyEnabled, conversationId, messages, input, sending, recording, transcribing])
 
   /** `voiceToken` marks a transcript signed by the audio route (needed when typing is off). */
   async function sendMessage(text: string, voiceToken?: string) {
@@ -219,6 +266,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     setSending(true)
+    const epoch = sessionEpochRef.current
 
     type ChatReply = { text: string; cart_items?: ResolvedCartItem[]; cart_changes?: Array<{ line_id: string; quantity: number }>; staff_called?: boolean; remaining_today: number }
     const assistantId = crypto.randomUUID()
@@ -234,6 +282,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
+        if (epoch !== sessionEpochRef.current) return
         setError(err.error || copy.somethingWrong)
         setSending(false)
         return
@@ -245,6 +294,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
         let written = ''
         const outcome: { final: ChatReply | null; failure: string | null } = { final: null, failure: null }
         const handle = (event: ChatStreamEvent) => {
+          if (epoch !== sessionEpochRef.current) return
           if (event.type === 'delta') {
             written += event.text
             const content = written
@@ -267,12 +317,16 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
         data = await res.json() as ChatReply
       }
     } catch {
+      if (epoch !== sessionEpochRef.current) return
       // Whatever was written stays on screen; the turn was not confirmed.
       setError(copy.somethingWrong)
       setStreamingId(null)
       setSending(false)
       return
     }
+
+    // The session was wiped while the reply was on its way: drop it.
+    if (epoch !== sessionEpochRef.current) return
 
     // Apply cart items via parent callback. Options, editor state and unit
     // price were resolved by the server from the menu, exactly as the product
@@ -417,7 +471,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
           <h2 className={`truncate ${ui.barTitle} text-zinc-900`}>{tenantName}</h2>
           <p className="truncate text-[13px] text-zinc-500">{copy.aiAssistant}</p>
         </div>
-        <button type="button" onClick={() => setOpen(false)} aria-label={copy.close} className={ui.sheetIconButton}>
+        <button type="button" onClick={closeChat} aria-label={copy.close} className={ui.sheetIconButton}>
           <X className="size-4" />
         </button>
       </div>
@@ -689,7 +743,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
       {!wide && (
         <BottomSheet
           open={open}
-          onClose={() => setOpen(false)}
+          onClose={closeChat}
           detents="medium-large"
           ariaLabel={fill(copy.askName, { name: tenantName })}
           zIndexClassName="z-50"

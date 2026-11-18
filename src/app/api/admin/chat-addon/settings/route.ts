@@ -65,6 +65,7 @@ async function handlePUT(request: Request) {
     ordering_help_enabled,
     staff_call_enabled,
     suggestions_enabled,
+    history_enabled,
     audio_provider,
     rate_limit_per_phone_per_day,
   } = body as Record<string, any>
@@ -81,6 +82,7 @@ async function handlePUT(request: Request) {
   if (typeof ordering_help_enabled === 'boolean') payload.ordering_help_enabled = ordering_help_enabled
   if (typeof staff_call_enabled === 'boolean') payload.staff_call_enabled = staff_call_enabled
   if (typeof suggestions_enabled === 'boolean') payload.suggestions_enabled = suggestions_enabled
+  if (typeof history_enabled === 'boolean') payload.history_enabled = history_enabled
   if (audio_provider === null || audio_provider === 'whisper' || audio_provider === 'deepgram') {
     payload.audio_provider = audio_provider
   }

@@ -59,6 +59,11 @@ async function loadHistory(request: Request, { params }: { params: Promise<{ slu
     .maybeSingle()
   if (blocked) return NextResponse.json({ error: 'This number is blocked' }, { status: 403 })
 
+  // A shared tablet (history off): nothing from an earlier session is ever handed back.
+  // A missing column (error) keeps today's behaviour.
+  const { data: keep } = await supabase.from('chat_addon_settings').select('history_enabled').eq('tenant_id', tenant.id).maybeSingle()
+  if ((keep as { history_enabled?: boolean | null } | null)?.history_enabled === false) return NextResponse.json({ messages: [] })
+
   const { data: history } = await supabase
     .from('chat_messages')
     .select('role, content')

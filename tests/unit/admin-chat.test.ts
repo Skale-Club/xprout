@@ -21,10 +21,10 @@ it('native principal denial/mismatch is terminal and never falls back to legacy 
   expect(state.legacy).not.toHaveBeenCalled()
 })
 it('configuration reads use a fixed projection excluding both encrypted-key columns', async () => {
-  const query = vi.fn().mockResolvedValueOnce({ rows: [profile] }).mockResolvedValueOnce({ rows: [{ enabled: true }] }).mockResolvedValueOnce({ rows: [{ chat_addon_active: true, chat_addon_available: true }] }).mockResolvedValueOnce({ rows: [{ enabled: true }] })
+  const query = vi.fn().mockResolvedValueOnce({ rows: [profile] }).mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ enabled: true }] }).mockResolvedValueOnce({ rows: [{ chat_addon_active: true, chat_addon_available: true }] }).mockResolvedValueOnce({ rows: [{ enabled: true }] })
   expect(await readAdminChatSettings(query, context)).toMatchObject({ settings: { enabled: true }, status: { enabled: true } })
-  expect(query.mock.calls[1][0]).not.toMatch(/openrouter_api_key|audio_api_key|SELECT \*/)
-  expect(query.mock.calls[1][1]).toEqual([tenantId])
+  expect(query.mock.calls[2][0]).not.toMatch(/openrouter_api_key|audio_api_key|SELECT \*/)
+  expect(query.mock.calls[2][1]).toEqual([tenantId])
 })
 it('settings writes clamp the limit, use fixed fields and ignore supplied credentials/tenant IDs', async () => {
   const query = vi.fn().mockResolvedValueOnce({ rows: [profile] }).mockResolvedValue({ rows: [] })
