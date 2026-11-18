@@ -73,7 +73,6 @@ import {
   X,
   Sparkles,
   Plus,
-  Minus,
   UtensilsCrossed,
   Clapperboard,
   ShoppingBag,
@@ -1470,8 +1469,6 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
                           // A dish with a required choice opens its sheet instead of
                           // going into the order without them.
                           onAdd: needsChoice ? () => openProduct(p, 'grid') : () => addToCart(p, {}, p.price),
-                          onIncrement: () => updateCartQuantity(key, qty + 1),
-                          onDecrement: () => updateCartQuantity(key, qty - 1),
                         } : {})}
                       />
                     )
@@ -1851,7 +1848,7 @@ function ContactCard({ href, icon, caption, value, color, external, numeric, wra
  * quantity stepper; narrow columns wrap the slot below the price before adding, so it stays put.
  * Larger screens put the photo on top. Choices still open the dish sheet. Controls are 44px high.
  */
-function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQuantity, onAdd, onIncrement, onDecrement, hasArModel = false, noticeMinutes = 0, href }: {
+function ProductCard({ product, lang, currency, primaryColor, accentText, price, onOpen, cartQuantity, onAdd, hasArModel = false, noticeMinutes = 0, href }: {
   /** Notice the dish needs, in minutes (0 = none); shown as a small pill. */
   noticeMinutes?: number
   /** The dish page, when it has one: the card is then a link (search engines follow it; a click opens the dish window). */
@@ -1863,14 +1860,12 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
   accentColor: string; accentText: string
   /** The price as shown ("From $15.00" for a dish with sizes); amount and fromLabel split it for the price line. */
   price: { text: string; from: boolean; amount: string; fromLabel: string | null }
-  cartQuantity?: number; onAdd?: () => void; onIncrement?: () => void; onDecrement?: () => void
+  cartQuantity?: number; onAdd?: () => void
 }) {
   const copy = getMenuCopy(lang)
   const image = getProductImages(product)[0]
   const quantity = cartQuantity ?? 0
   const promo = !price.from && product.original_price && product.original_price > product.price ? product.original_price : null
-  const showStepper = !!onIncrement && !!onDecrement && quantity > 0
-  const showAdd = !!onAdd && !showStepper
   const cardFeature = dishFeature(product)
   return (
     <article
@@ -1908,7 +1903,9 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
         {noticeMinutes > 0 && <div className="mt-2 flex"><NoticePill minutes={noticeMinutes} lang={lang} /></div>}
       </div>
       {/* Unit price and ordering controls share a footer, never the photo. */}
-      <div className="pointer-events-none col-start-1 row-start-2 flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2 px-5 pt-3 pb-5 sm:order-3 sm:mt-auto">
+      {/* One row, never wrapped: the price sits bottom-left on the + button's bottom edge at every phone width
+          (a 360px Android leaves 160px here: price ~50px + 8px + the 44px +). */}
+      <div className="pointer-events-none col-start-1 row-start-2 flex min-w-0 flex-nowrap items-end gap-x-2 px-5 pt-3 pb-5 sm:order-3 sm:mt-auto">
         <div className="shrink-0">
           {(price.fromLabel || promo) && (
             <p className="mb-0.5 text-[11px] font-medium leading-tight text-zinc-500">
@@ -1917,27 +1914,21 @@ function ProductCard({ product, lang, currency, accentText, price, onOpen, cartQ
           )}
           {/* Block + trimmed to the baseline, so the digits (not an invisible line box whose size depends on each
               platform's font metrics) sit on the add button's bottom edge on Android and iOS alike. */}
-          <span className="block whitespace-nowrap text-[17px] leading-none font-extrabold tracking-tight tabular-nums [text-box:trim-end_cap_alphabetic]" style={{ color: accentText }}>{price.amount}</span>
+          <span className="block whitespace-nowrap text-[15px] leading-none font-extrabold tabular-nums [text-box:trim-end_cap_alphabetic] supports-[not(text-box:trim-end_cap_alphabetic)]:-mb-[0.14em]" style={{ color: accentText }}>{price.amount}</span>
         </div>
-        {(showAdd || showStepper) && (
-          <div className="pointer-events-auto relative z-10 ml-auto flex w-[104px] shrink-0 justify-end">
-            {showStepper ? (
-              <div className="flex h-11 w-full items-center justify-between rounded-full bg-zinc-100 text-zinc-900">
-                <button type="button" onClick={onDecrement} aria-label={fill(copy.removeNamed, { name: product.name })} className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-zinc-200">
-                  <Minus className="size-4" strokeWidth={2.5} />
-                </button>
-                <span className="min-w-4 text-center text-[14px] font-semibold tabular-nums" aria-live="polite">{quantity}</span>
-                <button type="button" onClick={onIncrement} aria-label={fill(copy.addNamed, { name: product.name })} className="flex size-11 shrink-0 items-center justify-center rounded-full active:bg-zinc-200">
-                  <Plus className="size-4" strokeWidth={2.5} />
-                </button>
-              </div>
-            ) : (
-              <button type="button" onClick={onAdd} aria-label={fill(copy.addNamed, { name: product.name })}
-                className="flex size-11 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-zinc-200 active:bg-zinc-200">
-                <Plus className="size-[18px] shrink-0" strokeWidth={2.5} aria-hidden="true" />
-              </button>
+        {onAdd && (
+          // Only the +, as on the featured rail: each tap adds one, a small badge shows how many are in the
+          // order, and the cart is where the guest takes one out. The stepper left the card (owner, 2026-11-17).
+          <button type="button" onClick={onAdd} aria-label={fill(copy.addNamed, { name: product.name })}
+            className="pointer-events-auto relative z-10 ml-auto flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900 transition-colors hover:bg-zinc-200 active:bg-zinc-200">
+            <Plus className="size-[18px] shrink-0" strokeWidth={2.5} aria-hidden="true" />
+            {quantity > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums"
+                style={{ backgroundColor: primaryColor, color: computePrimaryForeground(primaryColor) }} aria-live="polite">
+                {quantity}
+              </span>
             )}
-          </div>
+          </button>
         )}
       </div>
       <div className="pointer-events-none relative col-start-2 row-span-2 row-start-1 min-h-[clamp(8rem,28vw,10rem)] bg-zinc-100 sm:order-1 sm:aspect-[4/3] sm:min-h-0 sm:w-full">
