@@ -16,13 +16,14 @@ const pool = createAdminMenusPool({ NODE_ENV: 'production', PROD_DATABASE_HOST: 
 const tenant = randomUUID(), foreign = randomUUID(), plan = randomUUID(), phone = '+1 (202) 555-0101'
 const run = (value: unknown = phone, slug = 'restaurant') => adminMenuTransaction(pool, true, query => createPublicChatSession(query, slug, value))
 before(async () => {
-  await admin.query(`DROP TABLE IF EXISTS public.chat_conversations,public.chat_blocked_phones,public.chat_addon_settings,public.tenant_subscriptions,public.plans,public.tenants CASCADE;
+  await admin.query(`DROP TABLE IF EXISTS public.chat_messages,public.chat_conversations,public.chat_blocked_phones,public.chat_addon_settings,public.tenant_subscriptions,public.plans,public.tenants CASCADE;
     CREATE TABLE public.tenants(id uuid PRIMARY KEY,slug text UNIQUE,is_active boolean);
     CREATE TABLE public.plans(id uuid PRIMARY KEY,chat_addon_available boolean);
     CREATE TABLE public.tenant_subscriptions(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),plan_id uuid REFERENCES public.plans(id),chat_addon_active boolean,chat_addon_override boolean);
     CREATE TABLE public.chat_addon_settings(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),enabled boolean,rate_limit_per_phone_per_day integer CHECK(rate_limit_per_phone_per_day BETWEEN 1 AND 500));
     CREATE TABLE public.chat_blocked_phones(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid REFERENCES public.tenants(id),phone_hash text,UNIQUE(tenant_id,phone_hash));
-    CREATE TABLE public.chat_conversations(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants(id),phone_hash text NOT NULL,started_at timestamptz NOT NULL DEFAULT now(),last_message_at timestamptz NOT NULL DEFAULT now(),message_count int NOT NULL DEFAULT 0,status text NOT NULL DEFAULT 'active' CHECK(status IN('active','blocked')))`)
+    CREATE TABLE public.chat_conversations(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid NOT NULL REFERENCES public.tenants(id),phone_hash text NOT NULL,started_at timestamptz NOT NULL DEFAULT now(),last_message_at timestamptz NOT NULL DEFAULT now(),message_count int NOT NULL DEFAULT 0,status text NOT NULL DEFAULT 'active' CHECK(status IN('active','blocked')));
+    CREATE TABLE public.chat_messages(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),conversation_id uuid NOT NULL REFERENCES public.chat_conversations(id),role text NOT NULL,content text NOT NULL DEFAULT '',created_at timestamptz NOT NULL DEFAULT now())`)
   await admin.query("INSERT INTO public.tenants VALUES($1,'restaurant',true),($2,'foreign',true)", [tenant, foreign])
   await admin.query('INSERT INTO public.plans VALUES($1,true)', [plan])
   await admin.query('INSERT INTO public.tenant_subscriptions VALUES($1,$3,true,NULL),($2,$3,true,NULL)', [tenant, foreign, plan])

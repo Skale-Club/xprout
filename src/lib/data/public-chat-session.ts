@@ -68,7 +68,7 @@ export async function createPublicChatSession(query: AdminMenuQuery, slug: strin
   const found = unique((await query(`SELECT id,message_count,started_at,last_message_at FROM public.chat_conversations
     WHERE tenant_id=$1 AND phone_hash=$2 AND started_at>=$3 ORDER BY started_at DESC LIMIT 1`, [tenant.id, phoneHash, start.toISOString()])).rows)
   // A conversation that went quiet for CHAT_IDLE_MS, or already holds its cap of guest messages, is closed: start a new one.
-  const existing = found && isConversationReusable({ startedAt: found.started_at, lastMessageAt: found.last_message_at, messageCount: found.message_count, cap, now }) ? found : null
+  const existing = found && isConversationReusable({ startedAt: found.started_at, lastMessageAt: found.last_message_at, messageCount: Number(found.message_count) || 0, cap, now }) ? found : null
   if (existing) return { conversation_id: existing.id, rate_limit: rateLimit, messages_today: existing.message_count ?? 0 }
   const inserted = await query(`INSERT INTO public.chat_conversations(tenant_id,phone_hash) VALUES($1,$2) RETURNING id`, [tenant.id, phoneHash])
   if (inserted.rows.length !== 1) throw new AdminMenuError(503, 'Failed to create conversation')
