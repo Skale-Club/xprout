@@ -47,10 +47,7 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
         <button ref={toggle} type="button" className="mk-nav-toggle" aria-label={open ? t('Close navigation') : t('Open navigation')} aria-expanded={open} aria-controls="marketing-mobile-navigation" onClick={() => setOpen(value => !value)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
       </div>
     </div>
-    {open ? <div id="marketing-mobile-navigation" className="mk-mobile-nav">{links}
-      {startHref ? <Link href={href(startHref)} className="mk-nav-link" onClick={() => setOpen(false)}>{t('Get started')}</Link>
-        : <button type="button" className="mk-nav-link text-left" onClick={() => { setOpen(false); onLoginOpen?.() }}>{t('Get started')}</button>}
-    </div> : null}
+    {open ? <div id="marketing-mobile-navigation" className="mk-mobile-nav">{links}</div> : null}
     <div aria-hidden="true" className="mk-scroll-progress" />
   </nav>
 }

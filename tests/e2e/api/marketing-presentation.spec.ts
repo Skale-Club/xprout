@@ -14,10 +14,10 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/identity/session', route => route.fulfill({ status: 401, json: {} }))
 })
 
-for (const width of [320, 390, 1440]) {
+for (const width of [320, 390, 768, 1440]) {
   test(`header progress and sign-in remain usable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 })
-    await page.route('**/auth/login?embed=1', route => route.fulfill({ contentType: 'text/html', body: entry }))
+    await page.route('**/auth/login?embed=1*', route => route.fulfill({ contentType: 'text/html', body: entry }))
     await page.goto('/')
     await page.locator('#how-it-works').scrollIntoViewIfNeeded()
     const nav = page.getByRole('navigation', { name: 'Main navigation' })
@@ -29,7 +29,7 @@ for (const width of [320, 390, 1440]) {
     expect(Math.abs(geometry.navBottom - geometry.barBottom)).toBeLessThanOrEqual(1)
     const start = nav.getByRole('button', { name: 'Get started' })
     expect((await start.boundingBox())!.width).toBeGreaterThanOrEqual(80)
-    if (width < 768) await nav.getByRole('button', { name: 'Open navigation' }).click()
+    if (width < 1024) await nav.getByRole('button', { name: 'Open navigation' }).click()
     await start.click()
     await expect(page.getByRole('button', { name: 'Close navigation' })).toHaveCount(0)
     const dialog = page.getByRole('dialog', { name: 'Sign in to Xprout' })
@@ -43,7 +43,7 @@ for (const width of [320, 390, 1440]) {
 
 test('a rejected sign-in document shows recovery instead of a collapsed overlay', async ({ page }) => {
   let attempts = 0
-  await page.route('**/auth/login?embed=1', route => {
+  await page.route('**/auth/login?embed=1*', route => {
     attempts++
     return attempts === 1
       ? route.fulfill({ status: 404, contentType: 'text/html', body: '<html><body>Not found</body></html>' })
@@ -58,6 +58,21 @@ test('a rejected sign-in document shows recovery instead of a collapsed overlay'
   await expect(page.frameLocator('iframe[title="Sign in to Xprout"]').getByRole('heading', { name: 'Welcome back.' })).toBeVisible()
   await dialog.getByRole('button', { name: 'Close sign in' }).click()
   await expect(dialog).toHaveCount(0)
+})
+
+test('public language selection keeps the URL and saved preference across pages', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/pricing?campaign=locale-check#estimate')
+  await page.getByRole('combobox', { name: 'Language' }).selectOption('pt')
+  await expect(page).toHaveURL(/campaign=locale-check&lang=pt#estimate$/)
+  await expect(page.locator('html')).toHaveAttribute('lang', 'pt')
+  await expect(page.getByRole('combobox', { name: 'Idioma' })).toHaveValue('pt')
+  await page.getByRole('combobox', { name: 'Idioma' }).selectOption('es')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es')
+  await page.goto('/pricing')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es')
+  await page.goto('/pricing?lang=en')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 })
 
 test('switching hero dishes reuses loaded images instead of inserting duplicate posters', async ({ page }) => {

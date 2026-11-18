@@ -163,7 +163,9 @@
     "Register and verify your own account before requesting an invitation. Administrators cannot create a password or claim ownership through an email address.": "Cadastre e verifique sua própria conta antes de solicitar um convite. Administradores não podem criar uma senha nem assumir uma conta por um endereço de e-mail.",
     "Register your own account": "Cadastre sua própria conta",
     "Already completed this access link? Sign in to your account.": "Já concluiu este acesso? Entre na sua conta.",
-    "Phone and Google sign-in": "Acesso por telefone e Google"
+    "Phone and Google sign-in": "Acesso por telefone e Google",
+    "Sign-in could not load. Please try again.": "Não foi possível carregar o acesso. Tente novamente.",
+    "Try again": "Tentar novamente"
   },
   "es": {
     "Language": "Idioma",
@@ -329,6 +331,8 @@
     "Register and verify your own account before requesting an invitation. Administrators cannot create a password or claim ownership through an email address.": "Registra y verifica tu propia cuenta antes de solicitar una invitación. Los administradores no pueden crear una contraseña ni asumir una cuenta mediante un correo electrónico.",
     "Register your own account": "Registra tu propia cuenta",
     "Already completed this access link? Sign in to your account.": "¿Ya completaste este acceso? Entra en tu cuenta.",
-    "Phone and Google sign-in": "Acceso por teléfono y Google"
+    "Phone and Google sign-in": "Acceso por teléfono y Google",
+    "Sign-in could not load. Please try again.": "No se pudo cargar el acceso. Inténtalo de nuevo.",
+    "Try again": "Intentar de nuevo"
   }
 }

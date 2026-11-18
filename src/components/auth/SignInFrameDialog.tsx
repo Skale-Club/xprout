@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import ModalPortal from '@/components/ui/ModalPortal'
 import { useVisibleViewport } from '@/components/ui/use-visible-viewport'
 import GradientTopLine from '@/components/ui/GradientTopLine'
+import { usePublicLocale } from '@/components/marketing/PublicLocale'
 
 /** Paths that are still part of signing in; leaving them means the person is signed in. */
 const SIGN_IN_PATHS = ['/auth/', '/identity']
@@ -32,6 +33,7 @@ export default function SignInFrameDialog({ src, unavailable, title, closeLabel,
   /** Where the close button sits, to centre it on the card's own header. */
   closeTop?: number
 }) {
+  const { t } = usePublicLocale()
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   const view = useVisibleViewport()
   const [height, setHeight] = useState(440)
@@ -131,8 +133,8 @@ export default function SignInFrameDialog({ src, unavailable, title, closeLabel,
             </button>
             {unavailable || loadError ? (
               <div className={`px-6 pb-8 pt-16 text-center text-[15px] leading-6 ${marketing ? 'text-platform-ivory' : dark ? 'text-zinc-300' : 'text-zinc-700'}`}>
-                <p role="alert">Sign-in could not load. Please try again.</p>
-                {loadError && !unavailable ? <button type="button" onClick={() => { setReady(false); setLoadError(false) }} className="mt-5 min-h-11 rounded-full border border-current px-6 font-semibold">Try again</button> : null}
+                <p role="alert">{t('Sign-in could not load. Please try again.')}</p>
+                {loadError && !unavailable ? <button type="button" onClick={() => { setReady(false); setLoadError(false) }} className="mt-5 min-h-11 rounded-full border border-current px-6 font-semibold">{t('Try again')}</button> : null}
               </div>
             ) : (
               <>
