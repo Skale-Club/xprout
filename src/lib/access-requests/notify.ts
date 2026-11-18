@@ -1,15 +1,13 @@
 import { BRAND_URL } from '@/lib/brand'
 import 'server-only'
-import { ownedAdminTransaction } from '@/lib/data/admin-menus-runtime'
-import { decryptApiKey } from '@/lib/crypto'
 import { sendToAll } from '@/lib/blog/telegram'
 import { getIdentityServices } from '@/lib/auth/identity-services'
 import type { AbandonedDraft, SubmittedLead } from './store'
 
 /**
  * Team notifications on Telegram. Never throws: a notification problem must not
- * affect the applicant. Same bot as the platform blog; chats come from
- * ACCESS_REQUEST_TELEGRAM_CHAT_IDS, else the blog's configured chats.
+ * affect the applicant. Uses explicitly configured shared-bot credentials and
+ * dedicated Leads groups, never blog, approval or technical Ops destinations.
  */
 
 const LABELS: Record<string, Record<string, string>> = {
@@ -49,24 +47,28 @@ function whatsappLink(phone: string | null | undefined, greeting: string) {
   return number.length >= 8 ? `https://wa.me/${number}?text=${encodeURIComponent(greeting)}` : null
 }
 
-async function destination(): Promise<{ token: string; chatIds: string[] } | null> {
-  const row = await ownedAdminTransaction(false, async query =>
-    (await query('SELECT bot_token,approvals_bot_token,chat_ids FROM public.telegram_settings WHERE tenant_id IS NULL LIMIT 1')).rows[0])
-  const decrypt = (value: unknown) => { if (typeof value !== 'string' || !value) return null; try { return decryptApiKey(value) || null } catch { return null } }
-  const token = decrypt(row?.bot_token) ?? decrypt(row?.approvals_bot_token)
-  const fromEnv = (process.env.ACCESS_REQUEST_TELEGRAM_CHAT_IDS ?? '').split(',').map(id => id.trim()).filter(Boolean)
-  const chatIds = fromEnv.length ? fromEnv : (Array.isArray(row?.chat_ids) ? (row!.chat_ids as unknown[]).map(String).filter(Boolean) : [])
-  if (!token || !chatIds.length) return null
+function destination(): { token: string; chatIds: string[] } | null {
+  const token = process.env.ACCESS_REQUEST_TELEGRAM_BOT_TOKEN?.trim()
+  const configured = process.env.ACCESS_REQUEST_TELEGRAM_CHAT_IDS?.trim()
+  if (!token || !configured) return null
+  const chatIds = [...new Set(configured.split(',').map(id => id.trim()))]
+  const opsChat = process.env.OPS_TELEGRAM_CHAT_ID?.trim().split(':')[0]
+  for (const target of chatIds) {
+    const match = /^(-[1-9]\d*)(?::([1-9]\d*))?$/.exec(target)
+    if (!match || match[1] === opsChat) return null
+    if (match[2] && !Number.isSafeInteger(Number(match[2]))) return null
+  }
   return { token, chatIds }
 }
 
-async function deliver(text: string): Promise<boolean> {
+async function deliver(message: () => string): Promise<boolean> {
+  if (process.env.NODE_ENV !== 'production') return false
   try {
-    const target = await destination()
-    if (!target) { warnOnce('no Telegram bot token or chat configured'); return false }
-    return (await sendToAll(target.token, target.chatIds, text)).success
-  } catch (error) {
-    console.warn('access_request.notify_failed', error instanceof Error ? error.message : 'unknown')
+    const target = destination()
+    if (!target) { warnOnce('dedicated Leads destination unavailable'); return false }
+    return (await sendToAll(target.token, target.chatIds, message())).success
+  } catch {
+    console.warn('access_request.notify_failed')
     return false
   }
 }
@@ -108,5 +110,5 @@ export function abandonedMessage(draft: AbandonedDraft): string {
   return lines.join('\n')
 }
 
-export const notifyAccessRequestSubmitted = (lead: SubmittedLead) => deliver(submittedMessage(lead))
-export const notifyAbandonedDraft = (draft: AbandonedDraft) => deliver(abandonedMessage(draft))
+export const notifyAccessRequestSubmitted = (lead: SubmittedLead) => deliver(() => submittedMessage(lead))
+export const notifyAbandonedDraft = (draft: AbandonedDraft) => deliver(() => abandonedMessage(draft))
