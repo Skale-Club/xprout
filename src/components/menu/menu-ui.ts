@@ -23,6 +23,8 @@ export const ui = {
   },
   /** Title of a sheet or panel that is not a dish ("Your order", "Cart"). */
   sheetTitle: 'text-[22px] font-black leading-tight tracking-[-0.025em]',
+  /** Round grey button in a sheet's header (close, back): the same on every sheet; the touch area reaches 44px. */
+  sheetIconButton: "relative flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-zinc-200 hover:text-zinc-900",
   /** Smaller title for a centred header bar. */
   barTitle: 'text-lg font-black leading-tight tracking-[-0.02em]',
   /** Small label above a group ("Ingredients", "Size", "Subtotal", "02 / 05"). */

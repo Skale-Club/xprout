@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from 'react'
 import { DeliveryImage } from '@/components/delivery-image'
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, UtensilsCrossed, ChevronDown } from 'lucide-react'
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, UtensilsCrossed, ChevronDown, Pencil } from 'lucide-react'
 import type { Product } from '@/types/database'
 import type { CartItem } from './menu-utils'
 import { getProductImages, summarizeOptions, summarizeIngredientMods } from './menu-utils'
@@ -81,7 +81,7 @@ export default function CartPanel({
           <button
             type="button"
             onClick={onClose}
-            className="relative flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-zinc-200 hover:text-zinc-900"
+            className={ui.sheetIconButton}
             aria-label={copy.closeCart}
           >
             <X className="size-4" strokeWidth={2.5} />
@@ -105,24 +105,15 @@ export default function CartPanel({
               return (
                 <div key={item.cartKey} className="rounded-2xl bg-white p-3 shadow-card">
                   <div className="flex gap-3">
-                    <div className="size-[72px] flex-shrink-0 overflow-hidden rounded-xl bg-zinc-100">
+                    {/* The photo runs the full height of the item, from the name down to "Edit". */}
+                    <div className="relative min-h-[92px] w-[92px] flex-shrink-0 self-stretch overflow-hidden rounded-xl bg-zinc-100">
                       {img
-                        ? <DeliveryImage variant="card" src={img} alt="" width={72} height={72} className="size-full object-cover" />
+                        ? <DeliveryImage variant="card" src={img} alt="" fill sizes="120px" className="object-cover" />
                         : <div className="flex size-full items-center justify-center"><UtensilsCrossed className="size-5 text-zinc-300" /></div>}
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className={`line-clamp-2 text-[15px] text-zinc-900 ${ui.dishTitleCompact}`}>{item.product.name}</p>
-                        <button
-                          type="button"
-                          onClick={() => onRemove(item.cartKey)}
-                          className="relative -mr-1 -mt-1 flex size-8 flex-shrink-0 before:absolute before:-inset-1.5 before:content-[''] items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-red-50 hover:text-red-600"
-                          aria-label={fill(copy.removeNamed, { name: item.product.name })}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
+                      <p className={`line-clamp-2 text-[15px] text-zinc-900 ${ui.dishTitleCompact}`}>{item.product.name}</p>
 
                       {optionsText && <p className="mt-0.5 line-clamp-2 text-[13px] text-zinc-600">{optionsText}</p>}
                       {ingredientLabels.length > 0 && (
@@ -130,16 +121,38 @@ export default function CartPanel({
                       )}
                       {item.note && <p className="mt-0.5 line-clamp-1 text-[13px] italic text-zinc-500">&ldquo;{item.note}&rdquo;</p>}
 
-                      <div className="mt-2 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(item.cartKey)}
+                        className="mt-0.5 inline-flex items-center gap-1 py-1 text-[14px] font-medium text-zinc-700 underline-offset-2 transition-colors hover:text-zinc-900 hover:underline"
+                      >
+                        <Pencil className="size-3.5" aria-hidden="true" />
+                        {copy.edit}
+                      </button>
+
+                      {/* Quantity on the left, the line total closing the card at the bottom right.
+                          At one, "−" becomes the bin: it removes the dish (no separate delete button). */}
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
                         <div className="flex h-9 items-center rounded-full border border-zinc-200 bg-white px-0.5">
-                          <button
-                            type="button"
-                            onClick={() => onUpdateQuantity(item.cartKey, item.quantity - 1)}
-                            className="relative flex size-8 items-center justify-center rounded-full text-zinc-700 transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-zinc-100"
-                            aria-label={copy.decrease}
-                          >
-                            <Minus className="size-3.5" />
-                          </button>
+                          {item.quantity <= 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => onRemove(item.cartKey)}
+                              className="relative flex size-8 items-center justify-center rounded-full text-zinc-700 transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-red-50 hover:text-red-600"
+                              aria-label={fill(copy.removeNamed, { name: item.product.name })}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onUpdateQuantity(item.cartKey, item.quantity - 1)}
+                              className="relative flex size-8 items-center justify-center rounded-full text-zinc-700 transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-zinc-100"
+                              aria-label={copy.decrease}
+                            >
+                              <Minus className="size-3.5" />
+                            </button>
+                          )}
                           <span className="min-w-6 text-center text-[15px] font-semibold tabular-nums text-zinc-900">{item.quantity}</span>
                           <button
                             type="button"
@@ -150,16 +163,8 @@ export default function CartPanel({
                             <Plus className="size-3.5" />
                           </button>
                         </div>
-                        <span className="text-[15px] font-semibold tabular-nums text-zinc-900">{money(item.unitPrice * item.quantity)}</span>
+                        <span className={`text-[15px] ${ui.price} text-zinc-900`}>{money(item.unitPrice * item.quantity)}</span>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => onEdit(item.cartKey)}
-                        className="mt-1.5 py-1 text-[14px] font-medium text-zinc-700 underline-offset-2 transition-colors hover:text-zinc-900 hover:underline"
-                      >
-                        {copy.edit}
-                      </button>
                     </div>
                   </div>
                 </div>

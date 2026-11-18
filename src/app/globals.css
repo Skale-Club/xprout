@@ -271,8 +271,23 @@ input[type="file"] {
 .menu-order-bar-in {
   animation: menu-order-bar-in 0.3s ease-out both;
 }
+/* Each change to the order: the bag hops and its count pops (the count's key replays both). */
+@keyframes menu-cart-hop {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+}
+@keyframes menu-cart-pop {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+}
+.menu-cart-hop {
+  animation: menu-cart-hop 0.32s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.menu-cart-pop {
+  animation: menu-cart-pop 0.32s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
 @media (prefers-reduced-motion: reduce) {
-  .menu-order-bar-in { animation: none; }
+  .menu-order-bar-in, .menu-cart-hop, .menu-cart-pop { animation: none; }
 }
 
 /*
