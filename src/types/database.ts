@@ -1,3 +1,5 @@
+import type { DesignVariants } from '@/lib/design-variants'
+
 export type UserRole = 'superadmin' | 'store-admin' | 'store-staff' | 'customer'
 
 // ============================================================
@@ -143,6 +145,7 @@ export interface TenantSettings {
   hide_platform_brand?: boolean     // true hides "Powered by Xprout" on the public menu (docs/owned-schema/20261116120000)
   order_online_url?: string | null  // "Order online" button for menus without guest checkout (https, max 500)
   reservation_url?: string | null   // "Reserve a table" button (https, max 500)
+  design_variants?: DesignVariants | null // Per-client design variant map (superadmin only); absent until docs/owned-schema/20261118100000 ran
   scheduled_orders_enabled?: boolean // Guests may schedule an order for later; absent until docs/owned-schema/20261116140000 ran
   delivery_zones_only?: boolean     // Own delivery only inside the zones; absent until docs/owned-schema/20261116160000 ran
   loyalty_enabled?: boolean         // Loyalty program on; absent until docs/owned-schema/20261116170000 ran
