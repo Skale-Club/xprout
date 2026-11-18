@@ -221,15 +221,15 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   return (
     <BottomSheet open onClose={onClose} ariaLabel={copy.checkoutTitle} widthClassName="sm:max-w-xl" frameStyle={box.style}>
           {/* Header */}
-          <div data-sheet-grip className="flex shrink-0 touch-none items-center gap-1 border-b border-zinc-100 bg-white px-2 pb-2">
+          <div data-sheet-grip className="flex shrink-0 touch-none items-center gap-2 border-b border-zinc-100 bg-white px-5 pt-0.5 pb-3">
             {!orderSuccess ? (
-              <button type="button" onClick={onBack} className="flex size-11 items-center justify-center rounded-full text-zinc-700 transition-colors hover:bg-zinc-100" aria-label={copy.backToCart}>
-                <ChevronLeft className="size-5" />
+              <button type="button" onClick={onBack} className={ui.sheetIconButton} aria-label={copy.backToCart}>
+                <ChevronLeft className="size-4" strokeWidth={2.5} />
               </button>
-            ) : <span className="size-11" />}
+            ) : <span className="size-8 shrink-0" />}
             <h2 className={`flex-1 text-center ${ui.barTitle} text-zinc-900`}>{orderSuccess ? copy.orderPlaced : copy.checkoutTitle}</h2>
-            <button type="button" onClick={onClose} className="flex size-11 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900" aria-label={copy.close}>
-              <X className="size-5" />
+            <button type="button" onClick={onClose} className={ui.sheetIconButton} aria-label={copy.close}>
+              <X className="size-4" strokeWidth={2.5} />
             </button>
           </div>
 

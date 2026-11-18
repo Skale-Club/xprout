@@ -3,7 +3,7 @@
 import { BRAND_NAME, BRAND_PRIMARY } from '@/lib/brand'
 import { googleReviewLink } from '@/lib/site/review-link'
 import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { idempotencyKeyFor, type IdempotencySlot } from '@/lib/orders/idempotency-client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -66,8 +66,8 @@ import { ui } from './menu-ui'
 import { buildCartSuggestions, canQuickAdd } from './upsell'
 import {
   Instagram,
+  ChevronRight,
   Mail,
-  MapPin,
   MessageCircle,
   Phone,
   Search,
@@ -77,6 +77,8 @@ import {
   Clapperboard,
   ShoppingBag,
   CalendarCheck,
+  Navigation,
+  Star,
 } from 'lucide-react'
 import type { AppliedPromo, LoyaltyInfo } from './CheckoutModal'
 import { DishPageCartContext, type DishPageCart } from './DishCartButton'
@@ -637,7 +639,6 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const { orderOnlineUrl, reservationUrl } = resolveMenuActionLinks(settings, capabilities)
   const shownFooterBrand = visibleFooterBrand(footerBrand, settings)
   const review = googleReviewLink(settings?.google_review_url, selectedLanguage)
-  const hasContact = !!(contacts.phone || contacts.instagram || contacts.whatsapp || settings?.address || email || orderOnlineUrl || reservationUrl)
 
   useEffect(() => {
     if (!menu?.id || !analyticsEnabled) return
@@ -1470,83 +1471,132 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         ) : null}
       </main>}
 
-      {/* Contact and credits: tappable cards (call, WhatsApp, Instagram, email, map), then the credit line */}
-      {showContactFooter && (
-        <footer className="mt-8 border-t border-zinc-200/70" style={{ marginBottom: showOrderBar ? 88 : 0 }}>
-          <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
-            {hasContact && (
-              <>
-                <h2 className={`text-zinc-900 ${ui.sectionTitle}`}>{copy.contactTitle}</h2>
-                <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {orderOnlineUrl && (
-                    <ContactCard href={orderOnlineUrl} external icon={<ShoppingBag className="size-[18px]" />} caption={copy.contactOrderOnline} value={linkHost(orderOnlineUrl)} color={primaryColor} />
+      {/* Contact and credits: one card with the name, the live open state, the address and one-tap
+          actions (call, WhatsApp, Instagram, email, directions), then the restaurant's pages and the credit line.
+          The address and phone appear once, inside <address>, so the public NAP stays crawlable. */}
+      {showContactFooter && (() => {
+        const napAddress = publicNap ? publicNap.address : settings?.address
+        const napCity = publicNap ? publicNap.city : settings?.city
+        // "125 Harbor St, Boston, MA" already names the city: add it only when it is missing.
+        const addressLine = [napAddress, napCity && !(napAddress ?? '').toLowerCase().includes(napCity.toLowerCase()) ? napCity : null]
+          .filter(Boolean).join(', ')
+        const napPhone = publicNap ? publicNap.phone : settings?.phone
+        const mapQuery = settings?.address || addressLine
+        const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null
+        const footerNav = navigationLinks.filter(link => link.kind !== 'menu' && !(canonicalBaseUrl && menu?.slug && link.href.startsWith(`${canonicalBaseUrl}/${menu.slug}/`)))
+        const actionIcon = 'size-5'
+        return (
+          <footer className="mt-8" style={{ marginBottom: showOrderBar ? 88 : 0 }}>
+            <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
+              <section aria-label={copy.contactTitle} className="rounded-3xl bg-white p-5 shadow-card sm:p-7">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+                  <address className="min-w-0 not-italic">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                      <h2 className="text-[19px] font-bold leading-tight tracking-tight text-zinc-900">{publicNap?.name ?? tenant.name}</h2>
+                      {openLabel && (
+                        <button
+                          type="button"
+                          onClick={() => setShowHoursModal(true)}
+                          disabled={!hasHours}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold transition-colors ${openLabel.tone === 'open' ? 'bg-emerald-50 text-emerald-700 enabled:hover:bg-emerald-100' : 'bg-zinc-100 text-zinc-600 enabled:hover:bg-zinc-200'}`}
+                        >
+                          {openLabel.tone !== 'info' && <span aria-hidden="true" className={`size-[7px] shrink-0 rounded-full ${openLabel.tone === 'open' ? 'bg-emerald-500 motion-safe:animate-pulse' : 'bg-zinc-400'}`} />}
+                          {openLabel.text}
+                        </button>
+                      )}
+                    </div>
+                    {addressLine && (mapsUrl
+                      ? <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 block text-[14px] leading-snug text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline">{addressLine}</a>
+                      : <p className="mt-1.5 text-[14px] leading-snug text-zinc-600">{addressLine}</p>)}
+                    {napPhone && (
+                      <a href={contacts.phone?.url ?? `tel:${napPhone.replace(/[^\d+]/g, '')}`} className="mt-0.5 block w-fit text-[14px] tabular-nums text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline">
+                        {phoneLabel(napPhone, { country: settings?.country, currency })}
+                      </a>
+                    )}
+                  </address>
+                  {(contacts.phone || contacts.whatsapp || contacts.instagram || email || mapsUrl) && (
+                    <ul className="grid grid-cols-[repeat(auto-fit,minmax(52px,1fr))] gap-1 sm:flex sm:shrink-0 sm:gap-2">
+                      {contacts.phone && <QuickAction href={contacts.phone.url} icon={<Phone className={actionIcon} />} label={guestCopy.callRestaurant} color={primaryColor} />}
+                      {contacts.whatsapp && <QuickAction href={contacts.whatsapp} external icon={<MessageCircle className={actionIcon} />} label="WhatsApp" color={primaryColor} />}
+                      {contacts.instagram && <QuickAction href={contacts.instagram.url} external icon={<Instagram className={actionIcon} />} label="Instagram" color={primaryColor} />}
+                      {email && <QuickAction href={`mailto:${email}`} icon={<Mail className={actionIcon} />} label={copy.contactEmail} color={primaryColor} />}
+                      {mapsUrl && <QuickAction href={mapsUrl} external icon={<Navigation className={actionIcon} />} label={copy.contactDirections} color={primaryColor} />}
+                    </ul>
                   )}
-                  {reservationUrl && (
-                    <ContactCard href={reservationUrl} external icon={<CalendarCheck className="size-[18px]" />} caption={copy.contactReserve} value={linkHost(reservationUrl)} color={primaryColor} />
-                  )}
-                  {contacts.phone && (
-                    <ContactCard href={contacts.phone.url} icon={<Phone className="size-[18px]" />} caption={copy.contactPhone} value={contacts.phone.label} color={primaryColor} numeric />
-                  )}
-                  {contacts.whatsapp && contacts.whatsappLabel && (
-                    <ContactCard href={contacts.whatsapp} external icon={<MessageCircle className="size-[18px]" />} caption="WhatsApp" value={contacts.whatsappLabel} color={primaryColor} numeric />
-                  )}
-                  {contacts.instagram && (
-                    <ContactCard href={contacts.instagram.url} external icon={<Instagram className="size-[18px]" />} caption="Instagram" value={contacts.instagram.handle} color={primaryColor} />
-                  )}
-                  {email && (
-                    <ContactCard href={`mailto:${email}`} icon={<Mail className="size-[18px]" />} caption={copy.contactEmail} value={email} color={primaryColor} />
-                  )}
-                  {settings?.address && (
-                    <ContactCard href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`} external icon={<MapPin className="size-[18px]" />} caption={copy.contactAddress} value={settings.address} color={primaryColor} wrap />
-                  )}
-                </ul>
-              </>
-            )}
-            <address className="mt-6 space-y-1 text-sm not-italic text-zinc-600">
-              <p className="font-medium text-zinc-800">{publicNap?.name ?? tenant.name}</p>
-              <p>{[publicNap ? publicNap.address : settings?.address, publicNap ? publicNap.city : settings?.city].filter(Boolean).join(', ')}</p>
-              {(publicNap ? publicNap.phone : settings?.phone) && <p>{phoneLabel(publicNap ? publicNap.phone : settings?.phone, { country: settings?.country, currency })}</p>}
-            </address>
-            {review && <a href={review.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-sm font-medium text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{review.label}</a>}
-            {(pageLinks.length > 0 || navigationLinks.some(link => link.kind !== 'menu')) && (
-              <nav aria-label={copy.pagesMore} className={hasContact ? 'mt-6' : ''}>
-                <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">
-                  {navigationLinks.filter(link => link.kind !== 'menu' && !(canonicalBaseUrl && menu?.slug && link.href.startsWith(`${canonicalBaseUrl}/${menu.slug}/`))).map(link => <li key={link.href}><a href={link.href} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>)}
-                  {pageLinks.map(link => (
-                    <li key={link.slug}><a href={`${canonicalBaseUrl ?? `/${tenant.slug}`}/${link.slug}`} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>
-                  ))}
-                </ul>
-              </nav>
-            )}
-            {shownFooterBrand && (
-              <p className={`flex items-center gap-1 text-[12px] text-zinc-500 ${hasContact || pageLinks.length > 0 ? 'mt-8' : ''}`}>
-                {copy.poweredBy}
-                <a href="/" className="inline-flex items-center gap-1 font-semibold text-zinc-600 hover:text-zinc-900">
-                  {/* The platform symbol only sits beside the platform's own name. */}
-                  {shownFooterBrand === BRAND_NAME && (
-                    <Image src="/brand/xprout/v1/icon-192.png" alt="" width={15} height={15} className="size-[15px] shrink-0 rounded-[4px]" />
-                  )}
-                  {shownFooterBrand}
-                </a>
-              </p>
-            )}
-          </div>
-        </footer>
-      )}
+                </div>
+                {(orderOnlineUrl || reservationUrl || review) && (
+                  <div className="mt-5 flex flex-wrap gap-2 border-t border-zinc-100 pt-5">
+                    {orderOnlineUrl && (
+                      <a href={orderOnlineUrl} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: primaryColor, color: onPrimary }} className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[14px] font-semibold transition-[scale] active:scale-[0.97]">
+                        <ShoppingBag className="size-4" aria-hidden="true" />{copy.contactOrderOnline}
+                      </a>
+                    )}
+                    {reservationUrl && (
+                      <a href={reservationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-zinc-200 px-4 text-[14px] font-semibold text-zinc-800 transition-[background-color,scale] hover:bg-zinc-50 active:scale-[0.97]">
+                        <CalendarCheck className="size-4" aria-hidden="true" />{copy.contactReserve}
+                      </a>
+                    )}
+                    {review && (
+                      <a href={review.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-zinc-200 px-4 text-[14px] font-semibold text-zinc-800 transition-[background-color,scale] hover:bg-zinc-50 active:scale-[0.97]">
+                        <Star className="size-4" aria-hidden="true" />{review.label}
+                      </a>
+                    )}
+                  </div>
+                )}
+              </section>
+              {(pageLinks.length > 0 || footerNav.length > 0) && (
+                <nav aria-label={copy.pagesMore} className="mt-6 px-1">
+                  <ul className="flex flex-wrap gap-x-5 gap-y-2 text-[15px] font-medium">
+                    {footerNav.map(link => <li key={link.href}><a href={link.href} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>)}
+                    {pageLinks.map(link => (
+                      <li key={link.slug}><a href={`${canonicalBaseUrl ?? `/${tenant.slug}`}/${link.slug}`} className="text-zinc-700 underline-offset-2 hover:text-zinc-900 hover:underline">{link.title}</a></li>
+                    ))}
+                  </ul>
+                </nav>
+              )}
+              {shownFooterBrand && (
+                <p className="mt-6 flex items-center gap-1 px-1 text-[12px] text-zinc-500">
+                  {copy.poweredBy}
+                  <a href="/" className="inline-flex items-center gap-1 font-semibold text-zinc-600 hover:text-zinc-900">
+                    {/* The platform symbol only sits beside the platform's own name. */}
+                    {shownFooterBrand === BRAND_NAME && (
+                      <Image src="/brand/xprout/v1/icon-192.png" alt="" width={15} height={15} className="size-[15px] shrink-0 rounded-[4px]" />
+                    )}
+                    {shownFooterBrand}
+                  </a>
+                </p>
+              )}
+            </div>
+          </footer>
+        )
+      })()}
 
-      {/* Order bar: floating, in the restaurant's colour */}
+      {/* Order bar: floating, in the restaurant's colour. The count sits in a badge inverted from the
+          bar (readable on any brand colour) and hops each time the order changes, so a tap on + is felt. */}
       {showOrderBar && (
         <button
           type="button"
           onClick={() => setCartOpen(true)}
           style={{ backgroundColor: primaryColor, color: onPrimary }}
-          className="menu-order-bar-in fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 flex h-14 items-center justify-between rounded-2xl px-4 shadow-float transition-[scale] active:scale-[0.98] sm:inset-x-auto sm:right-6 sm:bottom-6 sm:min-w-[320px]"
+          className="menu-order-bar-in fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 flex h-14 items-center justify-between rounded-2xl pr-3 pl-4 shadow-float transition-[scale] active:scale-[0.98] sm:inset-x-auto sm:right-6 sm:bottom-6 sm:min-w-[320px]"
         >
-          <span className="flex items-center gap-3">
-            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-black/15 px-1.5 text-[13px] font-bold tabular-nums">{cartCount}</span>
+          <span className="flex items-center gap-4">
+            {/* Keyed on the count: a new count remounts the icon and replays the hop. */}
+            <span key={cartCount} className="menu-cart-hop relative flex">
+              <ShoppingBag className="size-[22px]" aria-hidden="true" />
+              <span
+                style={{ backgroundColor: onPrimary, color: primaryColor }}
+                className="menu-cart-pop absolute -top-2 -right-2.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold tabular-nums"
+              >
+                {cartCount}
+              </span>
+            </span>
             <span className="text-[15px] font-semibold">{copy.viewOrder}</span>
           </span>
-          <span className="text-[15px] font-semibold tabular-nums">{money(cartTotal)}</span>
+          <span className="flex items-center gap-1 text-[15px] font-semibold tabular-nums">
+            {money(cartTotal)}
+            <ChevronRight className="size-[18px] opacity-70" aria-hidden="true" />
+          </span>
         </button>
       )}
 
@@ -1660,9 +1710,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
       <BottomSheet open={showHoursModal} onClose={() => setShowHoursModal(false)} ariaLabel={copy.hoursTitle} widthClassName="sm:max-w-[420px]">
         <div lang={localeFor(selectedLanguage)} className="flex min-h-0 flex-1 flex-col bg-white">
           <div data-sheet-grip className="flex shrink-0 touch-none items-center justify-between px-5 pt-1 pb-2">
-            <h2 className="text-[17px] font-semibold text-zinc-900">{copy.hoursTitle}</h2>
-            <button type="button" onClick={() => setShowHoursModal(false)} aria-label={copy.close} className="flex size-10 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
-              <X className="size-5" />
+            <h2 className={`${ui.sheetTitle} text-zinc-900`}>{copy.hoursTitle}</h2>
+            <button type="button" onClick={() => setShowHoursModal(false)} aria-label={copy.close} className={ui.sheetIconButton}>
+              <X className="size-4" strokeWidth={2.5} />
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -1798,34 +1848,25 @@ function DishPlaceholder() {
   )
 }
 
-/** The address a link goes to, shown under its caption ("www." dropped). */
-function linkHost(url: string): string {
-  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
-}
-
-/** One way to reach the restaurant: the whole card is the link (call, chat, open the map). */
-function ContactCard({ href, icon, caption, value, color, external, numeric, wrap }: {
-  href: string; icon: ReactNode; caption: string; value: string; color: string
-  external?: boolean; numeric?: boolean; wrap?: boolean
+/** One tap to reach the restaurant: a round icon in its colour with a short label under it. */
+function QuickAction({ href, icon, label, color, external }: {
+  href: string; icon: ReactNode; label: string; color: string; external?: boolean
 }) {
   return (
-    <li>
+    <li className="sm:min-w-[76px]">
       <a
         href={href}
         {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-        className="flex h-full items-center gap-3 rounded-2xl bg-white p-3.5 shadow-card transition-shadow hover:shadow-[0_2px_6px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.08)]"
+        className="group flex flex-col items-center gap-1.5 rounded-2xl py-1 text-center outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
       >
         <span
           aria-hidden="true"
-          className="flex size-10 shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: `color-mix(in srgb, ${color} 12%, white)`, color }}
+          style={{ '--qa': color } as CSSProperties}
+          className="flex size-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--qa)_10%,white)] text-[var(--qa)] transition-[background-color,scale] duration-150 group-hover:bg-[color-mix(in_srgb,var(--qa)_18%,white)] group-active:scale-90"
         >
           {icon}
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[12px] font-medium text-zinc-500">{caption}</span>
-          <span className={`block text-[15px] font-semibold text-zinc-900 ${numeric ? 'tabular-nums' : ''} ${wrap ? 'break-words' : 'truncate'}`}>{value}</span>
-        </span>
+        <span className="line-clamp-2 w-full text-[11px] font-medium leading-tight text-zinc-600 group-hover:text-zinc-900 sm:line-clamp-none sm:w-auto sm:whitespace-nowrap sm:px-1 sm:text-[12px]">{label}</span>
       </a>
     </li>
   )

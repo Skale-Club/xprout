@@ -10,9 +10,11 @@ import ModalPortal from './ModalPortal'
  *
  * - Rises from the bottom edge over a dimmed page, with large rounded top
  *   corners and a grabber; on wide screens it is centred and capped in width.
- * - `detents="medium-large"`: opens at about 60% of the screen and grows to
- *   nearly full height (a gap stays at the top, as on iOS). Tap or drag the
- *   grabber/header up to grow, down to shrink, and down again to close.
+ * - `detents="medium-large"`: opens at up to about 60% of the screen and grows
+ *   up to nearly full height (a gap stays at the top, as on iOS). At either
+ *   height it is never taller than its content, so a short order leaves no
+ *   empty band above the footer. Tap or drag the grabber/header up to grow,
+ *   down to shrink, and down again to close.
  * - `detents="fit"`: as tall as its content, up to nearly full height; dragging
  *   the grabber/header down closes it.
  * - The sheet follows the finger while dragging and snaps on release (distance
@@ -58,6 +60,8 @@ export default function BottomSheet({
   const [large, setLarge] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [dragging, setDragging] = useState(false)
+  // The sheet's height when a drag starts: pulling up stretches it from there.
+  const [dragStartHeight, setDragStartHeight] = useState(0)
   const drag = useRef<{ startY: number; lastY: number; lastT: number; velocity: number; moved: boolean; grabber: boolean } | null>(null)
   const onCloseRef = useRef(onClose)
   useEffect(() => { onCloseRef.current = onClose })
@@ -101,6 +105,7 @@ export default function BottomSheet({
     if (!target.closest('[data-sheet-grip]')) return
     if (target.closest('button, a, input, textarea, select') && !target.closest('[data-sheet-grabber]')) return
     drag.current = { startY: e.clientY, lastY: e.clientY, lastT: e.timeStamp, velocity: 0, moved: false, grabber: !!target.closest('[data-sheet-grabber]') }
+    setDragStartHeight(e.currentTarget.getBoundingClientRect().height)
     // Keep the moves and the release even when the finger or mouse leaves the sheet (dragging up past its top).
     e.currentTarget.setPointerCapture(e.pointerId)
   }
@@ -145,9 +150,13 @@ export default function BottomSheet({
   if (!open && !closing) return null
 
   const height = detents === 'medium-large'
-    ? (large ? 'h-[calc(100%-max(0.75rem,env(safe-area-inset-top)))]' : 'h-[62%]')
+    ? (large ? 'max-h-[calc(100%-max(0.75rem,env(safe-area-inset-top)))]' : 'max-h-[62%]')
     : 'max-h-[calc(100%-max(0.75rem,env(safe-area-inset-top)))]'
-  const transition = dragging ? 'none' : 'transform 420ms cubic-bezier(0.32,0.72,0,1), height 420ms cubic-bezier(0.32,0.72,0,1)'
+  const transition = dragging ? 'none' : 'transform 420ms cubic-bezier(0.32,0.72,0,1), height 420ms cubic-bezier(0.32,0.72,0,1), max-height 420ms cubic-bezier(0.32,0.72,0,1)'
+  // Pulled up, the sheet stretches from the bottom edge (as on iOS) instead of lifting off it,
+  // which used to open a gap between its bottom and the screen's. Pulled down, it follows the finger.
+  const stretch = dragY < 0 ? -dragY : 0
+  const stretchStyle: CSSProperties = stretch ? { height: `min(100%, ${dragStartHeight + stretch}px)`, maxHeight: 'none' } : {}
 
   return (
     <ModalPortal onClose={requestClose}>
@@ -167,7 +176,7 @@ export default function BottomSheet({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            style={{ transform: shown ? `translateY(${dragY}px)` : 'translateY(100%)', transition }}
+            style={{ transform: shown ? `translateY(${Math.max(0, dragY)}px)` : 'translateY(100%)', transition, ...stretchStyle }}
             className={`pointer-events-auto relative flex w-full flex-col overflow-hidden rounded-t-[28px] bg-menu shadow-[0_-8px_40px_rgb(0_0_0/0.18)] motion-reduce:!transition-none ${widthClassName} ${height} ${className}`}
           >
             <div data-sheet-grip className="flex shrink-0 touch-none justify-center bg-white pt-1.5 pb-0.5">

@@ -8,7 +8,7 @@ import { computePrimaryForeground } from '@/lib/color-utils'
 import { fill, formatMoney, getMenuCopy } from './menu-i18n'
 import { getProductImages } from './menu-utils'
 import type { UpsellStep } from './upsell'
-import { ui } from './menu-ui'
+import { ctaStyle, ui } from './menu-ui'
 
 /**
  * "Complete your order": one step at a time (goes well with…, a side, a drink,
@@ -74,8 +74,8 @@ export default function UpsellSheet({
                 {steps.length > 1 && <> · {fill(copy.upsellStep, { current: stepIndex + 1, total: steps.length })}</>}
               </p>
             </div>
-            <button type="button" onClick={onClose} className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900" aria-label={copy.close}>
-              <X className="size-5" />
+            <button type="button" onClick={onClose} className={ui.sheetIconButton} aria-label={copy.close}>
+              <X className="size-4" strokeWidth={2.5} />
             </button>
           </div>
 
@@ -102,7 +102,7 @@ export default function UpsellSheet({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className={`line-clamp-2 text-[15px] text-zinc-900 ${ui.dishTitleCompact}`}>{product.name}</span>
-                      <span className="mt-0.5 block text-[14px] font-medium tabular-nums" style={{ color: priceColor }}>{formatMoney(product.price, currency, lang)}</span>
+                      <span className={`mt-0.5 block text-[14px] ${ui.price}`} style={{ color: priceColor }}>{formatMoney(product.price, currency, lang)}</span>
                     </span>
                     {added ? (
                       <span className="flex min-h-10 shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-3 text-[13px] font-semibold text-emerald-700">
@@ -129,8 +129,8 @@ export default function UpsellSheet({
             <button
               type="button"
               onClick={onNext}
-              className={`flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-semibold transition-[scale] active:scale-[0.98] ${tookFromStep ? '' : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'}`}
-              style={tookFromStep ? { backgroundColor: primaryColor, color: onPrimary } : undefined}
+              className={tookFromStep ? `${ui.cta} h-12 w-full` : `${ui.ctaQuiet} h-12 w-full bg-zinc-100 text-zinc-800 hover:bg-zinc-200`}
+              style={tookFromStep ? ctaStyle(primaryColor, onPrimary) : undefined}
             >
               {tookFromStep ? (isLast ? copy.upsellDone : copy.upsellContinue) : copy.upsellSkip}
             </button>
