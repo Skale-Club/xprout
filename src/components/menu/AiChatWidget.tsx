@@ -1,21 +1,29 @@
 'use client'
 
 import { BRAND_PRIMARY } from '@/lib/brand'
-import { useEffect, useRef, useState } from 'react'
-import { MessageCircle, X, Send, Mic, ShoppingBag, Bot, Trash2, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { MessageCircle, X, Send, Mic, Trash2, Loader2, Check, UtensilsCrossed } from 'lucide-react'
 import type { Product, IngredientModifications } from '@/types/database'
 import type { CartEditorState } from './menu-utils'
+import { getProductImages } from './menu-utils'
 import type { CartSnapshotItem, ResolvedCartItem } from '@/lib/chat-agent'
 import { getGuestCopy } from './guest-copy'
-import { fill, getMenuCopy } from './menu-i18n'
+import { fill, formatMoney, getMenuCopy } from './menu-i18n'
+import { ctaStyle, ui } from './menu-ui'
 import type { PhoneContext } from './showcase'
 import { computePrimaryForeground, safeCssColor } from '@/lib/color-utils'
 import PhoneField from '@/components/ui/PhoneField'
+import BottomSheet from '@/components/ui/BottomSheet'
+import { DeliveryImage } from '@/components/delivery-image'
 import { useVisibleBox } from '@/components/ui/keyboard-fields'
 
 interface Props {
   tenantSlug: string
   tenantName: string
+  /** The restaurant's stored logo URL, for the header avatar (its initial shows without one). */
+  tenantLogoUrl?: string | null
+  /** ISO currency of the menu, for the prices of the items the assistant added. */
+  currency?: string
   primaryColor?: string
   audioEnabled?: boolean
   /** Typed messages; the restaurant may allow voice notes only. */
@@ -57,23 +65,40 @@ function formatSeconds(total: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }
 
+interface AddedItem {
+  name: string
+  quantity: number
+  unitPrice: number
+  image?: string
+}
+
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
-  cartItems?: Array<{ name: string; quantity: number }>
+  cartItems?: AddedItem[]
 }
 
 const SESSION_KEY_PREFIX = 'aiChat:'
 
-export default function AiChatWidget({ tenantSlug, tenantName, primaryColor = BRAND_PRIMARY, audioEnabled = false, textEnabled = true, products, onAddToCart, menuId = null, locationId = null, onOpenCart, orderBarVisible = false, language = 'en', cart = null, canOrder = true, tableId = null, phoneContext = null, locale = 'en' }: Props) {
+// sm and up: the floating panel; below it, a bottom sheet.
+const WIDE = '(min-width: 640px)'
+function subscribeWide(onChange: () => void) {
+  const mq = window.matchMedia(WIDE)
+  mq.addEventListener('change', onChange)
+  return () => mq.removeEventListener('change', onChange)
+}
+
+export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = null, currency = 'USD', primaryColor = BRAND_PRIMARY, audioEnabled = false, textEnabled = true, products, onAddToCart, menuId = null, locationId = null, onOpenCart, orderBarVisible = false, language = 'en', cart = null, canOrder = true, tableId = null, phoneContext = null, locale = 'en' }: Props) {
   const copy = getGuestCopy(language)
   const menuCopy = getMenuCopy(language)
   // Text and icons on the brand colour: black or white, whichever reads (never a fixed one).
   const brand = safeCssColor(primaryColor, '#18181b')
   const onBrand = computePrimaryForeground(brand)
-  // Phones: the panel fills what the keyboard leaves visible, so the input bar sits right above it.
+  // Phones: the sheet lives in what the keyboard leaves visible, so the input bar sits right above it.
   const box = useVisibleBox()
+  const wide = useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false)
+  const money = (v: number) => formatMoney(v, currency, language)
   const [open, setOpen] = useState(false)
   const [phone, setPhone] = useState('')
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -120,7 +145,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, primaryColor = BR
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages, sending])
+  }, [messages, sending, open, conversationId])
 
   async function handlePhoneSubmit() {
     if (!phone.trim()) return
@@ -144,12 +169,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, primaryColor = BR
       SESSION_KEY_PREFIX + tenantSlug,
       JSON.stringify({ conversation_id: data.conversation_id, phone: phone.trim() }),
     )
-    // Welcome message
-    setMessages([{
-      id: 'welcome',
-      role: 'assistant',
-      content: fill(textEnabled ? copy.welcomeText : canOrder ? copy.welcomeVoice : copy.welcomeVoiceBrowse, { name: tenantName }),
-    }])
+    // No stored welcome: an empty conversation shows the greeting (client-side only).
   }
 
   /** `voiceToken` marks a transcript signed by the audio route (needed when typing is off). */
@@ -180,7 +200,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, primaryColor = BR
     // Apply cart items via parent callback. Options, editor state and unit
     // price were resolved by the server from the menu, exactly as the product
     // modal would build them.
-    const addedItems: Array<{ name: string; quantity: number }> = []
+    const addedItems: AddedItem[] = []
     // A view-only menu has no cart: nothing the server returns is added.
     for (const item of canOrder ? data.cart_items ?? [] : []) {
       const product = products.find((p) => p.id === item.product_id)
@@ -188,7 +208,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, primaryColor = BR
         for (let i = 0; i < item.quantity; i++) {
           onAddToCart(product, item.selected_options, item.unit_price, item.note, null, item.editor_state)
         }
-        addedItems.push({ name: item.name, quantity: item.quantity })
+        addedItems.push({ name: item.name, quantity: item.quantity, unitPrice: item.unit_price, image: getProductImages(product)[0] })
       }
     }
 
@@ -282,6 +302,262 @@ export default function AiChatWidget({ tenantSlug, tenantName, primaryColor = BR
     }
   }
 
+  const assistantBubble = 'rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2.5 text-[15px] leading-relaxed text-zinc-900'
+  const greeting = textEnabled
+    ? (canOrder ? copy.greeting : copy.greetingBrowse)
+    : fill(canOrder ? copy.welcomeVoice : copy.welcomeVoiceBrowse, { name: tenantName })
+  const suggestions = [copy.suggestRecommend, copy.suggestPopular, canOrder ? copy.suggestOrder : copy.suggestSpecials]
+
+  // One body for both containers: the bottom sheet (phones) and the floating panel (sm and up).
+  const content = (
+    <>
+      {/* Header: on phones it drags the sheet like the grabber */}
+      <div data-sheet-grip={wide ? undefined : true} className={`flex shrink-0 items-center gap-3 border-b border-zinc-100 bg-white px-4 ${wide ? 'py-3.5' : 'touch-none pt-0.5 pb-3'}`}>
+        <div
+          className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-base font-black ring-1 ring-black/5"
+          style={tenantLogoUrl ? { backgroundColor: '#fff' } : { backgroundColor: brand, color: onBrand }}
+          aria-hidden="true"
+        >
+          {tenantLogoUrl
+            ? <DeliveryImage src={tenantLogoUrl} alt="" fill sizes="40px" className="object-contain p-1" />
+            : (Array.from(tenantName.trim())[0] ?? '?').toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className={`truncate ${ui.barTitle} text-zinc-900`}>{tenantName}</h2>
+          <p className="truncate text-[13px] text-zinc-500">{copy.aiAssistant}</p>
+        </div>
+        <button type="button" onClick={() => setOpen(false)} aria-label={copy.close} className={ui.sheetIconButton}>
+          <X className="size-4" />
+        </button>
+      </div>
+
+      {/* Phone gate */}
+      {!conversationId && (
+        <form
+          className={`flex flex-1 min-h-0 flex-col space-y-4 overflow-y-auto bg-white px-6 py-5 ${box.short ? 'justify-start' : 'justify-center'}`}
+          style={{ '--accent': brand } as React.CSSProperties}
+          onSubmit={(e) => { e.preventDefault(); if (!phoneSubmitting && phone.trim()) void handlePhoneSubmit() }}
+        >
+          <h3 className={`${ui.sheetTitle} text-zinc-900`}>{fill(copy.chatWith, { name: tenantName })}</h3>
+          {!box.short && <p className="text-[15px] leading-relaxed text-zinc-600">{copy.gateBody}</p>}
+          <div>
+            <label htmlFor="chat-phone" className="mb-1.5 block text-[14px] font-medium text-zinc-700">{menuCopy.loginPhoneLabel}</label>
+            <PhoneField
+              id="chat-phone"
+              value={phone}
+              onChange={setPhone}
+              phoneContext={phoneContext}
+              locale={locale}
+              countryLabel={menuCopy.loginCountry}
+              countrySearchLabel={menuCopy.loginCountrySearch}
+              enterKeyHint="go"
+              describedBy={phoneError ? 'chat-phone-error' : undefined}
+              className="h-12 w-full rounded-xl border border-zinc-300 bg-white px-4 text-[16px] text-zinc-950 placeholder:text-zinc-500 focus:border-zinc-900 focus:outline-none focus:ring-[3px] focus:ring-zinc-900/10"
+            />
+          </div>
+          {phoneError && <p id="chat-phone-error" role="alert" className="text-[14px] font-medium text-red-700">{phoneError}</p>}
+          <button
+            type="submit"
+            disabled={phoneSubmitting || !phone.trim()}
+            className={`${ui.cta} h-12 w-full disabled:opacity-50 disabled:shadow-none`}
+            style={ctaStyle(brand, onBrand)}
+          >
+            {phoneSubmitting ? copy.starting : copy.startChat}
+          </button>
+        </form>
+      )}
+
+      {/* Conversation */}
+      {conversationId && (
+        <>
+          <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-white px-4 py-4">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-start gap-3">
+                <div className={`max-w-[88%] ${assistantBubble}`}>
+                  <p className="whitespace-pre-wrap">{greeting}</p>
+                </div>
+                {textEnabled && (
+                  <div className="flex flex-wrap gap-2">
+                    {suggestions.map((text) => (
+                      <button
+                        key={text}
+                        type="button"
+                        disabled={sending}
+                        onClick={() => void sendMessage(text)}
+                        className="min-h-10 rounded-full border border-zinc-200 bg-white px-4 py-2 text-left text-[14px] font-medium text-zinc-800 transition-colors hover:bg-zinc-50 active:scale-[0.98] disabled:opacity-50"
+                      >
+                        {text}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {messages.map((m) => (
+              <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                {m.role === 'user' ? (
+                  <div
+                    className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-[15px] leading-relaxed"
+                    style={{ backgroundColor: brand, color: onBrand }}
+                  >
+                    <p className="whitespace-pre-wrap">{m.content}</p>
+                  </div>
+                ) : (
+                  <div className="flex w-full max-w-[88%] flex-col items-start gap-2">
+                    {m.content && (
+                      <div className={assistantBubble}>
+                        <p className="whitespace-pre-wrap">{m.content}</p>
+                      </div>
+                    )}
+                    {m.cartItems && m.cartItems.length > 0 && (
+                      <ul className="flex w-full flex-col gap-2">
+                        {m.cartItems.map((ci, i) => (
+                          <li key={i} className="flex items-center gap-3 rounded-2xl bg-white p-2 pr-3 ring-1 ring-zinc-200">
+                            <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+                              {ci.image
+                                ? <DeliveryImage variant="card" src={ci.image} alt="" fill sizes="48px" className="object-cover" />
+                                : <div className="flex size-full items-center justify-center"><UtensilsCrossed className="size-4 text-zinc-300" aria-hidden="true" /></div>}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[14px] font-semibold text-zinc-900">{ci.name}</p>
+                              <p className="text-[13px] text-zinc-600 tabular-nums">{ci.quantity} × {money(ci.unitPrice)}</p>
+                            </div>
+                            <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-emerald-700">
+                              <Check className="size-3.5" aria-hidden="true" />
+                              {copy.addedLabel}
+                            </span>
+                          </li>
+                        ))}
+                        {onOpenCart && (
+                          <li>
+                            <button
+                              type="button"
+                              onClick={onOpenCart}
+                              className={`${ui.ctaQuiet} h-10 bg-zinc-100 text-zinc-800 hover:bg-zinc-200`}
+                            >
+                              {copy.viewCart}
+                            </button>
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3.5" role="status" aria-label={copy.sending}>
+                  <div className="flex gap-1">
+                    <span className="size-1.5 animate-bounce rounded-full bg-zinc-400" style={{ animationDelay: '0ms' }} />
+                    <span className="size-1.5 animate-bounce rounded-full bg-zinc-400" style={{ animationDelay: '150ms' }} />
+                    <span className="size-1.5 animate-bounce rounded-full bg-zinc-400" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            {error && (
+              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[14px] font-medium text-red-800">
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Input bar */}
+          <div className="shrink-0 border-t border-zinc-100 bg-white px-3 py-3">
+            {remaining !== null && remaining <= 5 && (
+              <p className="mb-1.5 px-1 text-[12px] font-bold text-amber-800">{fill(copy.remainingToday, { n: remaining })}</p>
+            )}
+            {recording ? (
+              <div className="flex items-center gap-2" role="status" aria-live="polite">
+                <button
+                  type="button"
+                  onClick={() => stopRecording(true)}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                  aria-label={copy.discardRecording}
+                >
+                  <Trash2 className="size-4" />
+                </button>
+                <div className="min-w-0 flex-1 rounded-2xl border border-red-100 bg-red-50 px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold tabular-nums text-red-700">
+                    <span className="size-2 animate-pulse rounded-full bg-red-500" aria-hidden="true" />
+                    {formatSeconds(recordSeconds)}
+                    <span className="font-medium text-red-400">/ {formatSeconds(MAX_VOICE_SECONDS)}</span>
+                  </div>
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-red-100">
+                    <div className="h-full bg-red-500 transition-[width] duration-200" style={{ width: `${(recordSeconds / MAX_VOICE_SECONDS) * 100}%` }} />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => stopRecording()}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: brand, color: onBrand }}
+                  aria-label={copy.stopAndSend}
+                >
+                  <Send className="size-4" />
+                </button>
+              </div>
+            ) : !textEnabled ? (
+              <button
+                type="button"
+                onClick={startRecording}
+                disabled={sending || transcribing || !audioEnabled}
+                className={`${ui.cta} h-12 w-full disabled:opacity-60 disabled:shadow-none`}
+                style={ctaStyle(brand, onBrand)}
+              >
+                {transcribing ? <Loader2 className="size-4 animate-spin" /> : <Mic className="size-4" />}
+                {transcribing ? copy.transcribing : sending ? copy.sending : fill(copy.tapToRecord, { s: MAX_VOICE_SECONDS })}
+              </button>
+            ) : (
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      void sendMessage(input)
+                    }
+                  }}
+                  rows={1}
+                  maxLength={MAX_MESSAGE_CHARS}
+                  enterKeyHint="send"
+                  aria-label={copy.askMenu}
+                  placeholder={transcribing ? copy.transcribing : audioEnabled && canOrder ? copy.typeOrRecord : copy.askMenu}
+                  disabled={sending || transcribing}
+                  className="max-h-24 min-h-11 flex-1 resize-none rounded-3xl border border-transparent bg-zinc-100 px-4 py-2.5 text-[16px] leading-6 text-zinc-950 placeholder:text-zinc-500 focus:border-zinc-900 focus:bg-white focus:outline-none focus:ring-[3px] focus:ring-zinc-900/10 disabled:opacity-60"
+                />
+                {audioEnabled && (
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    disabled={sending || transcribing}
+                    className="flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 transition-colors hover:bg-zinc-200 disabled:opacity-50"
+                    aria-label={fill(copy.recordVoice, { s: MAX_VOICE_SECONDS })}
+                    title={fill(copy.recordVoice, { s: MAX_VOICE_SECONDS })}
+                  >
+                    {transcribing ? <Loader2 className="size-4 animate-spin" /> : <Mic className="size-4" />}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void sendMessage(input)}
+                  disabled={sending || !input.trim() || transcribing}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full transition-[scale,opacity] active:scale-95 disabled:opacity-40"
+                  style={{ backgroundColor: brand, color: onBrand }}
+                  aria-label={copy.send}
+                >
+                  <Send className="size-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </>
+  )
+
   return (
     <>
       {/* Floating button */}
@@ -296,204 +572,32 @@ export default function AiChatWidget({ tenantSlug, tenantName, primaryColor = BR
         </button>
       )}
 
-      {/* Panel */}
-      {open && (
-        <div
-          className={`fixed inset-0 z-50 sm:inset-auto sm:bottom-6 sm:left-6 sm:w-[400px] sm:h-[640px] sm:max-h-[80vh] flex flex-col bg-white sm:rounded-2xl shadow-2xl overflow-hidden`}
-          style={box.keyboard ? { top: box.style.top, height: box.style.height, bottom: 'auto' } : undefined}
+      {/* Phones: bottom sheet (medium, drag up for large). The body keeps a tall basis so the sheet always fills its detent. */}
+      {!wide && (
+        <BottomSheet
+          open={open}
+          onClose={() => setOpen(false)}
+          detents="medium-large"
+          ariaLabel={fill(copy.askName, { name: tenantName })}
+          zIndexClassName="z-50"
+          frameStyle={box.style}
+          expandLabel={copy.expandChat}
+          shrinkLabel={copy.shrinkChat}
         >
-          {/* Header */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100" style={{ backgroundColor: brand, color: onBrand }}>
-            <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center">
-              <Bot className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-bold truncate">{fill(copy.askName, { name: tenantName })}</p>
-              <p className="text-[12px] font-medium opacity-90">{copy.aiAssistant}</p>
-            </div>
-            <button onClick={() => setOpen(false)} aria-label={copy.close} className="flex size-10 items-center justify-center rounded-full hover:bg-white/15">
-              <X className="w-5 h-5" />
-            </button>
+          <div className="flex min-h-0 flex-1 flex-col" style={{ flexBasis: '100dvh' }}>
+            {content}
           </div>
+        </BottomSheet>
+      )}
 
-          {/* Phone gate */}
-          {!conversationId && (
-            <form
-              className={`flex-1 overflow-y-auto flex flex-col px-6 py-5 space-y-4 ${box.short ? 'justify-start' : 'justify-center'}`}
-              style={{ '--accent': brand } as React.CSSProperties}
-              onSubmit={(e) => { e.preventDefault(); if (!phoneSubmitting && phone.trim()) void handlePhoneSubmit() }}
-            >
-              <h3 className="text-lg font-bold text-zinc-900">{copy.gateTitle}</h3>
-              {!box.short && <p className="text-[15px] leading-relaxed text-zinc-600">{copy.gateBody}</p>}
-              <div>
-                <label htmlFor="chat-phone" className="mb-1.5 block text-[14px] font-medium text-zinc-700">{menuCopy.loginPhoneLabel}</label>
-                <PhoneField
-                  id="chat-phone"
-                  value={phone}
-                  onChange={setPhone}
-                  phoneContext={phoneContext}
-                  locale={locale}
-                  countryLabel={menuCopy.loginCountry}
-                  countrySearchLabel={menuCopy.loginCountrySearch}
-                  enterKeyHint="go"
-                  describedBy={phoneError ? 'chat-phone-error' : undefined}
-                  className="h-12 w-full rounded-xl border border-zinc-300 bg-white px-4 text-[16px] text-zinc-950 placeholder:text-zinc-500 focus:border-zinc-900 focus:outline-none focus:ring-[3px] focus:ring-zinc-900/10"
-                />
-              </div>
-              {phoneError && <p id="chat-phone-error" role="alert" className="text-[14px] font-medium text-red-700">{phoneError}</p>}
-              <button
-                type="submit"
-                disabled={phoneSubmitting || !phone.trim()}
-                className="w-full h-12 bg-zinc-900 text-white text-[16px] font-semibold rounded-xl hover:bg-zinc-800 disabled:bg-zinc-100 disabled:text-zinc-600 transition-colors"
-              >
-                {phoneSubmitting ? copy.starting : copy.startChat}
-              </button>
-            </form>
-          )}
-
-          {/* Conversation */}
-          {conversationId && (
-            <>
-              <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-zinc-50">
-                {messages.map((m) => (
-                  <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-                    <div
-                      className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[15px] leading-relaxed ${
-                        m.role === 'user'
-                          ? 'bg-zinc-900 text-white rounded-br-md'
-                          : 'bg-white border border-zinc-200 text-zinc-800 rounded-bl-md'
-                      }`}
-                    >
-                      {m.content && <p className="whitespace-pre-wrap">{m.content}</p>}
-                      {m.cartItems && m.cartItems.length > 0 && (
-                        <div className={`flex flex-wrap gap-1.5 ${m.content ? 'mt-2 pt-2 border-t border-zinc-100' : ''}`}>
-                          {m.cartItems.map((ci, i) => (
-                            <span key={i} className="inline-flex items-center gap-1 text-[12px] font-bold bg-green-50 text-green-800 px-2 py-0.5 rounded-full">
-                              <ShoppingBag className="w-3 h-3" />
-                              {ci.quantity}× {ci.name}
-                            </span>
-                          ))}
-                          {onOpenCart && (
-                            <button
-                              type="button"
-                              onClick={onOpenCart}
-                              className="inline-flex items-center text-[12px] font-bold text-zinc-800 underline underline-offset-2 hover:text-zinc-900 px-1"
-                            >
-                              {copy.viewCart}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {sending && (
-                  <div className="flex justify-start">
-                    <div className="bg-white border border-zinc-200 px-4 py-3 rounded-2xl rounded-bl-md">
-                      <div className="flex gap-1">
-                        <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {error && (
-                  <div role="alert" className="text-[14px] font-medium text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    {error}
-                  </div>
-                )}
-              </div>
-
-              {/* Input bar */}
-              <div className="px-3 py-3 border-t border-zinc-100 bg-white">
-                {remaining !== null && remaining <= 5 && (
-                  <p className="text-[12px] text-amber-800 font-bold mb-1.5 px-1">{fill(copy.remainingToday, { n: remaining })}</p>
-                )}
-                {recording ? (
-                  <div className="flex items-center gap-2" role="status" aria-live="polite">
-                    <button
-                      type="button"
-                      onClick={() => stopRecording(true)}
-                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                      aria-label={copy.discardRecording}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <div className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-red-50 border border-red-100">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-red-700 tabular-nums">
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
-                        {formatSeconds(recordSeconds)}
-                        <span className="text-red-400 font-medium">/ {formatSeconds(MAX_VOICE_SECONDS)}</span>
-                      </div>
-                      <div className="mt-1.5 h-1 rounded-full bg-red-100 overflow-hidden">
-                        <div className="h-full bg-red-500 transition-[width] duration-200" style={{ width: `${(recordSeconds / MAX_VOICE_SECONDS) * 100}%` }} />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => stopRecording()}
-                      className="w-10 h-10 rounded-full bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-800 flex-shrink-0"
-                      aria-label={copy.stopAndSend}
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : !textEnabled ? (
-                  <button
-                    type="button"
-                    onClick={startRecording}
-                    disabled={sending || transcribing || !audioEnabled}
-                    className="w-full min-h-12 rounded-xl flex items-center justify-center gap-2 text-[16px] font-semibold disabled:opacity-60"
-                    style={{ backgroundColor: brand, color: onBrand }}
-                  >
-                    {transcribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
-                    {transcribing ? copy.transcribing : sending ? copy.sending : fill(copy.tapToRecord, { s: MAX_VOICE_SECONDS })}
-                  </button>
-                ) : (
-                <div className="flex items-end gap-2">
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        sendMessage(input)
-                      }
-                    }}
-                    rows={1}
-                    maxLength={MAX_MESSAGE_CHARS}
-                    enterKeyHint="send"
-                    aria-label={copy.askMenu}
-                    placeholder={transcribing ? copy.transcribing : audioEnabled && canOrder ? copy.typeOrRecord : copy.askMenu}
-                    disabled={sending || transcribing}
-                    className="flex-1 min-h-10 px-3 py-2 border border-zinc-300 rounded-xl text-[16px] leading-6 text-zinc-950 placeholder:text-zinc-500 resize-none focus:outline-none focus:border-zinc-900 focus:ring-[3px] focus:ring-zinc-900/10 disabled:bg-zinc-50 max-h-24"
-                  />
-                  {audioEnabled && (
-                    <button
-                      type="button"
-                      onClick={startRecording}
-                      disabled={sending || transcribing}
-                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors bg-zinc-100 text-zinc-700 hover:bg-zinc-200 disabled:opacity-50"
-                      aria-label={fill(copy.recordVoice, { s: MAX_VOICE_SECONDS })}
-                      title={fill(copy.recordVoice, { s: MAX_VOICE_SECONDS })}
-                    >
-                      {transcribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => sendMessage(input)}
-                    disabled={sending || !input.trim() || transcribing}
-                    className="w-10 h-10 rounded-full bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-800 disabled:opacity-50 flex-shrink-0"
-                    aria-label={copy.send}
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
-                )}
-              </div>
-            </>
-          )}
+      {/* sm and up: floating panel, bottom-left */}
+      {wide && open && (
+        <div
+          role="dialog"
+          aria-label={fill(copy.askName, { name: tenantName })}
+          className="fixed bottom-6 left-6 z-50 flex h-[640px] max-h-[80vh] w-[400px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
+        >
+          {content}
         </div>
       )}
     </>

@@ -1686,6 +1686,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         <AiChatWidget
           tenantSlug={tenant.slug}
           tenantName={tenant.name}
+          tenantLogoUrl={settings?.logo_url ?? null}
+          currency={currency}
           primaryColor={primaryColor}
           audioEnabled={chatAddonAudioEnabled}
           textEnabled={chatAddonTextEnabled}

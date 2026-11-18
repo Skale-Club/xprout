@@ -45,6 +45,17 @@ export interface GuestCopy {
   todayHours: string
   closedNextHours: string
   welcomeVoiceBrowse: string
+  /** Chat sheet: gate title, client-side greeting and its suggestion chips. */
+  chatWith: string
+  greeting: string
+  greetingBrowse: string
+  suggestRecommend: string
+  suggestPopular: string
+  suggestOrder: string
+  suggestSpecials: string
+  addedLabel: string
+  expandChat: string
+  shrinkChat: string
 }
 
 const en: GuestCopy = {
@@ -62,6 +73,16 @@ const en: GuestCopy = {
   callFailed: "Couldn't reach the staff. Please try again.",
   fromPrice: "From {price}", contactTitle: "Questions? Contact the restaurant", callRestaurant: "Call", whatsappAsk: "Hi! I'd like to know more about {item}", todayHours: "Today: {text}", closedNextHours: "Closed · {day}: {text}",
   welcomeVoiceBrowse: "Hi! I'm the {name} menu assistant. Tap the microphone and ask me anything about our dishes.",
+  chatWith: "Chat with {name}",
+  greeting: "Hi! I can help you choose dishes, explain ingredients and add items to your order.",
+  greetingBrowse: "Hi! I can help you choose dishes and explain ingredients.",
+  suggestRecommend: "What do you recommend?",
+  suggestPopular: "What's popular here?",
+  suggestOrder: "Help me order",
+  suggestSpecials: "Tell me about the specials",
+  addedLabel: "Added",
+  expandChat: "Expand chat",
+  shrinkChat: "Shrink chat",
 }
 
 const pt: GuestCopy = {
@@ -79,6 +100,16 @@ const pt: GuestCopy = {
   callFailed: 'Não conseguimos avisar a equipe. Tente de novo.',
   fromPrice: "A partir de {price}", contactTitle: "Dúvidas? Fale com o restaurante", callRestaurant: "Ligar", whatsappAsk: "Olá! Gostaria de saber mais sobre {item}", todayHours: "Hoje: {text}", closedNextHours: "Fechado · {day}: {text}",
   welcomeVoiceBrowse: "Oi! Sou o assistente do cardápio do {name}. Toque no microfone e pergunte o que quiser sobre os pratos.",
+  chatWith: "Converse com {name}",
+  greeting: "Oi! Posso ajudar você a escolher pratos, explicar ingredientes e adicionar itens ao pedido.",
+  greetingBrowse: "Oi! Posso ajudar você a escolher pratos e explicar ingredientes.",
+  suggestRecommend: "O que você recomenda?",
+  suggestPopular: "O que é mais pedido aqui?",
+  suggestOrder: "Me ajude a pedir",
+  suggestSpecials: "Fale das sugestões do dia",
+  addedLabel: "Adicionado",
+  expandChat: "Expandir conversa",
+  shrinkChat: "Reduzir conversa",
 }
 
 const es: GuestCopy = {
@@ -96,6 +127,16 @@ const es: GuestCopy = {
   callFailed: 'No pudimos avisar al personal. Inténtalo de nuevo.',
   fromPrice: "Desde {price}", contactTitle: "¿Dudas? Contacta con el restaurante", callRestaurant: "Llamar", whatsappAsk: "¡Hola! Me gustaría saber más sobre {item}", todayHours: "Hoy: {text}", closedNextHours: "Cerrado · {day}: {text}",
   welcomeVoiceBrowse: "¡Hola! Soy el asistente del menú de {name}. Toca el micrófono y pregúntame lo que quieras sobre los platos.",
+  chatWith: "Chatea con {name}",
+  greeting: "¡Hola! Puedo ayudarte a elegir platos, explicar ingredientes y añadir productos a tu pedido.",
+  greetingBrowse: "¡Hola! Puedo ayudarte a elegir platos y explicar ingredientes.",
+  suggestRecommend: "¿Qué me recomiendas?",
+  suggestPopular: "¿Qué es lo más popular?",
+  suggestOrder: "Ayúdame a pedir",
+  suggestSpecials: "Cuéntame las especialidades",
+  addedLabel: "Añadido",
+  expandChat: "Ampliar el chat",
+  shrinkChat: "Reducir el chat",
 }
 
 const fr: GuestCopy = {
@@ -113,6 +154,16 @@ const fr: GuestCopy = {
   callFailed: "Impossible de prévenir l'équipe. Réessayez.",
   fromPrice: "À partir de {price}", contactTitle: "Une question ? Contactez le restaurant", callRestaurant: "Appeler", whatsappAsk: "Bonjour ! J'aimerais en savoir plus sur {item}", todayHours: "Aujourd'hui : {text}", closedNextHours: "Fermé · {day} : {text}",
   welcomeVoiceBrowse: "Bonjour ! Je suis l'assistant du menu de {name}. Touchez le micro et posez-moi vos questions sur nos plats.",
+  chatWith: "Discutez avec {name}",
+  greeting: "Bonjour ! Je peux vous aider à choisir des plats, expliquer les ingrédients et ajouter des articles à votre commande.",
+  greetingBrowse: "Bonjour ! Je peux vous aider à choisir des plats et expliquer les ingrédients.",
+  suggestRecommend: "Que me conseillez-vous ?",
+  suggestPopular: "Qu'est-ce qui est populaire ici ?",
+  suggestOrder: "Aidez-moi à commander",
+  suggestSpecials: "Parlez-moi des spécialités",
+  addedLabel: "Ajouté",
+  expandChat: "Agrandir le chat",
+  shrinkChat: "Réduire le chat",
 }
 
 const de: GuestCopy = {
@@ -130,6 +181,16 @@ const de: GuestCopy = {
   callFailed: 'Das Personal konnte nicht benachrichtigt werden. Bitte erneut versuchen.',
   fromPrice: "Ab {price}", contactTitle: "Fragen? Kontaktiere das Restaurant", callRestaurant: "Anrufen", whatsappAsk: "Hallo! Ich hätte gern mehr Infos zu {item}", todayHours: "Heute: {text}", closedNextHours: "Geschlossen · {day}: {text}",
   welcomeVoiceBrowse: "Hallo! Ich bin der Menü-Assistent von {name}. Tippe auf das Mikrofon und frag mich alles über unsere Gerichte.",
+  chatWith: "Chatte mit {name}",
+  greeting: "Hallo! Ich helfe dir bei der Auswahl, erkläre Zutaten und lege Artikel in deine Bestellung.",
+  greetingBrowse: "Hallo! Ich helfe dir bei der Auswahl und erkläre Zutaten.",
+  suggestRecommend: "Was empfiehlst du?",
+  suggestPopular: "Was ist hier beliebt?",
+  suggestOrder: "Hilf mir beim Bestellen",
+  suggestSpecials: "Erzähl mir von den Spezialitäten",
+  addedLabel: "Hinzugefügt",
+  expandChat: "Chat vergrößern",
+  shrinkChat: "Chat verkleinern",
 }
 
 const it: GuestCopy = {
@@ -147,6 +208,16 @@ const it: GuestCopy = {
   callFailed: 'Non siamo riusciti ad avvisare il personale. Riprova.',
   fromPrice: "Da {price}", contactTitle: "Domande? Contatta il ristorante", callRestaurant: "Chiama", whatsappAsk: "Ciao! Vorrei sapere di più su {item}", todayHours: "Oggi: {text}", closedNextHours: "Chiuso · {day}: {text}",
   welcomeVoiceBrowse: "Ciao! Sono l'assistente del menu di {name}. Tocca il microfono e chiedimi qualsiasi cosa sui nostri piatti.",
+  chatWith: "Chatta con {name}",
+  greeting: "Ciao! Posso aiutarti a scegliere i piatti, spiegare gli ingredienti e aggiungere articoli al tuo ordine.",
+  greetingBrowse: "Ciao! Posso aiutarti a scegliere i piatti e spiegare gli ingredienti.",
+  suggestRecommend: "Cosa mi consigli?",
+  suggestPopular: "Cosa va per la maggiore qui?",
+  suggestOrder: "Aiutami a ordinare",
+  suggestSpecials: "Parlami delle specialità",
+  addedLabel: "Aggiunto",
+  expandChat: "Espandi la chat",
+  shrinkChat: "Riduci la chat",
 }
 
 const nl: GuestCopy = {
@@ -164,6 +235,16 @@ const nl: GuestCopy = {
   callFailed: 'We konden het personeel niet bereiken. Probeer het opnieuw.',
   fromPrice: "Vanaf {price}", contactTitle: "Vragen? Neem contact op met het restaurant", callRestaurant: "Bellen", whatsappAsk: "Hallo! Ik wil graag meer weten over {item}", todayHours: "Vandaag: {text}", closedNextHours: "Gesloten · {day}: {text}",
   welcomeVoiceBrowse: "Hallo! Ik ben de menu-assistent van {name}. Tik op de microfoon en vraag me alles over onze gerechten.",
+  chatWith: "Chat met {name}",
+  greeting: "Hoi! Ik help je gerechten kiezen, leg ingrediënten uit en voeg items toe aan je bestelling.",
+  greetingBrowse: "Hoi! Ik help je gerechten kiezen en leg ingrediënten uit.",
+  suggestRecommend: "Wat raad je aan?",
+  suggestPopular: "Wat is hier populair?",
+  suggestOrder: "Help me bestellen",
+  suggestSpecials: "Vertel me over de specialiteiten",
+  addedLabel: "Toegevoegd",
+  expandChat: "Chat vergroten",
+  shrinkChat: "Chat verkleinen",
 }
 
 const pl: GuestCopy = {
@@ -181,6 +262,16 @@ const pl: GuestCopy = {
   callFailed: 'Nie udało się powiadomić obsługi. Spróbuj ponownie.',
   fromPrice: "Od {price}", contactTitle: "Pytania? Skontaktuj się z restauracją", callRestaurant: "Zadzwoń", whatsappAsk: "Dzień dobry! Chcę dowiedzieć się więcej o: {item}", todayHours: "Dziś: {text}", closedNextHours: "Zamknięte · {day}: {text}",
   welcomeVoiceBrowse: "Cześć! Jestem asystentem menu {name}. Dotknij mikrofonu i zapytaj o nasze dania.",
+  chatWith: "Czat z {name}",
+  greeting: "Cześć! Pomogę wybrać dania, wyjaśnię składniki i dodam pozycje do zamówienia.",
+  greetingBrowse: "Cześć! Pomogę wybrać dania i wyjaśnię składniki.",
+  suggestRecommend: "Co polecasz?",
+  suggestPopular: "Co jest tu popularne?",
+  suggestOrder: "Pomóż mi zamówić",
+  suggestSpecials: "Opowiedz o specjałach",
+  addedLabel: "Dodano",
+  expandChat: "Powiększ czat",
+  shrinkChat: "Zmniejsz czat",
 }
 
 const tr: GuestCopy = {
@@ -198,6 +289,16 @@ const tr: GuestCopy = {
   callFailed: 'Personele ulaşılamadı. Lütfen tekrar deneyin.',
   fromPrice: "{price} itibarıyla", contactTitle: "Sorunuz mu var? Restoranla iletişime geçin", callRestaurant: "Ara", whatsappAsk: "Merhaba! {item} hakkında bilgi almak istiyorum", todayHours: "Bugün: {text}", closedNextHours: "Kapalı · {day}: {text}",
   welcomeVoiceBrowse: "Merhaba! {name} menü asistanıyım. Mikrofona dokunun ve yemeklerimiz hakkında istediğinizi sorun.",
+  chatWith: "{name} ile sohbet et",
+  greeting: "Merhaba! Yemek seçmene, malzemeleri açıklamana ve siparişine ürün eklemene yardımcı olabilirim.",
+  greetingBrowse: "Merhaba! Yemek seçmene ve malzemeleri açıklamana yardımcı olabilirim.",
+  suggestRecommend: "Ne önerirsin?",
+  suggestPopular: "Burada en popüler ne?",
+  suggestOrder: "Sipariş vermeme yardım et",
+  suggestSpecials: "Özel lezzetlerden bahset",
+  addedLabel: "Eklendi",
+  expandChat: "Sohbeti büyüt",
+  shrinkChat: "Sohbeti küçült",
 }
 
 const ru: GuestCopy = {
@@ -215,6 +316,16 @@ const ru: GuestCopy = {
   callFailed: 'Не удалось связаться с персоналом. Попробуйте ещё раз.',
   fromPrice: "От {price}", contactTitle: "Есть вопросы? Свяжитесь с рестораном", callRestaurant: "Позвонить", whatsappAsk: "Здравствуйте! Хочу узнать подробнее: {item}", todayHours: "Сегодня: {text}", closedNextHours: "Закрыто · {day}: {text}",
   welcomeVoiceBrowse: "Здравствуйте! Я помощник по меню {name}. Нажмите на микрофон и спросите что угодно о наших блюдах.",
+  chatWith: "Чат с {name}",
+  greeting: "Привет! Помогу выбрать блюда, расскажу о составе и добавлю позиции в заказ.",
+  greetingBrowse: "Привет! Помогу выбрать блюда и расскажу о составе.",
+  suggestRecommend: "Что посоветуете?",
+  suggestPopular: "Что здесь популярно?",
+  suggestOrder: "Помогите сделать заказ",
+  suggestSpecials: "Расскажите о фирменных блюдах",
+  addedLabel: "Добавлено",
+  expandChat: "Развернуть чат",
+  shrinkChat: "Свернуть чат",
 }
 
 const hi: GuestCopy = {
@@ -232,6 +343,16 @@ const hi: GuestCopy = {
   callFailed: 'स्टाफ़ तक संदेश नहीं पहुँचा। फिर से कोशिश करें।',
   fromPrice: "{price} से शुरू", contactTitle: "कोई सवाल? रेस्टोरेंट से संपर्क करें", callRestaurant: "कॉल करें", whatsappAsk: "नमस्ते! मैं {item} के बारे में और जानना चाहता हूँ", todayHours: "आज: {text}", closedNextHours: "बंद · {day}: {text}",
   welcomeVoiceBrowse: "नमस्ते! मैं {name} का मेन्यू सहायक हूँ। माइक्रोफ़ोन टैप करें और हमारे व्यंजनों के बारे में कुछ भी पूछें।",
+  chatWith: "{name} से चैट करें",
+  greeting: "नमस्ते! मैं व्यंजन चुनने, सामग्री समझाने और आपके ऑर्डर में आइटम जोड़ने में मदद कर सकता हूँ।",
+  greetingBrowse: "नमस्ते! मैं व्यंजन चुनने और सामग्री समझाने में मदद कर सकता हूँ।",
+  suggestRecommend: "आप क्या सुझाएंगे?",
+  suggestPopular: "यहाँ क्या लोकप्रिय है?",
+  suggestOrder: "ऑर्डर करने में मदद करें",
+  suggestSpecials: "स्पेशल के बारे में बताइए",
+  addedLabel: "जोड़ा गया",
+  expandChat: "चैट बड़ा करें",
+  shrinkChat: "चैट छोटा करें",
 }
 
 const ja: GuestCopy = {
@@ -249,6 +370,16 @@ const ja: GuestCopy = {
   callFailed: 'スタッフに通知できませんでした。もう一度お試しください。',
   fromPrice: "{price}〜", contactTitle: "ご質問はお店へどうぞ", callRestaurant: "電話", whatsappAsk: "こんにちは！{item}について詳しく知りたいです", todayHours: "本日：{text}", closedNextHours: "営業時間外 · {day}：{text}",
   welcomeVoiceBrowse: "こんにちは！{name}のメニューアシスタントです。マイクをタップして、料理について何でも聞いてください。",
+  chatWith: "{name}とチャット",
+  greeting: "こんにちは！料理選びや食材の説明、ご注文への追加をお手伝いします。",
+  greetingBrowse: "こんにちは！料理選びや食材の説明をお手伝いします。",
+  suggestRecommend: "おすすめは何ですか？",
+  suggestPopular: "人気のメニューは？",
+  suggestOrder: "注文を手伝って",
+  suggestSpecials: "日替わりやおすすめを教えて",
+  addedLabel: "追加済み",
+  expandChat: "チャットを広げる",
+  shrinkChat: "チャットを縮める",
 }
 
 const ko: GuestCopy = {
@@ -266,6 +397,16 @@ const ko: GuestCopy = {
   callFailed: '직원에게 알리지 못했어요. 다시 시도해 주세요.',
   fromPrice: "{price}부터", contactTitle: "궁금한 점은 매장에 문의하세요", callRestaurant: "전화", whatsappAsk: "안녕하세요! {item}에 대해 더 알고 싶어요", todayHours: "오늘: {text}", closedNextHours: "영업 종료 · {day}: {text}",
   welcomeVoiceBrowse: "안녕하세요! {name} 메뉴 도우미입니다. 마이크를 누르고 메뉴에 대해 무엇이든 물어보세요.",
+  chatWith: "{name} 채팅",
+  greeting: "안녕하세요! 메뉴 선택, 재료 설명, 주문에 항목 추가를 도와드릴게요.",
+  greetingBrowse: "안녕하세요! 메뉴 선택과 재료 설명을 도와드릴게요.",
+  suggestRecommend: "추천해 주세요",
+  suggestPopular: "여기서 인기 있는 건 뭐예요?",
+  suggestOrder: "주문을 도와주세요",
+  suggestSpecials: "스페셜 메뉴를 알려주세요",
+  addedLabel: "추가됨",
+  expandChat: "채팅 확대",
+  shrinkChat: "채팅 축소",
 }
 
 const zh: GuestCopy = {
@@ -283,6 +424,16 @@ const zh: GuestCopy = {
   callFailed: '未能通知工作人员，请重试。',
   fromPrice: "{price}起", contactTitle: "有疑问？联系餐厅", callRestaurant: "致电", whatsappAsk: "你好！我想了解一下{item}", todayHours: "今天：{text}", closedNextHours: "已打烊 · {day}：{text}",
   welcomeVoiceBrowse: "你好！我是{name}的菜单助手。点按麦克风，关于菜品的任何问题都可以问我。",
+  chatWith: "与{name}聊天",
+  greeting: "你好！我可以帮你挑选菜品、讲解食材，并把菜品加入订单。",
+  greetingBrowse: "你好！我可以帮你挑选菜品、讲解食材。",
+  suggestRecommend: "你有什么推荐？",
+  suggestPopular: "这里什么最受欢迎？",
+  suggestOrder: "帮我点餐",
+  suggestSpecials: "介绍一下特色菜",
+  addedLabel: "已添加",
+  expandChat: "展开聊天",
+  shrinkChat: "收起聊天",
 }
 
 const zhTW: GuestCopy = {
@@ -300,6 +451,16 @@ const zhTW: GuestCopy = {
   callFailed: '未能通知工作人員，請再試一次。',
   fromPrice: "{price}起", contactTitle: "有疑問？聯絡餐廳", callRestaurant: "撥打電話", whatsappAsk: "您好！我想了解一下{item}", todayHours: "今天：{text}", closedNextHours: "已打烊 · {day}：{text}",
   welcomeVoiceBrowse: "您好！我是{name}的菜單助理。點按麥克風，關於菜色的任何問題都可以問我。",
+  chatWith: "與{name}聊天",
+  greeting: "你好！我可以幫你挑選餐點、說明食材，並把餐點加入訂單。",
+  greetingBrowse: "你好！我可以幫你挑選餐點、說明食材。",
+  suggestRecommend: "你有什麼推薦？",
+  suggestPopular: "這裡什麼最受歡迎？",
+  suggestOrder: "幫我點餐",
+  suggestSpecials: "介紹一下特色餐點",
+  addedLabel: "已加入",
+  expandChat: "展開聊天",
+  shrinkChat: "收合聊天",
 }
 
 const COPY: Record<string, GuestCopy> = { en, pt, es, fr, de, it, nl, pl, tr, ru, hi, ja, ko, zh, 'zh-TW': zhTW }
