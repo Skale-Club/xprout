@@ -1080,8 +1080,9 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   // The restaurant's home as a path on this host: "/" on its own domain, "/slug" on the platform.
   const restaurantHome = (() => { try { return canonicalBaseUrl ? new URL(canonicalBaseUrl).pathname || '/' : `/${tenant.slug}` } catch { return `/${tenant.slug}` } })()
   // Each public dish card is a real link to its dish page (crawlable), opened here as the dish window.
+  // The slug comes from the base name: a translated name ("Bolinhos de Bacalhau") is not the page's address.
   const dishHref = (product: Product) => !feedPreview && canonicalBaseUrl && menu?.slug && menu.is_private === false && isIndexableDish(product)
-    ? `${canonicalBaseUrl.replace(/\/$/, '')}/${menu.slug}/${dishSlug(product)}` : undefined
+    ? `${canonicalBaseUrl.replace(/\/$/, '')}/${menu.slug}/${dishSlug({ id: product.id, name: baseName(product) })}` : undefined
   const menusLabel = ({ en: 'Menus', pt: 'Cardápios', es: 'Cartas' } as Record<string, string>)[selectedLanguage.split('-')[0]] ?? 'Menus'
 
   // The order as a dish page's DishCartButton sees it: the plain dish goes straight in, like the
@@ -1559,6 +1560,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
         return (
         <ProductModal
           product={shownProduct}          details={dishDetailsFor(tenant.slug, shownProduct)}
+          // Not on a dish page: there the window shows the page's own dish.
+          pageHref={onDishPage ? undefined : dishHref(shownProduct)}
           extraImages={extraDishImagesFor(tenant.slug, shownProduct)}
           onPrevProduct={!editingCartKey && !returnToCart && prevProduct ? () => openProduct(prevProduct, 'detail') : undefined}
           onNextProduct={!editingCartKey && !returnToCart && nextProduct ? () => openProduct(nextProduct, 'detail') : undefined}

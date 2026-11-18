@@ -26,6 +26,7 @@ import { keepFieldVisible, useVisibleBox } from '@/components/ui/keyboard-fields
 import { useDragToDismiss } from '@/components/ui/use-drag-to-dismiss'
 import { halfAndHalfUnit } from '@/lib/menu/option-pricing'
 import DishHeading from './DishHeading'
+import DishPageLink from './DishPageLink'
 
 type MediaSlide = { type: 'image'; url: string } | { type: 'video'; url: string }
 
@@ -80,7 +81,9 @@ function VideoSlide({ url }: { url: string }) {
   )
 }
 
-export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart, noticeMinutes = 0 }: {
+export default function ProductModal({ product, primaryColor, priceColor = '#18181b', currency, whatsapp, lang, onClose, onWhatsApp, onAddToCart, showcase: showcaseProp, onCustomizationStarted, optionGroups = [], itemNotesEnabled = false, ingredientCustomizationEnabled = false, productIngredients = [], productMedia = [], initialEditorState = null, onPrevProduct, onNextProduct, details = [], extraImages = [], arModel = null, onModelViewerOpened, onArLaunched, onAddToCartFromAr, cartCount = 0, accentColor, arCart, arSequence, cartQuantityFor, onDecreaseCartQuantity, onOpenCart, noticeMinutes = 0, pageHref }: {
+  /** The dish's own page (/<slug>/<menu>/<dish>): a small grey arrow after the dish name. */
+  pageHref?: string
   /** Notice this dish needs, in minutes (0 = none); shown only when the restaurant takes scheduled orders. */
   noticeMinutes?: number
   /** Adds one of this dish from the AR camera without closing the sheet (no upsell). */
@@ -639,7 +642,7 @@ export default function ProductModal({ product, primaryColor, priceColor = '#181
 
           <div className="space-y-4 px-5 pt-4 pb-6" onTouchStart={handleBodyTouchStart} onTouchEnd={handleBodyTouchEnd}>
             <div>
-              <DishHeading size="sheet" name={product.name} titleClassName="text-zinc-900" priceStyle={{ color: priceColor }}
+              <DishHeading size="sheet" name={pageHref ? <>{product.name}<DishPageLink href={pageHref} lang={lang} /></> : product.name} titleClassName="text-zinc-900" priceStyle={{ color: priceColor }}
                 price={hasFooterPrice ? undefined : <>
                   <p>{headerPrice.from ? fill(guestCopy.fromPrice, { price: money(headerPrice.amount) }) : money(headerPrice.amount)}</p>
                   {!headerPrice.from && product.original_price && product.original_price > product.price && (

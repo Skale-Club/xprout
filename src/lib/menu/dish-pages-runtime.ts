@@ -2,7 +2,7 @@ import { getPublicMenuBase, withMenuPrices } from './public-menu-data'
 import { dishSlug, isIndexableDish } from './dish-pages'
 import type { Category, Product } from '@/types/database'
 import { displayPrice, sizeGroups, type PricedOptionGroup } from '@/components/menu/showcase'
-import { localizeGroups, localizeItem } from '@/lib/menu-translations'
+import { baseName, localizeGroups, localizeItem } from '@/lib/menu-translations'
 import type { GroupWithOptions } from '@/app/(admin)/menu/products/[id]/page'
 
 /** Other dishes shown at the foot of a dish page. */
@@ -19,7 +19,8 @@ export function relatedDishes(product: Pick<Product, 'id' | 'category_id'>, prod
   const byPosition = (a: Product, b: Product) => a.position - b.position
   return [...others.filter(sameCategory).sort(byPosition), ...others.filter(other => !sameCategory(other)).sort(byPosition)]
     .slice(0, limit)
-    .map(other => ({ id: other.id, name: other.name, slug: dishSlug(other), image_url: other.image_url!,
+    // The slug from the base name: a translated name is not the dish page's address.
+    .map(other => ({ id: other.id, name: other.name, slug: dishSlug({ id: other.id, name: baseName(other) }), image_url: other.image_url!,
       price: displayPrice(other.price, groupsByProductId[other.id]) }))
 }
 

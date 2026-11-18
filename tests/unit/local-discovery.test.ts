@@ -90,6 +90,13 @@ describe('related dishes on a dish page', () => {
     expect(relatedDishes(current, list, {}, 3).map(item => item.name)).toEqual(['Dish c', 'Dish b', 'Dish e'])
     expect(relatedDishes(current, list, {}).map(item => item.name)).not.toContain('Dish a')
   })
+  it('shows a translated name but links the page by its base name', () => {
+    const current = dish('a', 'mains', 1)
+    const translated = { ...dish('b', 'mains', 2), name: 'Bolinhos de Bacalhau', base_name: 'Cod Fritters' } as Product
+    const [item] = relatedDishes(current, [translated], {})
+    expect(item.name).toBe('Bolinhos de Bacalhau')
+    expect(item.slug).toBe(dishSlug({ id: translated.id, name: 'Cod Fritters' }))
+  })
 })
 
 describe('bounded crawlable local navigation', () => {
