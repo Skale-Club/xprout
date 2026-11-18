@@ -57,7 +57,10 @@ describe('localized public rendering', () => {
     const pricing = render(createElement(Pricing, {}))
     const blog = render(createElement(BlogPostList, { heading: 'Blog', posts: [], basePath: '/blog', locale }))
     expect(landing).toContain(translatePublic(locale, 'How it works'))
-    expect(landing).toMatch(new RegExp(`<option(?=[^>]*value="${locale}")(?=[^>]*selected="")[^>]*>`))
+    expect(landing).toContain('aria-haspopup="listbox"')
+    expect(landing).not.toContain('<select')
+    const nativeName = { en: 'English', pt: 'Português', es: 'Español' }[locale]
+    expect(landing).toContain(`aria-label="${translatePublic(locale, 'Language')}: ${nativeName}"`)
     expect(pricing).toContain(translatePublic(locale, 'Setup · paid once'))
     expect(pricing).toContain(translatePublic(locale, 'Plan · paid monthly'))
     expect(pricing).toContain(`/pricing?lang=${locale}`)
