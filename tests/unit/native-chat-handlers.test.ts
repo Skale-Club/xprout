@@ -6,7 +6,7 @@ import { voiceTokenSecret } from '@/lib/crypto'
 import { resolveTenantCapabilities } from '@/lib/service-modes'
 const state = vi.hoisted(() => ({ read: vi.fn(), audio: vi.fn(), save: vi.fn(), access: vi.fn(), run: vi.fn(), agent: vi.fn(), transcribe: vi.fn(), model: vi.fn() }))
 vi.mock('@/lib/data/public-chat-turns-runtime', () => ({ readOwnedPublicChatTurn: state.read, readOwnedPublicChatAudio: state.audio, saveOwnedPublicChatTurn: state.save }))
-vi.mock('@/lib/ai/access', () => ({ resolveAiAccess: state.access, runAi: state.run, settleAiUsageRecords: async () => {} }))
+vi.mock('@/lib/ai/access', () => ({ resolveAiAccess: state.access, runAi: state.run }))
 vi.mock('@/lib/ai/openrouter', () => ({ openRouterModel: state.model, transcribeWithOpenRouter: state.transcribe, transcriptionModelId: () => 'test/transcription', OpenRouterError: class extends Error {} }))
 vi.mock('@/lib/chat-agent', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/chat-agent')>(), runChatAgent: state.agent }))
 vi.mock('@/lib/observability/log', () => ({ log: { error: vi.fn() } }))
@@ -17,7 +17,7 @@ const context = () => ({ tenant: { id: tenantId, name: 'Restaurant' }, conversat
 beforeEach(() => {
   vi.stubEnv('CHAT_ADDON_ENCRYPTION_KEY', randomBytes(32).toString('hex'))
   state.read.mockResolvedValue(context()); state.audio.mockResolvedValue(context()); state.save.mockResolvedValue({ remaining_today: 16 })
-  state.access.mockResolvedValue({ primary: { apiKey: randomUUID() }, fetchFor: () => vi.fn() })
+  state.access.mockResolvedValue({ primary: { apiKey: randomUUID() }, fetchFor: () => vi.fn(), settle: async () => {} })
   state.run.mockImplementation(async (access, callback) => callback(access.primary)); state.agent.mockResolvedValue({ text: 'Answer', cartItems: [], totalTokens: 12 }); state.transcribe.mockResolvedValue('  Voice message  ')
 })
 afterEach(() => { vi.unstubAllEnvs(); vi.resetAllMocks() })

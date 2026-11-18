@@ -20,7 +20,7 @@ import { NextResponse } from 'next/server'
 import { openRouterModel } from '@/lib/ai/openrouter'
 import type { KeyChoice } from '@/lib/ai/billing-rules'
 import { resolveChatModel } from '@/lib/ai/chat-models'
-import { resolveAiAccess, runAi, settleAiUsageRecords } from '@/lib/ai/access'
+import { resolveAiAccess, runAi } from '@/lib/ai/access'
 import { getTenantCapabilities } from '@/lib/tenant-plan'
 import { hasAnyChannel, resolveChatChannels, verifyVoiceTranscript } from '@/lib/chat-channels'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -271,7 +271,7 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
       log.error('chat.generate_error', { err: e })
       return NextResponse.json({ error: 'Assistant temporarily unavailable' }, { status: 502 })
     }
-    return chatNdjsonResponse(started, async result => { await settleAiUsageRecords(); return persist(result) })
+    return chatNdjsonResponse(started, async result => { await access.settle(); return persist(result) })
   }
 
   let result

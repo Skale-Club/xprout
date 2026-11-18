@@ -45,7 +45,7 @@ describe('chatNdjsonResponse', () => {
     const order: string[] = []
     const response = chatNdjsonResponse(started(), async () => { order.push('persist'); return done })
     expect(response.headers.get('content-type')).toBe('application/x-ndjson; charset=utf-8')
-    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(response.headers.get('cache-control')).toBe('no-store, no-transform')
     expect(response.headers.get('x-accel-buffering')).toBe('no')
     const events = createChatEventParser().feed(await response.text())
     expect(events).toEqual([{ type: 'delta', text: 'Hel' }, { type: 'delta', text: 'lo' }, { type: 'done', ...done }])

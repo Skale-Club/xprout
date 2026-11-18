@@ -19,7 +19,7 @@ export function wantsNdjson(request: Request): boolean {
 
 export const ndjsonHeaders = {
   'Content-Type': `${NDJSON_CONTENT_TYPE}; charset=utf-8`,
-  'Cache-Control': 'no-store',
+  'Cache-Control': 'no-store, no-transform',
   'X-Accel-Buffering': 'no',
 } as const
 

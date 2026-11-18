@@ -111,6 +111,8 @@ export interface ResolvedAiAccess {
   fallback: KeyChoice | null
   /** A fetch that records the call's real cost under this key choice. */
   fetchFor: (choice: KeyChoice, model?: string) => typeof fetch
+  /** Resolves once this access's streamed calls have written their cost to the ledger. */
+  settle: () => Promise<void>
 }
 
 export async function resolveAiAccess(tenantId: string | null, feature: AiFeature): Promise<ResolvedAiAccess | null> {
@@ -130,11 +132,14 @@ export async function resolveAiAccess(tenantId: string | null, feature: AiFeatur
     tenantIsDemo: tenant?.isDemo === true,
   })
   if (!plan) return null
+  // Per access, so one guest's turn never waits for another guest's stream.
+  const pending = new Set<Promise<void>>()
   return {
     tenantId,
     feature,
     ...plan,
-    fetchFor: (choice, model) => meteredFetch({ tenantId, feature, choice, model }),
+    fetchFor: (choice, model) => meteredFetch({ tenantId, feature, choice, model }, pending),
+    settle: async () => { await Promise.allSettled([...pending]) },
   }
 }
 
@@ -224,14 +229,6 @@ export function createSseUsageCollector() {
   }
 }
 
-// Records still being written; settleAiUsageRecords() lets a request wait for them.
-const pendingUsage = new Set<Promise<void>>()
-
-/** Resolves once every streamed call's cost has been written to the ledger. */
-export async function settleAiUsageRecords(): Promise<void> {
-  await Promise.allSettled([...pendingUsage])
-}
-
 async function meterStream(meta: UsageMeta, stream: ReadableStream<Uint8Array>): Promise<void> {
   const collector = createSseUsageCollector()
   const decoder = new TextDecoder()
@@ -269,7 +266,7 @@ function withStreamUsage(input: Parameters<typeof fetch>[0], init: Parameters<ty
  * bodies from a clone, event streams from a tee'd branch parsed in the
  * background. The caller always reads its own response untouched.
  */
-export function meteredFetch(meta: UsageMeta): typeof fetch {
+export function meteredFetch(meta: UsageMeta, pending?: Set<Promise<void>>): typeof fetch {
   return async (input, init) => {
     const response = await fetch(input, withStreamUsage(input, init))
     const type = response.headers.get('content-type') ?? ''
@@ -281,8 +278,8 @@ export function meteredFetch(meta: UsageMeta): typeof fetch {
     } else if (response.ok && type.includes('text/event-stream') && response.body) {
       const metered = response.clone().body
       if (metered) {
-        const pending: Promise<void> = meterStream(meta, metered).finally(() => pendingUsage.delete(pending))
-        pendingUsage.add(pending)
+        const record: Promise<void> = meterStream(meta, metered).finally(() => pending?.delete(record))
+        pending?.add(record)
       }
     }
     return response

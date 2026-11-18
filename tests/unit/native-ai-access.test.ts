@@ -8,7 +8,7 @@ vi.mock('@/lib/supabase/server', () => ({ createServiceClient: state.source }))
 vi.mock('@/lib/data/ai-access-runtime', () => ({ readOwnedPlatformAiRecord: state.platform, readOwnedTenantAiRecord: state.tenant, recordOwnedTenantAiKeyError: state.error, insertOwnedAiUsageRecord: state.usage }))
 vi.mock('@/lib/observability/context', () => ({ getRequestContext: () => ({ requestId: 'test-request' }) }))
 vi.mock('@/lib/observability/log', () => ({ log: { error: vi.fn(), warn: vi.fn() } }))
-import { loadPlatformAiSettings, loadTenantAiSettings, meteredFetch, recordAiUsage, runAi, settleAiUsageRecords, type ResolvedAiAccess } from '@/lib/ai/access'
+import { resolveAiAccess, loadPlatformAiSettings, loadTenantAiSettings, meteredFetch, recordAiUsage, runAi, type ResolvedAiAccess } from '@/lib/ai/access'
 import { OPENROUTER_BASE_URL } from '@/lib/ai/openrouter'
 
 beforeEach(() => { vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', 'true'); vi.stubEnv('CHAT_ADDON_ENCRYPTION_KEY', randomBytes(32).toString('hex')) })
@@ -30,7 +30,7 @@ it('missing native configuration retains explicit environment defaults, while a 
   state.platform.mockRejectedValue(new AdminMenuError(503, 'Unavailable'))
   await expect(loadPlatformAiSettings()).rejects.toMatchObject({ status: 503 }); expect(state.source).not.toHaveBeenCalled()
 })
-const access = (): ResolvedAiAccess => ({ tenantId, feature: 'chat', primary: { ...choice(), keySource: 'tenant', billable: false, markupPct: 0 }, fallback: choice(), fetchFor: () => fetch })
+const access = (): ResolvedAiAccess => ({ tenantId, feature: 'chat', primary: { ...choice(), keySource: 'tenant', billable: false, markupPct: 0 }, fallback: choice(), fetchFor: () => fetch, settle: async () => {} })
 it('records a native rejected-key warning before the existing billable provider-key fallback', async () => {
   const order: string[] = [], resolved = access()
   state.error.mockImplementation(async () => { order.push('record') })
@@ -53,7 +53,7 @@ it('metering preserves the provider response and never falls back to a source us
   state.usage.mockRejectedValue(new AdminMenuError(503, 'Unavailable'))
   const body = { id: 'generation-test', usage: { cost: 0.01 } }
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } })))
-  const response = await meteredFetch(meta())('http://unit.invalid')
+  const response = await meteredFetch(meta(), pendingSet)('http://unit.invalid')
   expect(await response.json()).toEqual(body); expect(state.usage).toHaveBeenCalledTimes(1); expect(state.source).not.toHaveBeenCalled()
 })
 it('tenant settings use exact bound scope and normalize PostgreSQL timestamps for the existing DTO', async () => {
@@ -66,15 +66,17 @@ it('a demo company without AI settings still reports itself as a demo; any other
   expect(await readTenantAiRecord(vi.fn().mockResolvedValue({ rows: [{ has_settings: false, is_demo: false }] }), tenantId)).toBeNull()
   expect(await readTenantAiRecord(vi.fn().mockResolvedValue({ rows: [] }), tenantId)).toBeNull()
 })
+const pendingSet = new Set<Promise<void>>()
+const pending = () => Promise.allSettled([...pendingSet])
 const sse = (...chunks: unknown[]) => chunks.map(c => `data: ${typeof c === 'string' ? c : JSON.stringify(c)}\n\n`).join('')
 const streamResponse = (text: string) => new Response(new ReadableStream({ start(c) { const enc = new TextEncoder(); for (let i = 0; i < text.length; i += 7) c.enqueue(enc.encode(text.slice(i, i + 7))); c.close() } }), { headers: { 'content-type': 'text/event-stream' } })
 it('meters a streamed call once from the last chunk that carries usage, and the caller reads every byte', async () => {
   state.usage.mockResolvedValue(undefined)
   const wire = sse({ id: 'gen-1', model: 'm/x', choices: [{ delta: { content: 'Hi' } }] }, 'not json', { id: 'gen-1', model: 'm/x', choices: [], usage: { cost: 0.002, total_tokens: 9 } }, '[DONE]')
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(streamResponse(wire)))
-  const response = await meteredFetch(meta())('http://unit.invalid')
+  const response = await meteredFetch(meta(), pendingSet)('http://unit.invalid')
   expect(await response.text()).toBe(wire)
-  await settleAiUsageRecords()
+  await pending()
   expect(state.usage).toHaveBeenCalledTimes(1)
   expect(state.usage.mock.calls[0][0]).toMatchObject({ generation_id: 'gen-1', model: 'm/x', cost_usd: 0.002, markup_pct: 25, charge_usd: 0.0025 })
 })
@@ -82,8 +84,8 @@ it('a stream without usage records zero cost and does not throw', async () => {
   state.usage.mockResolvedValue(undefined)
   const wire = sse({ id: 'gen-2', choices: [{ delta: { content: 'Hi' } }] }, '[DONE]')
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(streamResponse(wire)))
-  expect(await (await meteredFetch(meta())('http://unit.invalid')).text()).toBe(wire)
-  await settleAiUsageRecords()
+  expect(await (await meteredFetch(meta(), pendingSet)('http://unit.invalid')).text()).toBe(wire)
+  await pending()
   expect(state.usage).toHaveBeenCalledTimes(1)
   expect(state.usage.mock.calls[0][0]).toMatchObject({ cost_usd: 0, charge_usd: 0 })
 })
@@ -95,4 +97,22 @@ it('asks OpenRouter for usage accounting on streaming chat requests only', async
   await meteredFetch(meta())(url, { method: 'POST', body: JSON.stringify({ model: 'm' }) })
   expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ stream: true, usage: { include: true } })
   expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ model: 'm' })
+})
+it('settle() is per access: a slow stream of one guest never delays another guest', async () => {
+  state.usage.mockResolvedValue(undefined); state.platform.mockResolvedValue(null); state.tenant.mockResolvedValue(null)
+  vi.stubEnv('OPENROUTER_API_KEY', randomUUID())
+  const [a, b] = [await resolveAiAccess(tenantId, 'chat'), await resolveAiAccess(tenantId, 'chat')]
+  expect(a && b).toBeTruthy()
+  const enc = new TextEncoder(); let finishSlow!: () => void
+  const slow = new Response(new ReadableStream({ start(c) { c.enqueue(enc.encode(sse({ id: 'slow', choices: [] }))); finishSlow = () => { c.enqueue(enc.encode(sse({ id: 'slow', usage: { cost: 0.01 } }))); c.close() } } }), { headers: { 'content-type': 'text/event-stream' } })
+  const fetchMock = vi.fn().mockResolvedValueOnce(slow).mockResolvedValueOnce(streamResponse(sse({ id: 'fast', usage: { cost: 0.001 } }, '[DONE]')))
+  vi.stubGlobal('fetch', fetchMock)
+  const slowResponse = await a!.fetchFor(a!.primary)('http://unit.invalid')
+  const fastResponse = await b!.fetchFor(b!.primary)('http://unit.invalid')
+  await fastResponse.text()
+  const slowSettled = vi.fn(); void a!.settle().then(slowSettled)
+  await b!.settle()
+  expect(state.usage).toHaveBeenCalledTimes(1); expect(slowSettled).not.toHaveBeenCalled()
+  finishSlow(); await slowResponse.text(); await a!.settle()
+  expect(slowSettled).toHaveBeenCalled(); expect(state.usage).toHaveBeenCalledTimes(2)
 })

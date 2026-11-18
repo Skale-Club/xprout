@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { resolveAiAccess, runAi, settleAiUsageRecords } from './ai/access'
+import { resolveAiAccess, runAi } from './ai/access'
 import type { KeyChoice } from './ai/billing-rules'
 import { resolveChatModel } from './ai/chat-models'
 import { openRouterModel, OpenRouterError, transcribeWithOpenRouter, transcriptionModelId } from './ai/openrouter'
@@ -55,7 +55,7 @@ export async function handleOwnedChatMessage(slug: string, conversationId: strin
         log.error('chat.generate_error', { err: error })
         return NextResponse.json({ error: 'Assistant temporarily unavailable' }, { status: 502 })
       }
-      return chatNdjsonResponse(started, async result => { await settleAiUsageRecords(); return persist(result) },
+      return chatNdjsonResponse(started, async result => { await access.settle(); return persist(result) },
         error => error instanceof AdminMenuError ? error.message : 'Assistant temporarily unavailable')
     }
     let result
