@@ -32,6 +32,10 @@ This file adds only what is specific to this repository.
 <!-- /universal-rules -->
 
 <!-- media-policy:v1 -->
+## Keyword: "limpa o cache"
+
+When the owner says "limpa o cache" / "flush" / "está tudo igual" after a change, follow `.claude/skills/limpa-cache/SKILL.md` (script: `node scripts/ops/flush-cache.mjs`).
+
 ## Media optimization (mandatory)
 
 Follow [the application-wide media policy](docs/product/media-policy.md) for every
