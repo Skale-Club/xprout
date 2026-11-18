@@ -161,14 +161,16 @@ jobs:
 
       # One apt pass for the browser's system libraries and ffmpeg (dish videos
       # are re-encoded with it, src/lib/media/video.ts). A slow apt mirror once
-      # took 28 minutes here; the step timeout makes that a clear failure.
+      # took 28 minutes here, and on 2026-11-17 it ran at 65 kB/s for three runs
+      # in a row (32 MB in 8 min, ffmpeg never reached), so the step allows 25
+      # minutes and skips ffmpeg when the runner image already ships it.
       - name: Install Playwright browser and ffmpeg
-        timeout-minutes: 12
+        timeout-minutes: 25
         run: |
           npx playwright install chromium
           sudo apt-get -o Acquire::Retries=3 update -qq
           npx playwright install-deps chromium
-          sudo apt-get -o Acquire::Retries=3 install -y -qq --no-install-recommends ffmpeg
+          command -v ffmpeg >/dev/null || sudo apt-get -o Acquire::Retries=3 install -y -qq --no-install-recommends ffmpeg
 
       - name: Playwright (API + flows)
         run: npx playwright test
