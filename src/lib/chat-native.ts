@@ -11,20 +11,28 @@ import { buildPublicChatPrompt, type PublicChatBody } from './chat-prompt'
 import { voiceTokenSecret } from './crypto'
 import { AdminMenuError } from './data/admin-menus'
 import { ChatLimitError } from './data/public-chat-turns'
+import { chatErrorBody } from './data/public-chat-errors'
+import { getVerifiedGuestPhone } from './auth/verified-guest-phone'
+import { CHAT_PHONE_RATE } from './chat-limits'
+import { rateLimit } from './rate-limit'
 import { readOwnedPublicChatAudio, readOwnedPublicChatTurn, saveOwnedPublicChatTurn } from './data/public-chat-turns-runtime'
 import { log } from './observability/log'
 
 function rejected(error: unknown) {
   if (!(error instanceof ChatLimitError) && !(error instanceof AdminMenuError)) log.error('chat.unexpected_error', { err: error })
   const body = error instanceof ChatLimitError ? { error: error.message, limit: error.limit, used: error.used }
-    : { error: error instanceof AdminMenuError ? error.message : 'Assistant temporarily unavailable' }
+    : error instanceof AdminMenuError ? chatErrorBody(error) : { error: 'Assistant temporarily unavailable' }
   return NextResponse.json(body, { status: error instanceof AdminMenuError ? error.status : 503 })
 }
 
 /** No source client; provider work starts only after the read transaction ends. */
 export async function handleOwnedChatMessage(slug: string, conversationId: string, userMessage: string, body: PublicChatBody | null, stream = false) {
   try {
-    const context = await readOwnedPublicChatTurn(slug, conversationId, typeof body?.menu_id === 'string' ? body.menu_id : null)
+    // Only the signed-in guest whose verified phone owns the conversation may use it.
+    const guestPhone = await getVerifiedGuestPhone().catch(() => null)
+    const context = await readOwnedPublicChatTurn(slug, conversationId, guestPhone, typeof body?.menu_id === 'string' ? body.menu_id : null)
+    const phoneRate = await rateLimit('chat-message-phone', context.conversation.phone_hash, CHAT_PHONE_RATE.max, CHAT_PHONE_RATE.window)
+    if (!phoneRate.ok) throw new AdminMenuError(429, 'Too many requests. Please slow down.')
     const access = await resolveAiAccess(context.tenant.id, 'chat')
     if (!access) throw new AdminMenuError(503, 'AI assistant not configured')
     const channels = resolveChatChannels(context.configuration)
@@ -43,7 +51,7 @@ export async function handleOwnedChatMessage(slug: string, conversationId: strin
       messages: buildModelMessages([...context.history].reverse(), userMessage), catalog: context.catalog, ordersEnabled: abilities.orderingHelp,
       cart: parseCartSnapshot(body?.cart), callStaff: abilities.staffCall ? ownedStaffCaller({ slug, tableId: body?.table_id, conversationId }) : undefined })
     const persist = async (result: ChatAgentResult) => {
-      const persisted = await saveOwnedPublicChatTurn({ slug, tenantId: context.tenant.id, conversationId, user: userMessage,
+      const persisted = await saveOwnedPublicChatTurn({ slug, tenantId: context.tenant.id, conversationId, guestPhone, user: userMessage,
         assistant: assistantTurnForHistory(result.text, result.cartItems, result.cartChanges ?? [], result.staffCalled ?? null), tokens: result.totalTokens, voiceVerified })
       return { text: result.text, cart_items: result.cartItems, cart_changes: (result.cartChanges ?? []).map(({ line_id, quantity }) => ({ line_id, quantity })), staff_called: result.staffCalled != null, remaining_today: persisted.remaining_today }
     }
@@ -71,7 +79,7 @@ export async function handleOwnedChatMessage(slug: string, conversationId: strin
 
 export async function handleOwnedChatAudio(slug: string, conversationId: string, audio: Blob) {
   try {
-    const context = await readOwnedPublicChatAudio(slug, conversationId)
+    const context = await readOwnedPublicChatAudio(slug, conversationId, await getVerifiedGuestPhone().catch(() => null))
     const access = await resolveAiAccess(context.tenant.id, 'transcription')
     if (!access) throw new AdminMenuError(503, 'Audio not configured')
     try {

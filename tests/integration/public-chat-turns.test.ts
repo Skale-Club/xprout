@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import pg from 'pg'
 import { readPublicChatAudio, readPublicChatCatalog, readPublicChatTurn, countPublicChatMessages, savePublicChatTurn } from '../../src/lib/data/public-chat-turns'
+import { hashPhone } from '../../src/lib/crypto'
 import { adminMenuTransaction, createAdminMenusPool } from '../../src/lib/data/admin-menus-runtime'
 const raw = process.env.IDENTITY_TEST_DATABASE_URL
 if (!raw) throw Error('Explicit disposable chat turns target required')
@@ -12,15 +13,17 @@ if (!['127.0.0.1', 'localhost'].includes(target.hostname) || target.pathname !==
 const admin = new pg.Pool({ connectionString: raw, max: 2, statement_timeout: 5000 })
 const pool = createAdminMenusPool({ NODE_ENV: 'production', PROD_DATABASE_HOST: target.hostname, PROD_DATABASE_NAME: 'xmartmenu_identity_test', ADMIN_MENUS_DATABASE_URL: raw, ADMIN_MENUS_DATABASE_SSL: 'disable' })
 const a = randomUUID(), b = randomUUID(), plan = randomUUID(), menu = randomUUID(), privateMenu = randomUUID(), otherMenu = randomUUID(), category = randomUUID(), product = randomUUID(), privateProduct = randomUUID(), foreignProduct = randomUUID(), group = randomUUID(), badGroup = randomUUID(), option = randomUUID(), ingredient = randomUUID(), otherIngredient = randomUUID(), conversation = randomUUID(), secondConversation = randomUUID(), otherConversation = randomUUID(), location = randomUUID()
-const hash = 'tenant-scoped-anonymous-fixture', now = new Date()
-const read = (slug = 'restaurant', id = conversation) => adminMenuTransaction(pool, false, query => readPublicChatTurn(query, slug, id))
-const save = (patch: Partial<Parameters<typeof savePublicChatTurn>[1]> = {}) => adminMenuTransaction(pool, true, query => savePublicChatTurn(query, { slug: 'restaurant', tenantId: a, conversationId: conversation, user: 'Question', assistant: 'Answer', tokens: 12, voiceVerified: false, ...patch }))
+// The conversations belong to this signed-in phone: the hash is the tenant-scoped hash of its digits.
+const phone = '+12025550101', otherPhone = '+19998887777', hash = hashPhone('12025550101', a), now = new Date()
+const read = (slug = 'restaurant', id = conversation, guestPhone: string | null = phone) => adminMenuTransaction(pool, false, query => readPublicChatTurn(query, slug, id, guestPhone))
+const audioFor = (id = conversation, guestPhone: string | null = phone) => adminMenuTransaction(pool, false, query => readPublicChatAudio(query, 'restaurant', id, guestPhone))
+const save = (patch: Partial<Parameters<typeof savePublicChatTurn>[1]> = {}) => adminMenuTransaction(pool, true, query => savePublicChatTurn(query, { slug: 'restaurant', tenantId: a, conversationId: conversation, guestPhone: phone, user: 'Question', assistant: 'Answer', tokens: 12, voiceVerified: false, ...patch }))
 before(async () => {
   await admin.query(`DROP TABLE IF EXISTS public.chat_messages,public.chat_conversations,public.chat_blocked_phones,public.chat_addon_settings,public.product_options,public.product_option_groups,public.product_ingredients,public.ingredients,public.products,public.categories,public.menus,public.locations,public.delivery_zones,public.stripe_connections,public.tenant_settings,public.tenant_subscriptions,public.plans,public.tenants CASCADE;
     CREATE TABLE public.tenants(id uuid PRIMARY KEY,slug text UNIQUE,name text,is_active boolean);
     CREATE TABLE public.plans(id uuid PRIMARY KEY,features jsonb,chat_addon_available boolean);
     CREATE TABLE public.tenant_subscriptions(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),plan_id uuid REFERENCES public.plans(id),status text,chat_addon_active boolean,chat_addon_override boolean);
-    CREATE TABLE public.chat_addon_settings(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),enabled boolean,rate_limit_per_phone_per_day int,openrouter_model text,text_enabled boolean,audio_enabled boolean,audio_provider text);
+    CREATE TABLE public.chat_addon_settings(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),enabled boolean,rate_limit_per_phone_per_day int,openrouter_model text,text_enabled boolean,audio_enabled boolean,audio_provider text,max_messages_per_conversation int NOT NULL DEFAULT 20);
     CREATE TABLE public.tenant_settings(tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id),orders_enabled boolean,direct_orders_enabled boolean,whatsapp_orders_enabled boolean,dine_in_enabled boolean,pickup_enabled boolean,pickup_eta_minutes int,delivery_enabled boolean,delivery_fee_cents int,tips_enabled boolean,currency text,address text,city text,region text,postal_code text,country text,phone text,whatsapp text,instagram text,business_hours jsonb,business_type text,tagline text,about text,price_range text);
     CREATE TABLE public.menus(id uuid PRIMARY KEY,tenant_id uuid REFERENCES public.tenants(id),name text,is_active boolean,is_private boolean,is_default boolean,price_multiplier numeric,position int DEFAULT 0);
     CREATE TABLE public.categories(id uuid PRIMARY KEY,tenant_id uuid REFERENCES public.tenants(id),menu_id uuid REFERENCES public.menus(id),name text,description text,is_active boolean,position int DEFAULT 0);
@@ -33,7 +36,7 @@ before(async () => {
     CREATE TABLE public.delivery_zones(tenant_id uuid REFERENCES public.tenants(id),name text,fee_cents int,is_active boolean);
     CREATE TABLE public.stripe_connections(tenant_id uuid REFERENCES public.tenants(id),stripe_account_id text,is_active boolean);
     CREATE TABLE public.chat_blocked_phones(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid REFERENCES public.tenants(id),phone_hash text,UNIQUE(tenant_id,phone_hash));
-    CREATE TABLE public.chat_conversations(id uuid PRIMARY KEY,tenant_id uuid REFERENCES public.tenants(id),phone_hash text,status text DEFAULT 'active',message_count int DEFAULT 0,last_message_at timestamptz DEFAULT now());
+    CREATE TABLE public.chat_conversations(id uuid PRIMARY KEY,tenant_id uuid REFERENCES public.tenants(id),phone_hash text,status text DEFAULT 'active',message_count int DEFAULT 0,started_at timestamptz DEFAULT now(),last_message_at timestamptz DEFAULT now());
     CREATE TABLE public.chat_messages(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),conversation_id uuid REFERENCES public.chat_conversations(id),role text CHECK(role IN('user','assistant')),content text NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),tokens_used int)`)
   await admin.query("INSERT INTO public.tenants VALUES($1,'restaurant','Restaurant',true),($2,'foreign','Foreign',true)", [a, b])
   await admin.query('INSERT INTO public.plans VALUES($1,$2,true)', [plan, JSON.stringify(['payments', 'stripe-connect'])])
@@ -54,8 +57,8 @@ before(async () => {
 })
 beforeEach(async () => {
   await admin.query('DELETE FROM public.chat_messages'); await admin.query('DELETE FROM public.chat_blocked_phones')
-  await admin.query("UPDATE public.chat_conversations SET status='active',message_count=0,last_message_at=now()")
-  await admin.query('UPDATE public.chat_addon_settings SET enabled=true,text_enabled=true,audio_enabled=true,rate_limit_per_phone_per_day=20')
+  await admin.query("UPDATE public.chat_conversations SET status='active',message_count=0,started_at=now(),last_message_at=now()")
+  await admin.query('UPDATE public.chat_addon_settings SET enabled=true,text_enabled=true,audio_enabled=true,rate_limit_per_phone_per_day=20,max_messages_per_conversation=20')
   await admin.query('UPDATE public.tenants SET is_active=true')
 })
 after(async () => { await pool.end(); await admin.end() })
@@ -106,8 +109,32 @@ test('assistant insert rejection rolls back the user turn and conversation aggre
   assert.deepEqual((await admin.query('SELECT * FROM public.chat_conversations WHERE id=$1', [conversation])).rows[0], before)
 })
 test('audio requires a current owned-tenant conversation, audio switch and current phone blocklist', async () => {
-  assert.equal((await adminMenuTransaction(pool, false, query => readPublicChatAudio(query, 'restaurant', conversation))).tenant.id, a)
-  await assert.rejects(adminMenuTransaction(pool, false, query => readPublicChatAudio(query, 'restaurant', otherConversation)), { status: 400 })
-  await admin.query('UPDATE public.chat_addon_settings SET audio_enabled=false WHERE tenant_id=$1', [a]); await assert.rejects(adminMenuTransaction(pool, false, query => readPublicChatAudio(query, 'restaurant', conversation)), { status: 503 })
-  await admin.query('UPDATE public.chat_addon_settings SET audio_enabled=true WHERE tenant_id=$1', [a]); await admin.query('INSERT INTO public.chat_blocked_phones(tenant_id,phone_hash) VALUES($1,$2)', [a, hash]); await assert.rejects(adminMenuTransaction(pool, false, query => readPublicChatAudio(query, 'restaurant', conversation)), { status: 403 })
+  assert.equal((await audioFor(conversation)).tenant.id, a)
+  await assert.rejects(audioFor(otherConversation), { status: 400 })
+  await admin.query('UPDATE public.chat_addon_settings SET audio_enabled=false WHERE tenant_id=$1', [a]); await assert.rejects(audioFor(conversation), { status: 503 })
+  await admin.query('UPDATE public.chat_addon_settings SET audio_enabled=true WHERE tenant_id=$1', [a]); await admin.query('INSERT INTO public.chat_blocked_phones(tenant_id,phone_hash) VALUES($1,$2)', [a, hash]); await assert.rejects(audioFor(conversation), { status: 403 })
+})
+test('a conversation is usable only by the signed-in phone whose hash owns it (turn, audio and save)', async () => {
+  for (const bad of [null, otherPhone]) {
+    await assert.rejects(read('restaurant', conversation, bad), { status: 401, code: 'phone_verification_required' })
+    await assert.rejects(audioFor(conversation, bad), { status: 401, code: 'phone_verification_required' })
+    await assert.rejects(save({ guestPhone: bad }), { status: 401, code: 'phone_verification_required' })
+  }
+  assert.equal((await read()).tenant.id, a)
+})
+test('a conversation quiet for 15 minutes is expired with 409 and nothing is persisted', async () => {
+  await admin.query("UPDATE public.chat_conversations SET started_at=now()-interval '16 minutes',last_message_at=now()-interval '16 minutes' WHERE id=$1", [conversation])
+  await assert.rejects(read(), { status: 409, code: 'conversation_expired' })
+  await admin.query("UPDATE public.chat_conversations SET last_message_at=now()-interval '14 minutes' WHERE id=$1", [conversation])
+  assert.equal((await read()).tenant.id, a)
+})
+test('a conversation holding the cap of guest messages is refused with 429 conversation_limit', async () => {
+  await admin.query('UPDATE public.chat_conversations SET message_count=40 WHERE id=$1', [conversation])
+  await assert.rejects(read(), { status: 429, code: 'conversation_limit', limit: 20 })
+  await assert.rejects(save(), { status: 429, code: 'conversation_limit', limit: 20 })
+  await admin.query('UPDATE public.chat_addon_settings SET max_messages_per_conversation=30 WHERE tenant_id=$1', [a])
+  assert.equal((await read()).tenant.id, a) // 20 guest messages < 30
+  await admin.query('UPDATE public.chat_addon_settings SET max_messages_per_conversation=5 WHERE tenant_id=$1', [a])
+  await admin.query('UPDATE public.chat_conversations SET message_count=10 WHERE id=$1', [conversation])
+  await assert.rejects(read(), { status: 429, code: 'conversation_limit', limit: 5 })
 })

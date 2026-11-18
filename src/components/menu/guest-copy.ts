@@ -60,6 +60,12 @@ export interface GuestCopy {
   staffNotified: string
   expandChat: string
   shrinkChat: string
+  /** Sign-in gate, inactivity and per-conversation limit notes of the chat. */
+  signInPrompt: string
+  signInButton: string
+  conversationExpired: string
+  conversationLimit: string
+  newConversation: string
 }
 
 const en: GuestCopy = {
@@ -90,6 +96,11 @@ const en: GuestCopy = {
   staffNotified: "We've let the team know",
   expandChat: "Expand chat",
   shrinkChat: "Shrink chat",
+  signInPrompt: "Sign in with your phone to chat. We send you a code by SMS.",
+  signInButton: "Sign in with your phone",
+  conversationExpired: "Conversation closed for inactivity.",
+  conversationLimit: "This conversation reached its message limit.",
+  newConversation: "New conversation",
 }
 
 const pt: GuestCopy = {
@@ -120,6 +131,11 @@ const pt: GuestCopy = {
   staffNotified: "Avisamos a equipe",
   expandChat: "Expandir conversa",
   shrinkChat: "Reduzir conversa",
+  signInPrompt: "Entre com seu celular para conversar. Enviamos um código por SMS.",
+  signInButton: "Entrar com celular",
+  conversationExpired: "Conversa encerrada por inatividade.",
+  conversationLimit: "Esta conversa chegou ao limite de mensagens.",
+  newConversation: "Nova conversa",
 }
 
 const es: GuestCopy = {
@@ -150,6 +166,11 @@ const es: GuestCopy = {
   staffNotified: "Hemos avisado al equipo",
   expandChat: "Ampliar el chat",
   shrinkChat: "Reducir el chat",
+  signInPrompt: "Inicia sesión con tu móvil para chatear. Te enviamos un código por SMS.",
+  signInButton: "Entrar con el móvil",
+  conversationExpired: "Conversación cerrada por inactividad.",
+  conversationLimit: "Esta conversación alcanzó el límite de mensajes.",
+  newConversation: "Nueva conversación",
 }
 
 const fr: GuestCopy = {
@@ -180,6 +201,11 @@ const fr: GuestCopy = {
   staffNotified: "Nous avons prévenu l'équipe",
   expandChat: "Agrandir le chat",
   shrinkChat: "Réduire le chat",
+  signInPrompt: "Connectez-vous avec votre téléphone pour discuter. Nous vous envoyons un code par SMS.",
+  signInButton: "Se connecter avec le téléphone",
+  conversationExpired: "Conversation fermée pour inactivité.",
+  conversationLimit: "Cette conversation a atteint sa limite de messages.",
+  newConversation: "Nouvelle conversation",
 }
 
 const de: GuestCopy = {
@@ -210,6 +236,11 @@ const de: GuestCopy = {
   staffNotified: "Wir haben das Team informiert",
   expandChat: "Chat vergrößern",
   shrinkChat: "Chat verkleinern",
+  signInPrompt: "Melde dich mit deinem Handy an, um zu chatten. Wir senden dir einen Code per SMS.",
+  signInButton: "Mit Handy anmelden",
+  conversationExpired: "Unterhaltung wegen Inaktivität beendet.",
+  conversationLimit: "Diese Unterhaltung hat das Nachrichtenlimit erreicht.",
+  newConversation: "Neue Unterhaltung",
 }
 
 const it: GuestCopy = {
@@ -240,6 +271,11 @@ const it: GuestCopy = {
   staffNotified: "Abbiamo avvisato il team",
   expandChat: "Espandi la chat",
   shrinkChat: "Riduci la chat",
+  signInPrompt: "Accedi con il tuo cellulare per chattare. Ti inviamo un codice via SMS.",
+  signInButton: "Accedi con il cellulare",
+  conversationExpired: "Conversazione chiusa per inattività.",
+  conversationLimit: "Questa conversazione ha raggiunto il limite di messaggi.",
+  newConversation: "Nuova conversazione",
 }
 
 const nl: GuestCopy = {
@@ -270,6 +306,11 @@ const nl: GuestCopy = {
   staffNotified: "We hebben het team op de hoogte gebracht",
   expandChat: "Chat vergroten",
   shrinkChat: "Chat verkleinen",
+  signInPrompt: "Log in met je telefoon om te chatten. We sturen je een code per sms.",
+  signInButton: "Inloggen met telefoon",
+  conversationExpired: "Gesprek gesloten wegens inactiviteit.",
+  conversationLimit: "Dit gesprek heeft de berichtlimiet bereikt.",
+  newConversation: "Nieuw gesprek",
 }
 
 const pl: GuestCopy = {
@@ -300,6 +341,11 @@ const pl: GuestCopy = {
   staffNotified: "Daliśmy znać zespołowi",
   expandChat: "Powiększ czat",
   shrinkChat: "Zmniejsz czat",
+  signInPrompt: "Zaloguj się telefonem, aby czatować. Wyślemy Ci kod SMS-em.",
+  signInButton: "Zaloguj się telefonem",
+  conversationExpired: "Rozmowa zamknięta z powodu braku aktywności.",
+  conversationLimit: "Ta rozmowa osiągnęła limit wiadomości.",
+  newConversation: "Nowa rozmowa",
 }
 
 const tr: GuestCopy = {
@@ -330,6 +376,11 @@ const tr: GuestCopy = {
   staffNotified: "Ekibe haber verdik",
   expandChat: "Sohbeti büyüt",
   shrinkChat: "Sohbeti küçült",
+  signInPrompt: "Sohbet etmek için telefonunla giriş yap. Sana SMS ile bir kod göndeririz.",
+  signInButton: "Telefonla giriş yap",
+  conversationExpired: "Sohbet hareketsizlik nedeniyle kapatıldı.",
+  conversationLimit: "Bu sohbet mesaj sınırına ulaştı.",
+  newConversation: "Yeni sohbet",
 }
 
 const ru: GuestCopy = {
@@ -360,6 +411,11 @@ const ru: GuestCopy = {
   staffNotified: "Мы сообщили команде",
   expandChat: "Развернуть чат",
   shrinkChat: "Свернуть чат",
+  signInPrompt: "Войдите по номеру телефона, чтобы общаться. Мы отправим код по SMS.",
+  signInButton: "Войти по телефону",
+  conversationExpired: "Диалог закрыт из-за неактивности.",
+  conversationLimit: "В этом диалоге достигнут лимит сообщений.",
+  newConversation: "Новый диалог",
 }
 
 const hi: GuestCopy = {
@@ -390,6 +446,11 @@ const hi: GuestCopy = {
   staffNotified: "हमने टीम को सूचित कर दिया है",
   expandChat: "चैट बड़ा करें",
   shrinkChat: "चैट छोटा करें",
+  signInPrompt: "चैट करने के लिए अपने फ़ोन से साइन इन करें। हम आपको SMS से कोड भेजते हैं।",
+  signInButton: "फ़ोन से साइन इन करें",
+  conversationExpired: "निष्क्रियता के कारण बातचीत बंद हो गई।",
+  conversationLimit: "इस बातचीत में संदेशों की सीमा पूरी हो गई।",
+  newConversation: "नई बातचीत",
 }
 
 const ja: GuestCopy = {
@@ -420,6 +481,11 @@ const ja: GuestCopy = {
   staffNotified: "スタッフに連絡しました",
   expandChat: "チャットを広げる",
   shrinkChat: "チャットを縮める",
+  signInPrompt: "チャットするには電話番号でサインインしてください。SMSでコードを送信します。",
+  signInButton: "電話番号でサインイン",
+  conversationExpired: "しばらく操作がなかったため、会話を終了しました。",
+  conversationLimit: "この会話はメッセージの上限に達しました。",
+  newConversation: "新しい会話",
 }
 
 const ko: GuestCopy = {
@@ -450,6 +516,11 @@ const ko: GuestCopy = {
   staffNotified: "직원에게 알렸어요",
   expandChat: "채팅 확대",
   shrinkChat: "채팅 축소",
+  signInPrompt: "채팅하려면 휴대폰으로 로그인하세요. SMS로 코드를 보내 드립니다.",
+  signInButton: "휴대폰으로 로그인",
+  conversationExpired: "일정 시간 활동이 없어 대화가 종료되었습니다.",
+  conversationLimit: "이 대화는 메시지 한도에 도달했습니다.",
+  newConversation: "새 대화",
 }
 
 const zh: GuestCopy = {
@@ -480,6 +551,11 @@ const zh: GuestCopy = {
   staffNotified: "已通知店员",
   expandChat: "展开聊天",
   shrinkChat: "收起聊天",
+  signInPrompt: "请使用手机号登录后聊天，我们会通过短信发送验证码。",
+  signInButton: "使用手机号登录",
+  conversationExpired: "因长时间无操作，对话已结束。",
+  conversationLimit: "本次对话已达到消息上限。",
+  newConversation: "新对话",
 }
 
 const zhTW: GuestCopy = {
@@ -510,6 +586,11 @@ const zhTW: GuestCopy = {
   staffNotified: "已通知店員",
   expandChat: "展開聊天",
   shrinkChat: "收合聊天",
+  signInPrompt: "請使用手機號碼登入後聊天，我們會透過簡訊傳送驗證碼。",
+  signInButton: "使用手機號碼登入",
+  conversationExpired: "因長時間未操作，對話已結束。",
+  conversationLimit: "本次對話已達訊息上限。",
+  newConversation: "新對話",
 }
 
 const COPY: Record<string, GuestCopy> = { en, pt, es, fr, de, it, nl, pl, tr, ru, hi, ja, ko, zh, 'zh-TW': zhTW }

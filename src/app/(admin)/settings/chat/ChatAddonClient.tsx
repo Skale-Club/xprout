@@ -22,6 +22,7 @@ interface Settings {
   history_enabled: boolean
   audio_provider: 'whisper' | 'deepgram' | null
   rate_limit_per_phone_per_day: number
+  max_messages_per_conversation: number
 }
 
 /** What the plan and the restaurant's switches allow (TenantCapabilities.guestOrdering / waiterCalls). */
@@ -41,7 +42,10 @@ export default function ChatAddonClient({ initialSettings, status, abilityAccess
     history_enabled: initialSettings?.history_enabled ?? true,
     audio_provider: initialSettings?.audio_provider ?? 'whisper',
     rate_limit_per_phone_per_day: initialSettings?.rate_limit_per_phone_per_day ?? 30,
+    max_messages_per_conversation: initialSettings?.max_messages_per_conversation ?? 20,
   })
+  // The column arrives with a schema step that can run after the deploy: until it exists, it is not sent (saving the rest still works).
+  const capColumnPresent = initialSettings?.max_messages_per_conversation !== undefined
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -52,7 +56,7 @@ export default function ChatAddonClient({ initialSettings, status, abilityAccess
     const res = await fetch('/api/admin/chat-addon/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, max_messages_per_conversation: capColumnPresent ? form.max_messages_per_conversation : undefined }),
     })
     setSaving(false)
     if (res.ok) {
@@ -171,6 +175,20 @@ export default function ChatAddonClient({ initialSettings, status, abilityAccess
               className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="text-[13px] text-zinc-600 mt-2 ml-1">Per-phone, rolling 24-hour window.</p>
+          </div>
+
+          <div>
+            <label className="block text-[14px] font-semibold text-zinc-700 mb-2 ml-1">Messages per conversation</label>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              disabled={!capColumnPresent}
+              value={form.max_messages_per_conversation}
+              onChange={e => setForm(f => ({ ...f, max_messages_per_conversation: Math.max(1, Math.min(200, Math.floor(Number(e.target.value)) || 20)) }))}
+              className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+            />
+            <p className="text-[13px] text-zinc-600 mt-2 ml-1">{capColumnPresent ? 'Guest messages in one conversation, then the guest starts a new one. The daily limit above still applies.' : 'Not available yet, try again in a few minutes.'}</p>
           </div>
         </div>
 

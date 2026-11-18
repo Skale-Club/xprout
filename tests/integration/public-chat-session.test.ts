@@ -71,3 +71,16 @@ test('failed insertion rolls back and never returns an invented conversation', a
   try { await assert.rejects(run('12025550103'), { status: 503 }) } finally { await admin.query('ALTER TABLE public.chat_conversations DROP CONSTRAINT fixture_refuse_chat') }
   assert.equal((await admin.query('SELECT count(*)::int AS n FROM public.chat_conversations')).rows[0].n, count)
 })
+test('a conversation quiet for 15 minutes is never reused: a new one starts and the old one is kept', async () => {
+  const first = await run()
+  await admin.query("UPDATE public.chat_conversations SET started_at=now()-interval '16 minutes',last_message_at=now()-interval '16 minutes' WHERE id=$1", [first.conversation_id])
+  const next = await run(); assert.notEqual(next.conversation_id, first.conversation_id)
+  assert.equal((await admin.query('SELECT count(*)::int AS n FROM public.chat_conversations WHERE id=$1', [first.conversation_id])).rows[0].n, 1)
+  // Not idle any more: the new one is picked up again.
+  assert.equal((await run()).conversation_id, next.conversation_id)
+})
+test('a conversation holding the default cap (20 guest messages = 40 stored) is never reused', async () => {
+  const first = await run()
+  await admin.query('UPDATE public.chat_conversations SET message_count=40 WHERE id=$1', [first.conversation_id])
+  assert.notEqual((await run()).conversation_id, first.conversation_id)
+})

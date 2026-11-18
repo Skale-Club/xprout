@@ -50,6 +50,10 @@ import { adminMenusOwned, AdminMenuError } from '@/lib/data/admin-menus'
 import { readNativeAnalyticsBody } from '@/lib/data/public-analytics'
 import { handleOwnedChatMessage } from '@/lib/chat-native'
 import { legacyStaffCaller } from '@/lib/chat-staff-call'
+import { chatErrorBody, ConversationExpiredError, ConversationLimitError, PhoneVerificationError } from '@/lib/data/public-chat-errors'
+import { getVerifiedGuestPhone } from '@/lib/auth/verified-guest-phone'
+import { hashPhone } from '@/lib/crypto'
+import { CHAT_PHONE_RATE, conversationCapReached, isConversationIdle, normalizeConversationCap, userMessagesFromCount } from '@/lib/chat-limits'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -79,10 +83,8 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
   const ip = getClientIp(request)
   const rl = await rateLimit('chat-message', ip, 20, '1 m')
   if (!rl.ok) return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
-  // The per-phone daily cap below is keyed on an UNVERIFIED, attacker-chosen
-  // phone (no OTP), so rotating fake numbers resets it and burns the tenant's
-  // paid OpenRouter credits. Bound total spend per device with an IP daily cap
-  // that phone rotation can't bypass. (Full protection needs phone verification.)
+  // The phone behind a conversation is SMS-verified (checked below), so the per-phone
+  // limits are real; the IP daily cap still bounds one device that signs in with many phones.
   const rlDay = await rateLimit('chat-message-ip-day', ip, 300, '1 d')
   if (!rlDay.ok) return NextResponse.json({ error: 'Daily limit reached for this device.' }, { status: 429 })
 
@@ -128,14 +130,30 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
   // Validate conversation
   const { data: convo } = await supabase
     .from('chat_conversations')
-    .select('id, tenant_id, phone_hash, status, message_count')
+    .select('id, tenant_id, phone_hash, status, message_count, started_at, last_message_at')
     .eq('id', conversation_id)
     .maybeSingle()
   if (!convo || convo.tenant_id !== tenant.id) {
     return NextResponse.json({ error: 'Invalid conversation' }, { status: 400 })
   }
+  // Only the signed-in guest whose verified phone owns the conversation may use it.
+  const guestDigits = (await getVerifiedGuestPhone().catch(() => null))?.replace(/\D/g, '') ?? ''
+  if (!guestDigits || hashPhone(guestDigits, tenant.id) !== convo.phone_hash) {
+    return NextResponse.json(chatErrorBody(new PhoneVerificationError()), { status: 401 })
+  }
   if (convo.status === 'blocked') {
     return NextResponse.json({ error: 'Conversation has been blocked' }, { status: 403 })
+  }
+  if (isConversationIdle(convo.started_at, convo.last_message_at)) {
+    return NextResponse.json(chatErrorBody(new ConversationExpiredError()), { status: 409 })
+  }
+  const rlPhone = await rateLimit('chat-message-phone', convo.phone_hash, CHAT_PHONE_RATE.max, CHAT_PHONE_RATE.window)
+  if (!rlPhone.ok) return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
+  // The cap's column arrives with a schema step: a failed read means the default.
+  const { data: capRow } = await supabase.from('chat_addon_settings').select('max_messages_per_conversation').eq('tenant_id', tenant.id).maybeSingle()
+  const cap = normalizeConversationCap((capRow as { max_messages_per_conversation?: number | null } | null)?.max_messages_per_conversation)
+  if (conversationCapReached(userMessagesFromCount(convo.message_count), cap)) {
+    return NextResponse.json(chatErrorBody(new ConversationLimitError(cap)), { status: 429 })
   }
 
   // Blocklist check

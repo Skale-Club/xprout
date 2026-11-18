@@ -6,6 +6,9 @@ import { resolveOrderingMode } from '../chat-context'
 import type { ChatLocation, ChatSettings } from '../chat-prompt'
 import { resolveChatChannels } from '../chat-channels'
 import { chatSelectColumns, presentChatSwitchColumnsFor, switchOn } from './chat-switch-columns'
+import { conversationCapReached, isConversationIdle, normalizeConversationCap, userMessagesFromCount } from '../chat-limits'
+import { hashPhone } from '../crypto'
+import { ConversationExpiredError, ConversationLimitError, PhoneVerificationError } from './public-chat-errors'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 type Row = Record<string, unknown>
@@ -23,10 +26,14 @@ export class ChatLimitError extends AdminMenuError {
 }
 // Same fixed context columns requested by the legacy message route; no keys.
 const SETTINGS = 'orders_enabled,direct_orders_enabled,whatsapp_orders_enabled,dine_in_enabled,pickup_enabled,pickup_eta_minutes,delivery_enabled,delivery_fee_cents,tips_enabled,currency,address,city,region,postal_code,country,phone,whatsapp,instagram,business_hours,business_type,tagline,about,price_range'
-type Conversation = { id: string; tenant_id: string; phone_hash: string; status: string; message_count: number }
-type ChatConfiguration = { openrouter_model: string | null; rate_limit_per_phone_per_day: number | null; text_enabled: boolean | null; audio_enabled: boolean | null; audio_provider: string | null; ordering_help_enabled?: boolean | null; staff_call_enabled?: boolean | null; history_enabled?: boolean | null }
+type Conversation = { id: string; tenant_id: string; phone_hash: string; status: string; message_count: number; started_at?: string | Date | null; last_message_at?: string | Date | null }
+type ChatConfiguration = { openrouter_model: string | null; rate_limit_per_phone_per_day: number | null; text_enabled: boolean | null; audio_enabled: boolean | null; audio_provider: string | null; ordering_help_enabled?: boolean | null; staff_call_enabled?: boolean | null; history_enabled?: boolean | null; max_messages_per_conversation?: number | null }
 
-async function admission(query: AdminMenuQuery, slug: string, conversationId: string, audio = false, lock = false) {
+/**
+ * `guestPhone` is the E.164 phone the guest signed in with (SMS-verified); it must hash to the
+ * conversation's phone_hash, so a leaked conversation id is useless without the matching sign-in.
+ */
+async function admission(query: AdminMenuQuery, slug: string, conversationId: string, guestPhone: string | null, audio = false, lock = false) {
   if (!UUID.test(conversationId)) throw new AdminMenuError(400, 'Invalid conversation')
   const tenant = one(await rows<{ id: string; name: string }>(query, `SELECT id,name FROM public.tenants WHERE slug=$1 AND is_active=true LIMIT 2${lock ? ' FOR SHARE' : ''}`, [slug], 1))
   if (!tenant) throw new AdminMenuError(404, 'Tenant not found')
@@ -41,19 +48,21 @@ async function admission(query: AdminMenuQuery, slug: string, conversationId: st
     lockedHash = lookup.phone_hash
     await query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`xmartmenu-chat-session:${tenant.id}:${lockedHash}`])
   }
-  const conversation = one(await rows<Conversation>(query, `SELECT id,tenant_id,phone_hash,status,message_count FROM public.chat_conversations WHERE id=$1 AND tenant_id=$2 LIMIT 2${lock ? ' FOR UPDATE' : ''}`, [conversationId, tenant.id], 1))
+  const conversation = one(await rows<Conversation>(query, `SELECT id,tenant_id,phone_hash,status,message_count,started_at,last_message_at FROM public.chat_conversations WHERE id=$1 AND tenant_id=$2 LIMIT 2${lock ? ' FOR UPDATE' : ''}`, [conversationId, tenant.id], 1))
   if (!conversation) throw new AdminMenuError(400, 'Invalid conversation')
   if (lock && conversation.phone_hash !== lockedHash) throw new AdminMenuError(409, 'Conversation identity changed')
+  const guestDigits = typeof guestPhone === 'string' ? guestPhone.replace(/\D/g, '') : ''
+  if (!guestDigits || hashPhone(guestDigits, tenant.id) !== conversation.phone_hash) throw new PhoneVerificationError()
   if (conversation.status === 'blocked') throw new AdminMenuError(audio ? 400 : 403, audio ? 'Invalid conversation' : 'Conversation has been blocked')
   const blocked = await rows<Row>(query, 'SELECT id FROM public.chat_blocked_phones WHERE tenant_id=$1 AND phone_hash=$2 LIMIT 2', [tenant.id, conversation.phone_hash], 1)
   if (blocked.length) throw new AdminMenuError(403, 'This number is blocked')
   // The switch columns are named only once the schema step created them (missing = on).
-  const columns = chatSelectColumns('openrouter_model,rate_limit_per_phone_per_day,text_enabled,audio_enabled,audio_provider', await presentChatSwitchColumnsFor(query), ['ordering_help_enabled', 'staff_call_enabled', 'history_enabled'])
+  const columns = chatSelectColumns('openrouter_model,rate_limit_per_phone_per_day,text_enabled,audio_enabled,audio_provider', await presentChatSwitchColumnsFor(query), ['ordering_help_enabled', 'staff_call_enabled', 'history_enabled', 'max_messages_per_conversation'])
   const configuration = one(await rows<ChatConfiguration>(query, `SELECT ${columns} FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`, [tenant.id], 1))
   if (!configuration) throw new AdminMenuError(503, audio ? 'Audio not configured' : 'AI assistant not configured')
   const limit = configuration.rate_limit_per_phone_per_day ?? 30
   if (!Number.isInteger(limit) || limit < 1 || limit > 500) throw new AdminMenuError(503, 'AI assistant not configured')
-  return { tenant, conversation, configuration, limit }
+  return { tenant, conversation, configuration, limit, conversationCap: normalizeConversationCap(configuration.max_messages_per_conversation) }
 }
 export async function countPublicChatMessages(query: AdminMenuQuery, tenantId: string, phoneHash: string, now = new Date()) {
   const result = await query(`SELECT count(*)::int AS used FROM public.chat_messages m JOIN public.chat_conversations c ON c.id=m.conversation_id
@@ -90,9 +99,11 @@ export async function readPublicChatCatalog(query: AdminMenuQuery, tenantId: str
     products: products.map(product => ({ ...product, price: Number(product.price), original_price: product.original_price === null ? null : Number(product.original_price), tags: product.tags ?? null, groups: groups.get(product.id) ?? [], ingredients: ingredients.get(product.id) ?? [] })) }
 }
 
-export async function readPublicChatTurn(query: AdminMenuQuery, slug: string, conversationId: string, requestedMenu?: string | null, now = new Date()) {
-  const admitted = await admission(query, slug, conversationId)
+export async function readPublicChatTurn(query: AdminMenuQuery, slug: string, conversationId: string, guestPhone: string | null, requestedMenu?: string | null, now = new Date()) {
+  const admitted = await admission(query, slug, conversationId, guestPhone)
   const { tenant, conversation } = admitted
+  if (isConversationIdle(conversation.started_at, conversation.last_message_at, now)) throw new ConversationExpiredError()
+  if (conversationCapReached(userMessagesFromCount(conversation.message_count), admitted.conversationCap)) throw new ConversationLimitError(admitted.conversationCap)
   const settings = one(await rows<ChatSettings>(query, `SELECT ${SETTINGS} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 2`, [tenant.id], 1)) ?? {}
   const subscription = one(await rows<{ status: string; features: unknown }>(query, `SELECT s.status,p.features FROM public.tenant_subscriptions s JOIN public.plans p ON p.id=s.plan_id WHERE s.tenant_id=$1 LIMIT 2`, [tenant.id], 1))
   let features: string[] = []
@@ -111,21 +122,23 @@ export async function readPublicChatTurn(query: AdminMenuQuery, slug: string, co
   return { ...admitted, settingsRow, capabilities, canAddToCart, used, catalog, history, locations, zones, onlinePayment: connections.length === 1 }
 }
 /** Last HISTORY_LIMIT turns for the widget (newest first); same admission as a message, no key or catalog reads. */
-export async function readPublicChatHistory(query: AdminMenuQuery, slug: string, conversationId: string) {
-  const { tenant, conversation, configuration } = await admission(query, slug, conversationId)
+export async function readPublicChatHistory(query: AdminMenuQuery, slug: string, conversationId: string, guestPhone: string | null) {
+  const { tenant, conversation, configuration } = await admission(query, slug, conversationId, guestPhone)
   // A shared tablet: nothing from an earlier session is ever handed back.
   if (!switchOn(configuration.history_enabled)) return []
   return rows<{ role: string; content: string }>(query, `SELECT m.role,m.content FROM public.chat_messages m JOIN public.chat_conversations c ON c.id=m.conversation_id WHERE m.conversation_id=$1 AND c.tenant_id=$2 ORDER BY m.created_at DESC LIMIT ${HISTORY_LIMIT}`, [conversation.id, tenant.id], HISTORY_LIMIT)
 }
-export async function readPublicChatAudio(query: AdminMenuQuery, slug: string, conversationId: string) {
-  const result = await admission(query, slug, conversationId, true)
+export async function readPublicChatAudio(query: AdminMenuQuery, slug: string, conversationId: string, guestPhone: string | null) {
+  const result = await admission(query, slug, conversationId, guestPhone, true)
   if (!result.configuration.audio_enabled) throw new AdminMenuError(503, 'Audio not configured')
   return result
 }
 
 /** Recheck current controls after provider work; insert both turns/counter atomically. */
-export async function savePublicChatTurn(query: AdminMenuQuery, input: { slug: string; tenantId: string; conversationId: string; user: string; assistant: string; tokens: number | null; voiceVerified: boolean }, now = new Date()) {
-  const current = await admission(query, input.slug, input.conversationId, false, true)
+export async function savePublicChatTurn(query: AdminMenuQuery, input: { slug: string; tenantId: string; conversationId: string; guestPhone: string | null; user: string; assistant: string; tokens: number | null; voiceVerified: boolean }, now = new Date()) {
+  const current = await admission(query, input.slug, input.conversationId, input.guestPhone, false, true)
+  // Rechecked under the lock: two turns racing must not both pass the cap.
+  if (conversationCapReached(userMessagesFromCount(current.conversation.message_count), current.conversationCap)) throw new ConversationLimitError(current.conversationCap)
   if (current.tenant.id !== input.tenantId) throw new AdminMenuError(400, 'Invalid conversation')
   const channels = resolveChatChannels(current.configuration)
   if (!channels.text && (!channels.voice || !input.voiceVerified)) throw new AdminMenuError(403, 'This restaurant takes voice messages only')

@@ -9,7 +9,7 @@ import { googleProof, phoneProof, type IdentityWebConfig } from '@/lib/auth/iden
 import { requireLoginAuthority } from '@/lib/auth/browser-login-authority'
 import { completeOwnedLogin, ownedLoginDestination, OwnedLoginError } from '@/lib/auth/browser-owned-login'
 import Link from 'next/link'
-import { ArrowRight, ChevronLeft } from 'lucide-react'
+import { ArrowRight, Check, ChevronLeft } from 'lucide-react'
 import type { GuestBrand } from '@/lib/auth/guest-brand'
 import type { PublicPlatformBrand } from '@/lib/site/public-brand'
 
@@ -195,7 +195,6 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
     const accent = brand.primaryColor
     const onAccent = computePrimaryForeground(accent)
     const context = { country: brand.country, currency: brand.currency }
-    const brandQuery = `&embed=1&tenant=${encodeURIComponent(brand.slug)}&lang=${encodeURIComponent(brand.lang)}`
     const fieldClass = 'block h-12 w-full rounded-xl border border-zinc-300 bg-white px-4 text-[16px] text-zinc-950 placeholder:text-zinc-500 transition-[border-color,box-shadow] focus:border-[var(--accent)] focus:outline-none focus:ring-[3px] focus:ring-[color-mix(in_srgb,var(--accent)_22%,transparent)] disabled:bg-zinc-50'
     const primary = 'flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[16px] font-semibold transition-[scale,filter] active:scale-[0.98] enabled:hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50'
     const accentStyle = { backgroundColor: accent, color: onAccent }
@@ -218,8 +217,10 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
       if (sent) {
         const current = attempt.current
         if (!current) throw new IdentityRequestError('Request another verification code.')
-        try { await complete(await current.confirm(code)) }
-        finally { attempt.current = null; setSent(false); setCode('') }
+        // Success keeps the code step on screen (it turns into the confirmation while the page moves on);
+        // only a failed code goes back to the phone step, since the attempt is used up.
+        try { await complete(await current.confirm(code)); attempt.current = null }
+        catch (error) { attempt.current = null; setSent(false); setCode(''); throw error }
         return
       }
       const e164 = toE164Phone(phone)
@@ -234,7 +235,14 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
         <GuestSignInHeader bannerUrl={brand.bannerUrl} logoUrl={brand.logoUrl} restaurantName={brand.name} accent={accent} onAccent={onAccent}
           title={sent ? copy.loginVerifyTitle : copy.loginTitle}
           subtitle={sent ? fill(copy.loginCodeSent, { phone: phoneLabel(sentPhone, context) || sentPhone }) : copy.loginSubtitle} />
-        <div className="space-y-4 px-6 pb-6 pt-5">
+        {leaving ? <div role="status" className="flex flex-col items-center gap-3 px-6 pb-8 pt-7 text-center">
+          {/* Signed in: a short confirmation while the page moves on, never a flash of the phone step. */}
+          <span className="grid size-14 place-items-center rounded-full motion-safe:animate-[guest-done_320ms_cubic-bezier(.2,.9,.3,1.3)_both]" style={accentStyle}>
+            <Check className="size-7" strokeWidth={3} aria-hidden="true" />
+          </span>
+          <p className="text-[16px] font-semibold text-zinc-900">{copy.loginDone}</p>
+          <style>{'@keyframes guest-done{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}'}</style>
+        </div> : <div className="space-y-4 px-6 pb-6 pt-5">
           {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-medium leading-snug text-red-800">{error}</p> : null}
           {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] font-medium leading-snug text-emerald-800">{message}</p> : null}
           <form className="space-y-4" onSubmit={event => { event.preventDefault(); submit() }}>
@@ -269,11 +277,8 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
               <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
               {copy.loginGoogle}
             </button>
-            <Link className="block text-[14px] font-medium leading-snug text-zinc-700 underline underline-offset-4 hover:text-zinc-950"
-              href={`/auth/login?action=existing-account-link&flow=customer&from=${encodeURIComponent(next)}${brandQuery}`}>{copy.loginExistingAccount}</Link>
-            <p className="text-[13px] leading-snug text-zinc-600">{copy.loginRecovery}</p>
           </> : null}
-        </div>
+        </div>}
       </section>
     </main>
   }

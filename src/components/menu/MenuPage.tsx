@@ -1717,6 +1717,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           language={selectedLanguage}
           phoneContext={{ country: settings?.country, currency }}
           locale={localeFor(selectedLanguage)}
+          bannerUrl={settings?.banner_url}
           cart={directOrdersEnabled ? cart.map(i => ({ name: i.product.name, quantity: i.quantity, options: summarizeOptions(i.selectedOptions) || undefined, line_id: i.cartKey })) : null}
           onSetCartLineQuantity={directOrdersEnabled ? updateCartQuantity : undefined}
           canOrder={directOrdersEnabled}

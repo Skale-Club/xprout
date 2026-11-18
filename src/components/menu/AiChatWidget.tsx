@@ -11,13 +11,19 @@ import { getGuestCopy } from './guest-copy'
 import { renderChatText } from './chat-text'
 import { fill, formatMoney, getMenuCopy } from './menu-i18n'
 import { ctaStyle, ui } from './menu-ui'
+
 import type { PhoneContext } from './showcase'
 import { computePrimaryForeground, safeCssColor } from '@/lib/color-utils'
-import PhoneField from '@/components/ui/PhoneField'
+import dynamic from 'next/dynamic'
+import { readLoginAuthority } from '@/lib/auth/browser-login-authority'
+import { signOutGuest } from '@/lib/auth/guest-sign-out'
+import { CHAT_IDLE_MS } from '@/lib/chat-limits'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useVisibleBox } from '@/components/ui/keyboard-fields'
 import { createChatEventParser, type ChatDonePayload, type ChatStreamEvent } from '@/lib/chat-stream-protocol'
+
+const GuestSignInDialog = dynamic(() => import('./GuestSignIn').then(m => m.GuestSignInDialog), { ssr: false })
 
 interface Props {
   tenantSlug: string
@@ -54,10 +60,12 @@ interface Props {
   canOrder?: boolean
   /** restaurant_tables.id when the guest opened a table link. */
   tableId?: string | null
-  /** The restaurant's country: the phone gate starts on its calling code. */
+  /** The restaurant's country: the sign-in's phone field starts on its calling code. */
   phoneContext?: PhoneContext | null
-  /** BCP 47 locale for country names in the phone gate. */
+  /** BCP 47 locale for country names in the sign-in's phone field. */
   locale?: string
+  /** The restaurant's banner, shown at the top of the sign-in popup. */
+  bannerUrl?: string | null
 }
 
 // Server-side cap (MAX_USER_MESSAGE_CHARS in chat-agent.ts).
@@ -89,9 +97,14 @@ interface Message {
   cartChanges?: Array<{ name: string; quantity: number }>
   /** The assistant let the staff know (waiter call). */
   staffCalled?: boolean
+  /** A short system note (conversation closed, limit reached), not a reply. */
+  note?: boolean
 }
 
 const SESSION_KEY_PREFIX = 'aiChat:'
+// Set while the sign-in is open: if the sign-in navigates away, the widget reopens itself and starts the session on return.
+const SIGNIN_FLAG_PREFIX = 'aiChatSignIn:'
+type SessionState = 'idle' | 'starting' | 'signin' | 'error'
 
 // Without history, a chat nobody touched for this long is wiped (a shared tablet).
 const IDLE_RESET_MS = 5 * 60 * 1000
@@ -104,7 +117,7 @@ function subscribeWide(onChange: () => void) {
   return () => mq.removeEventListener('change', onChange)
 }
 
-export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = null, currency = 'USD', primaryColor = BRAND_PRIMARY, audioEnabled = false, textEnabled = true, products, onAddToCart, menuId = null, locationId = null, onOpenCart, orderBarVisible = false, language = 'en', cart = null, onSetCartLineQuantity, suggestionsEnabled = true, historyEnabled = true, canOrder = true, tableId = null, phoneContext = null, locale = 'en' }: Props) {
+export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = null, currency = 'USD', primaryColor = BRAND_PRIMARY, audioEnabled = false, textEnabled = true, products, onAddToCart, menuId = null, locationId = null, onOpenCart, orderBarVisible = false, language = 'en', cart = null, onSetCartLineQuantity, suggestionsEnabled = true, historyEnabled = true, canOrder = true, tableId = null, phoneContext = null, locale = 'en', bannerUrl = null }: Props) {
   const copy = getGuestCopy(language)
   const menuCopy = getMenuCopy(language)
   // Text and icons on the brand colour: black or white, whichever reads (never a fixed one).
@@ -115,10 +128,13 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
   const wide = useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false)
   const money = (v: number) => formatMoney(v, currency, language)
   const [open, setOpen] = useState(false)
-  const [phone, setPhone] = useState('')
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [phoneSubmitting, setPhoneSubmitting] = useState(false)
-  const [phoneError, setPhoneError] = useState<string | null>(null)
+  const [sessionState, setSessionState] = useState<SessionState>('idle')
+  const [startError, setStartError] = useState<string | null>(null)
+  const [signInOpen, setSignInOpen] = useState(false)
+  /** Why the conversation can take no more messages: closed for inactivity, or at its message cap. */
+  const [endedReason, setEndedReason] = useState<'idle' | 'limit' | null>(null)
+  const conversationIdRef = useRef<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -157,16 +173,23 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     if (raw) {
       try {
         const parsed = JSON.parse(raw)
-        if (parsed?.conversation_id && parsed?.phone) {
-          setPhone(parsed.phone)
-          setConversationId(parsed.conversation_id)
-        }
+        if (typeof parsed?.conversation_id === 'string') setConversationId(parsed.conversation_id)
       } catch { /* ignore */ }
     }
   }, [tenantSlug, historyEnabled])
 
+  // Back from a sign-in that navigated away (the popup normally keeps the page): reopen and start the session.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(SIGNIN_FLAG_PREFIX + tenantSlug)) {
+        sessionStorage.removeItem(SIGNIN_FLAG_PREFIX + tenantSlug)
+        setOpen(true)
+      }
+    } catch { /* ignore */ }
+  }, [tenantSlug])
+
   // Show what the server kept of this conversation (once per conversation id).
-  // A 4xx means the conversation is gone or blocked: forget it so the phone gate shows again.
+  // A 4xx means the conversation is gone, blocked or not this guest's: forget it so a new session starts (or the sign-in shows).
   const historyLoadedFor = useRef<string | null>(null)
   useEffect(() => {
     if (!conversationId || historyLoadedFor.current === conversationId) return
@@ -199,41 +222,109 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     }
   }, [messages, sending, open, conversationId])
 
-  async function handlePhoneSubmit() {
-    if (!phone.trim()) return
-    setPhoneSubmitting(true)
-    setPhoneError(null)
-    const res = await fetch(`/api/public/chat/${tenantSlug}/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone.trim() }),
-    })
-    setPhoneSubmitting(false)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setPhoneError(data.error || copy.couldNotStart)
-      return
-    }
-    const data = await res.json()
-    setConversationId(data.conversation_id)
-    setRemaining(Math.max(0, data.rate_limit - data.messages_today))
-    if (historyEnabled) {
-      sessionStorage.setItem(
-        SESSION_KEY_PREFIX + tenantSlug,
-        JSON.stringify({ conversation_id: data.conversation_id, phone: phone.trim() }),
-      )
-    }
-    // No stored welcome: an empty conversation shows the greeting (client-side only).
+  function pushNote(text: string) {
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: text, note: true }])
   }
 
-  /** Without history: forget the conversation, the phone and everything on screen (and any recording). */
-  function resetSession() {
+  /**
+   * Opens (or resumes) the guest's conversation. The guest's phone comes from
+   * their signed-in session on the server: 401 means they have to sign in first.
+   * Returns the conversation id, or null.
+   */
+  async function startSession(note?: string): Promise<string | null> {
+    const epoch = sessionEpochRef.current
+    setSessionState('starting')
+    setStartError(null)
+    let res: Response
+    try {
+      res = await fetch(`/api/public/chat/${tenantSlug}/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    } catch {
+      if (epoch !== sessionEpochRef.current) return null
+      setSessionState('error')
+      setStartError(copy.couldNotStart)
+      return null
+    }
+    if (epoch !== sessionEpochRef.current) return null
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { error?: string; code?: string }
+      if (epoch !== sessionEpochRef.current) return null
+      if (res.status === 401 && data.code === 'phone_verification_required') setSessionState('signin')
+      else { setSessionState('error'); setStartError(data.error || copy.couldNotStart) }
+      return null
+    }
+    const data = await res.json() as { conversation_id: string; rate_limit: number; messages_today: number }
+    if (epoch !== sessionEpochRef.current) return null
+    setConversationId(data.conversation_id)
+    setSessionState('idle')
+    setEndedReason(null)
+    setRemaining(Math.max(0, data.rate_limit - data.messages_today))
+    if (historyEnabled) {
+      try { sessionStorage.setItem(SESSION_KEY_PREFIX + tenantSlug, JSON.stringify({ conversation_id: data.conversation_id })) } catch { /* ignore */ }
+    }
+    if (note) pushNote(note)
+    // No stored welcome: an empty conversation shows the greeting (client-side only).
+    return data.conversation_id
+  }
+
+  // Opening the chat starts the session: a guest who is already signed in goes straight in.
+  useEffect(() => {
+    if (open && !conversationId && sessionState === 'idle') void startSession()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, conversationId, sessionState])
+
+  function openSignIn() {
+    try { sessionStorage.setItem(SIGNIN_FLAG_PREFIX + tenantSlug, '1') } catch { /* ignore */ }
+    setSignInOpen(true)
+  }
+  function closeSignIn() {
+    try { sessionStorage.removeItem(SIGNIN_FLAG_PREFIX + tenantSlug) } catch { /* ignore */ }
+    setSignInOpen(false)
+  }
+  function signedIn() {
+    closeSignIn()
+    void startSession()
+  }
+
+  /** A fresh conversation after the previous one closed (inactivity or its message cap). */
+  function startNewConversation() {
     sessionEpochRef.current += 1
     stopRecording(true)
     try { sessionStorage.removeItem(SESSION_KEY_PREFIX + tenantSlug) } catch { /* ignore */ }
     historyLoadedFor.current = null
     setConversationId(null)
-    setPhone('')
+    setEndedReason(null)
+    setMessages([])
+    setInput('')
+    setError(null)
+    setSending(false)
+    setStreamingId(null)
+    setTranscribing(false)
+    setSessionState('idle') // the effect above starts the session
+  }
+
+  /** The guest was quiet for CHAT_IDLE_MS (history on): the conversation is closed. */
+  function expireConversation() {
+    stopRecording(true)
+    try { sessionStorage.removeItem(SESSION_KEY_PREFIX + tenantSlug) } catch { /* ignore */ }
+    setEndedReason('idle')
+    pushNote(copy.conversationExpired)
+  }
+  const expireRef = useRef(expireConversation)
+  useEffect(() => { expireRef.current = expireConversation })
+
+  /** Without history: forget the conversation and everything on screen (and any recording), and sign the guest out. */
+  function resetSession() {
+    sessionEpochRef.current += 1
+    stopRecording(true)
+    try { sessionStorage.removeItem(SESSION_KEY_PREFIX + tenantSlug) } catch { /* ignore */ }
+    historyLoadedFor.current = null
+    // A shared tablet: the next person must not inherit this guest's account. Best effort, never blocks.
+    const hadSession = !!conversationIdRef.current
+    if (hadSession) void signOutAsGuest()
+    setConversationId(null)
+    setEndedReason(null)
+    // Signed out: the next session needs a new sign-in (never start one while the sign-out may still be in flight).
+    setSessionState(hadSession ? 'signin' : 'idle')
     setMessages([])
     setInput('')
     setError(null)
@@ -244,6 +335,20 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
   }
   const resetRef = useRef(resetSession)
   useEffect(() => { resetRef.current = resetSession })
+  useEffect(() => { conversationIdRef.current = conversationId }, [conversationId])
+
+  /** Signs the guest out of whichever sign-in this deployment uses (best effort). */
+  async function signOutAsGuest(keepalive = false) {
+    try { await signOutGuest(await readLoginAuthority() === 'owned', { keepalive }) } catch { /* the UI never waits on it */ }
+  }
+  // Shared tablet: leaving the page (reload, close, navigation) with a conversation open ends the guest's sign-in too.
+  useEffect(() => {
+    if (historyEnabled) return
+    const leave = () => { if (conversationIdRef.current) void signOutAsGuest(true) }
+    window.addEventListener('pagehide', leave)
+    return () => { window.removeEventListener('pagehide', leave); leave() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyEnabled])
 
   /** Closing the chat ends the session when history is off. */
   function closeChat() {
@@ -251,16 +356,18 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     if (!historyEnabled) resetSession()
   }
 
-  // Idle for 5 minutes (no typing, sending or receiving; not while a reply or a recording is in progress): wipe.
+  // Idle (no typing, sending or receiving; not while a reply or a recording is in progress). Without history
+  // the chat is wiped after 5 minutes (a shared tablet); with history the conversation closes after CHAT_IDLE_MS.
   useEffect(() => {
-    if (historyEnabled || !conversationId || sending || recording || transcribing) return
-    const timer = setTimeout(() => resetRef.current(), IDLE_RESET_MS)
+    if (!conversationId || endedReason || sending || recording || transcribing) return
+    const timer = setTimeout(() => (historyEnabled ? expireRef.current() : resetRef.current()), historyEnabled ? CHAT_IDLE_MS : IDLE_RESET_MS)
     return () => clearTimeout(timer)
-  }, [historyEnabled, conversationId, messages, input, sending, recording, transcribing])
+  }, [historyEnabled, conversationId, endedReason, messages, input, sending, recording, transcribing])
 
   /** `voiceToken` marks a transcript signed by the audio route (needed when typing is off). */
-  async function sendMessage(text: string, voiceToken?: string) {
-    if (!text.trim() || !conversationId || sending) return
+  async function sendMessage(text: string, voiceToken?: string, retry?: { conversationId: string }) {
+    const activeConversation = retry?.conversationId ?? conversationId
+    if (!text.trim() || !activeConversation || sending || endedReason) return
     setError(null)
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: text }
     // Functional update: a voice note calls this from the recorder's callback.
@@ -279,14 +386,39 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
         // The server streams the reply when asked; an older server answers plain JSON.
         headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json;q=0.9' },
         // Only the new message: the server rebuilds the history from what it stored.
-        body: JSON.stringify({ conversation_id: conversationId, message: text.trim(), menu_id: menuId, location_id: locationId, table_id: tableId, voice_token: voiceToken, language, ...(cart ? { cart } : {}) }),
+        body: JSON.stringify({ conversation_id: activeConversation, message: text.trim(), menu_id: menuId, location_id: locationId, table_id: tableId, voice_token: voiceToken, language, ...(cart ? { cart } : {}) }),
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
+        const err = await res.json().catch(() => ({})) as { error?: string; code?: string }
         if (epoch !== sessionEpochRef.current) return
-        setError(err.error || copy.somethingWrong)
         setSending(false)
+        if (res.status === 409 && err.code === 'conversation_expired') {
+          // Closed for inactivity on the server: start a new conversation and carry on with this message
+          // (a voice transcript is signed for its conversation, so that one is recorded again).
+          setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
+          try { sessionStorage.removeItem(SESSION_KEY_PREFIX + tenantSlug) } catch { /* ignore */ }
+          pushNote(copy.conversationExpired)
+          const next = retry || voiceToken ? null : await startSession()
+          if (next) await sendMessage(text, undefined, { conversationId: next })
+          else if (retry || voiceToken) setEndedReason('idle')
+          else setConversationId(null)
+          return
+        }
+        if (res.status === 429 && err.code === 'conversation_limit') {
+          setEndedReason('limit')
+          pushNote(copy.conversationLimit)
+          return
+        }
+        if (res.status === 401 && err.code === 'phone_verification_required') {
+          // Signed out meanwhile (or another account): back to the sign-in.
+          try { sessionStorage.removeItem(SESSION_KEY_PREFIX + tenantSlug) } catch { /* ignore */ }
+          historyLoadedFor.current = null
+          setConversationId(null)
+          setSessionState('signin')
+          return
+        }
+        setError(err.error || copy.somethingWrong)
         return
       }
       if ((res.headers.get('content-type') ?? '').includes('application/x-ndjson') && res.body) {
@@ -478,40 +610,31 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
         </button>
       </div>
 
-      {/* Phone gate */}
+      {/* Sign-in gate: the chat is for guests signed in with a phone verified by SMS */}
       {!conversationId && (
-        <form
+        <div
           className={`flex flex-1 min-h-0 flex-col space-y-4 overflow-y-auto bg-white px-6 py-5 ${box.short ? 'justify-start' : 'justify-center'}`}
           style={{ '--accent': brand } as React.CSSProperties}
-          onSubmit={(e) => { e.preventDefault(); if (!phoneSubmitting && phone.trim()) void handlePhoneSubmit() }}
         >
           <h3 className={`${ui.sheetTitle} text-zinc-900`}>{fill(copy.chatWith, { name: tenantName })}</h3>
-          {!box.short && <p className="text-[15px] leading-relaxed text-zinc-600">{copy.gateBody}</p>}
-          <div>
-            <label htmlFor="chat-phone" className="mb-1.5 block text-[14px] font-medium text-zinc-700">{menuCopy.loginPhoneLabel}</label>
-            <PhoneField
-              id="chat-phone"
-              value={phone}
-              onChange={setPhone}
-              phoneContext={phoneContext}
-              locale={locale}
-              countryLabel={menuCopy.loginCountry}
-              countrySearchLabel={menuCopy.loginCountrySearch}
-              enterKeyHint="go"
-              describedBy={phoneError ? 'chat-phone-error' : undefined}
-              className="h-12 w-full rounded-xl border border-zinc-300 bg-white px-4 text-[16px] text-zinc-950 placeholder:text-zinc-500 focus:border-zinc-900 focus:outline-none focus:ring-[3px] focus:ring-zinc-900/10"
-            />
-          </div>
-          {phoneError && <p id="chat-phone-error" role="alert" className="text-[14px] font-medium text-red-700">{phoneError}</p>}
-          <button
-            type="submit"
-            disabled={phoneSubmitting || !phone.trim()}
-            className={`${ui.cta} h-12 w-full disabled:opacity-50 disabled:shadow-none`}
-            style={ctaStyle(brand, onBrand)}
-          >
-            {phoneSubmitting ? copy.starting : copy.startChat}
-          </button>
-        </form>
+          {sessionState === 'signin' ? (
+            <>
+              <p className="text-[15px] leading-relaxed text-zinc-600">{copy.signInPrompt}</p>
+              <button type="button" onClick={openSignIn} className={`${ui.cta} h-12 w-full`} style={ctaStyle(brand, onBrand)}>
+                {copy.signInButton}
+              </button>
+            </>
+          ) : sessionState === 'error' ? (
+            <>
+              <p role="alert" className="text-[14px] font-medium text-red-700">{startError ?? copy.couldNotStart}</p>
+              <button type="button" onClick={() => void startSession()} className={`${ui.cta} h-12 w-full`} style={ctaStyle(brand, onBrand)}>
+                {copy.startChat}
+              </button>
+            </>
+          ) : (
+            <p role="status" className="flex items-center gap-2 text-[15px] text-zinc-600"><Loader2 className="size-4 animate-spin" aria-hidden="true" />{copy.starting}</p>
+          )}
+        </div>
       )}
 
       {/* Conversation */}
@@ -540,7 +663,9 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
                 )}
               </div>
             )}
-            {messages.map((m) => (
+            {messages.map((m) => m.note ? (
+              <p key={m.id} role="status" className="px-2 text-center text-[13px] text-zinc-500">{m.content}</p>
+            ) : (
               <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
                 {m.role === 'user' ? (
                   <div
@@ -637,7 +762,11 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
             {remaining !== null && remaining <= 5 && (
               <p className="mb-1.5 px-1 text-[12px] font-bold text-amber-800">{fill(copy.remainingToday, { n: remaining })}</p>
             )}
-            {recording ? (
+            {endedReason ? (
+              <button type="button" onClick={startNewConversation} className={`${ui.cta} h-12 w-full`} style={ctaStyle(brand, onBrand)}>
+                {copy.newConversation}
+              </button>
+            ) : recording ? (
               <div className="flex items-center gap-2" role="status" aria-live="polite">
                 <button
                   type="button"
@@ -729,6 +858,20 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
 
   return (
     <>
+      {signInOpen && <GuestSignInDialog
+        open
+        onClose={closeSignIn}
+        onSignedIn={signedIn}
+        slug={tenantSlug}
+        primaryColor={primaryColor}
+        copy={menuCopy}
+        lang={language}
+        locale={locale}
+        phoneContext={phoneContext}
+        bannerUrl={bannerUrl}
+        logoUrl={tenantLogoUrl}
+        restaurantName={tenantName}
+      />}
       {/* Floating button */}
       {!open && (
         <button

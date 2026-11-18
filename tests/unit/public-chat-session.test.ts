@@ -5,7 +5,8 @@ import { hashPhone } from '@/lib/crypto'
 import { AdminMenuError } from '@/lib/data/admin-menus'
 
 const tenantId = randomUUID(), conversationId = randomUUID(), phone = '+1 (202) 555-0101'
-const state = vi.hoisted(() => ({ source: vi.fn(), owned: vi.fn() }))
+const state = vi.hoisted(() => ({ source: vi.fn(), owned: vi.fn(), phone: vi.fn() }))
+vi.mock('@/lib/auth/verified-guest-phone', () => ({ getVerifiedGuestPhone: state.phone }))
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: state.source }))
 vi.mock('@/lib/data/public-chat-session-runtime', () => ({ createOwnedPublicChatSession: state.owned }))
 vi.mock('@/lib/observability/with-api', () => ({ withApi: (_: string, handler: unknown) => handler }))
@@ -53,13 +54,24 @@ it('rejects invalid phones before any SQL and blocked hashes before conversation
   const blocked = fixture(); blocked.mockReset().mockResolvedValueOnce({ rows: [{ id: tenantId }] }).mockResolvedValueOnce({ rows: [{ chat_addon_available: true, chat_addon_active: true }] }).mockResolvedValueOnce({ rows: [{ enabled: true }] }).mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ id: randomUUID() }] })
   await expect(createPublicChatSession(blocked, 'restaurant', phone)).rejects.toMatchObject({ status: 403 }); expect(blocked).toHaveBeenCalledTimes(5)
 })
-const request = () => new Request('http://localhost/api/public/chat/restaurant/session', { method: 'POST', body: JSON.stringify({ phone }) })
+// A phone in the body is ignored: only the verified session phone counts.
+const request = () => new Request('http://localhost/api/public/chat/restaurant/session', { method: 'POST', body: JSON.stringify({ phone: '+15550000000' }) })
 const context = () => ({ params: Promise.resolve({ slug: 'restaurant' }) })
+it('refuses without a verified phone (401 phone_verification_required), natively and on source', async () => {
+  state.phone.mockResolvedValue(null)
+  for (const owned of ['true', 'false']) {
+    vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', owned)
+    const response = await POST(request(), context())
+    expect(response.status).toBe(401); expect(await response.json()).toEqual({ error: 'Sign in with your phone to chat', code: 'phone_verification_required' })
+  }
+  expect(state.owned).not.toHaveBeenCalled(); expect(state.source).not.toHaveBeenCalled()
+})
 it('selects native conversation creation without constructing a source Auth/data client', async () => {
-  vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', 'true'); state.owned.mockResolvedValue({ conversation_id: conversationId, rate_limit: 20, messages_today: 0 })
+  state.phone.mockResolvedValue(phone); vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', 'true'); state.owned.mockResolvedValue({ conversation_id: conversationId, rate_limit: 20, messages_today: 0 })
   expect((await POST(request(), context())).status).toBe(200); expect(state.owned).toHaveBeenCalledWith('restaurant', phone); expect(state.source).not.toHaveBeenCalled()
 })
 it('native deny/unavailable responses never switch back to source', async () => {
+  state.phone.mockResolvedValue(phone)
   vi.stubEnv('OWNED_ADMIN_MENUS_ENABLED', 'true')
   for (const status of [403, 503]) { state.owned.mockRejectedValue(new AdminMenuError(status, 'Unavailable')); expect((await POST(request(), context())).status).toBe(status) }
   expect(state.source).not.toHaveBeenCalled()
