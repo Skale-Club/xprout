@@ -25,6 +25,14 @@ const nextConfig: NextConfig = {
   // Next otherwise strips them before middleware, hiding client navigations.
   skipProxyUrlNormalize: true,
   expireTime: 86400,
+  experimental: {
+    // Local dev only. Turbopack's on-disk dev cache (.next/dev) got into a state where every
+    // page load was answered with an HMR "restart" for the app entry, so pages reloaded about
+    // once a second until .next/dev was deleted (seen 2026-11-17 twice, likely a dev server
+    // killed mid-write or two runs sharing the cache). Without it each `npm run dev` starts
+    // clean: a slower first compile, no inherited broken state. Production builds are unaffected.
+    turbopackFileSystemCacheForDev: false,
+  },
   // Coolify/Docker target: emit a minimal traced server (.next/standalone) with
   // its own server.js instead of bundling the full node_modules. Required for
   // the multi-stage Dockerfile; harmless on Vercel (ignored there).
