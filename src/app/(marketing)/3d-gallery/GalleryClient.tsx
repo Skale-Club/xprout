@@ -1,5 +1,7 @@
 'use client'
 
+import { usePublicLocale, PublicLanguagePicker } from '@/components/marketing/PublicLocale'
+
 /*
  * The 3D gallery: a sales tool we open on our own phone or tablet at a
  * restaurant. Categories are an accordion; an open category shows its dishes
@@ -28,6 +30,7 @@ function arModel(dish: PublishedGalleryDish) {
 const sizeLabel = (dish: PublishedGalleryDish) => `${Math.round(dish.widthCm)} cm`
 
 export default function GalleryClient({ sections }: { sections: GallerySection[] }) {
+  const { t, href } = usePublicLocale()
   const dishes = useMemo(() => sections.flatMap(section => section.dishes), [sections])
   const categoryOf = useMemo(() => new Map(sections.flatMap(section => section.dishes.map(dish => [dish.id, section.name] as const))), [sections])
   // The first category starts open, so the page never opens empty.
@@ -59,15 +62,16 @@ export default function GalleryClient({ sections }: { sections: GallerySection[]
     <div className="min-h-[100dvh] bg-[var(--mk-paper)] text-[var(--mk-ink)]">
       <header className="sticky top-0 z-40 bg-[var(--mk-forest)]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-          <Link href="/" aria-label="Xprout home" className={`shrink-0 rounded-md ${focusRing}`}>
+          <Link href={href("/")} aria-label={t("Xprout home")} className={`shrink-0 rounded-md ${focusRing}`}>
             <PlatformSignature tone="ivory" className="!w-[118px] !min-w-[118px]" />
           </Link>
+          <div className="text-[var(--mk-paper)]"><PublicLanguagePicker /></div>
           <button
             type="button"
             onClick={() => setOpenSections(allOpen ? new Set() : new Set(sections.map(section => section.id)))}
             className={`min-h-11 rounded-full px-3 text-[13px] font-semibold text-[var(--mk-paper)] hover:bg-[#f3efe514] ${focusRing}`}
           >
-            {allOpen ? 'Close all' : 'Open all'}
+            {allOpen ? t("Close all") : t("Open all")}
           </button>
         </div>
       </header>
@@ -96,7 +100,7 @@ export default function GalleryClient({ sections }: { sections: GallerySection[]
                       ))}
                     </span>
                     <span className="flex-1 font-[family-name:var(--font-marketing-display)] text-[19px] font-semibold leading-tight tracking-[-0.02em] sm:text-[22px]">
-                      {section.name}
+                      {t(section.name)}
                     </span>
                     <ChevronDown className={`size-5 shrink-0 text-[var(--mk-muted)] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
                   </button>
@@ -131,11 +135,12 @@ export default function GalleryClient({ sections }: { sections: GallerySection[]
 }
 
 function DishCard({ dish, onOpen }: { dish: PublishedGalleryDish; onOpen: (id: string, trigger: HTMLElement) => void }) {
+  const { t } = usePublicLocale()
   return (
     <button
       type="button"
       onClick={event => onOpen(dish.id, event.currentTarget)}
-      aria-label={`${dish.name}: view in 3D`}
+      aria-label={`${dish.name}: ${t('View in 3D')}`}
       className={`group block w-full rounded-xl text-left ${focusRing}`}
     >
       <span className="relative block aspect-square overflow-hidden rounded-xl bg-[var(--mk-paper)]">
@@ -162,6 +167,7 @@ function DishViewer({ dish, category, dishes, onClose, onStep }: {
   onClose: () => void
   onStep: (step: 1 | -1) => void
 }) {
+  const { t, locale } = usePublicLocale()
   const computer = useIsComputer()
   const closeButton = useRef<HTMLButtonElement>(null)
   const dialog = useRef<HTMLDivElement>(null)
@@ -220,31 +226,31 @@ function DishViewer({ dish, category, dishes, onClose, onStep }: {
             className="absolute inset-0 size-full"
           />
           <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-xs font-medium text-[var(--mk-muted)]">
-            {computer ? 'Drag to turn · scroll to zoom' : 'Drag to turn'}
+            {computer ? t("Drag to turn · scroll to zoom") : t("Drag to turn")}
           </p>
         </div>
 
         <div className="flex flex-col gap-5 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-9">
           <div className="grid gap-2 pr-12 md:pr-0">
-            <p className="mk-eyebrow">{category}</p>
+            <p className="mk-eyebrow">{t(category)}</p>
             <h2 id="gallery-dish-title" className="font-[family-name:var(--font-marketing-display)] text-[clamp(26px,3vw,40px)] font-semibold leading-[1.08] tracking-[-0.03em]">
               {dish.name}
             </h2>
-            <p className="text-[15px] text-[var(--mk-muted)]">Real size: {sizeLabel(dish)} wide</p>
+            <p className="text-[15px] text-[var(--mk-muted)]">{t("Real size:")} {' '}{sizeLabel(dish)}  {t("wide")}</p>
           </div>
 
           <ArButton
             model={arModel(dish)}
             name={dish.name}
-            lang="en"
+            lang={locale}
             theme={THEME}
             sequence={sequence}
             className="mk-button w-full gap-2 text-[15px]"
           />
 
           <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--mk-line)] pt-4">
-            <button type="button" onClick={() => onStep(-1)} aria-label="Previous dish" className={stepButton}><ArrowLeft className="size-[18px]" aria-hidden="true" /></button>
-            <button type="button" onClick={() => onStep(1)} aria-label="Next dish" className={stepButton}><ArrowRight className="size-[18px]" aria-hidden="true" /></button>
+            <button type="button" onClick={() => onStep(-1)} aria-label={t("Previous dish")} className={stepButton}><ArrowLeft className="size-[18px]" aria-hidden="true" /></button>
+            <button type="button" onClick={() => onStep(1)} aria-label={t("Next dish")} className={stepButton}><ArrowRight className="size-[18px]" aria-hidden="true" /></button>
           </div>
         </div>
 
@@ -252,7 +258,7 @@ function DishViewer({ dish, category, dishes, onClose, onStep }: {
           ref={closeButton}
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           className={`absolute right-4 top-4 z-10 flex size-11 items-center justify-center rounded-full bg-[#14271dcc] text-[var(--mk-paper)] backdrop-blur-sm ${focusRing}`}
         >
           <X className="size-5" aria-hidden="true" />

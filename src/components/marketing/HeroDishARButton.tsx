@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Box } from 'lucide-react'
+import { usePublicLocale } from './PublicLocale'
 import {
   AR_UNAVAILABLE_HASH, arFallbackUrl, arPlatform, currentArEnvironment,
   isComputer, openQuickLook, quickLookUrl, sceneViewerIntentUrl, type ArPlatform,
@@ -17,11 +18,11 @@ const dishes = {
 export type HeroDishId = keyof typeof dishes
 
 /** Published, calibrated menu models: native AR never uses marketing derivatives. */
-export function getHeroArAction(dishId: HeroDishId, platform: ArPlatform | null, pageHref: string): string | null {
+export function getHeroArAction(dishId: HeroDishId, platform: ArPlatform | null, pageHref: string, title: string = dishes[dishId].title): string | null {
   const dish = dishes[dishId]
   if (platform === 'quick-look') return quickLookUrl(`${base}${dish.usdz}`, undefined, { realScale: true })
   if (platform === 'scene-viewer') return sceneViewerIntentUrl({
-    glbUrl: `${base}${dish.glb}`, title: dish.title, fallbackUrl: arFallbackUrl(pageHref), realScale: true,
+    glbUrl: `${base}${dish.glb}`, title, fallbackUrl: arFallbackUrl(pageHref), realScale: true,
   })
   return null
 }
@@ -39,6 +40,7 @@ const computerSnapshot = () => isComputer(currentArEnvironment())
 const serverComputerSnapshot = () => true
 
 export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: HeroDishId; onExplore3D?: () => void }) {
+  const { t } = usePublicLocale()
   const platform = useSyncExternalStore(subscribePlatform, platformSnapshot, serverPlatformSnapshot)
   // Computers have no AR camera, and the hero already turns the dish in 3D there.
   const computer = useSyncExternalStore(subscribePlatform, computerSnapshot, serverComputerSnapshot)
@@ -55,9 +57,9 @@ export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: Hero
     return () => window.removeEventListener('hashchange', checkFallback)
   }, [])
 
-  const dish = dishes[dishId]
+  const title = t(dishes[dishId].title)
   const launch = () => {
-    const href = getHeroArAction(dishId, platform, window.location.href)
+    const href = getHeroArAction(dishId, platform, window.location.href, title)
     if (!href) {
       onExplore3D?.()
       setNotice('Drag to turn the dish. Open this page on a supported iPhone or Android phone to see it on your table through the camera.')
@@ -72,9 +74,9 @@ export default function HeroDishARButton({ dishId, onExplore3D }: { dishId: Hero
 
   return <div className="mk-hero-ar">
     <button type="button" onClick={launch} className="mk-hero-ar-button min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
-      aria-label={platform ? `See it on your table: ${dish.title}` : `Explore in 3D: ${dish.title}`}>
-      <Box size={17} aria-hidden="true" /><span>{platform ? 'See it on your table' : 'Explore in 3D'}</span>
+      aria-label={t(platform ? 'See it on your table: {dish}' : 'Explore in 3D: {dish}', { dish: title })}>
+      <Box size={17} aria-hidden="true" /><span>{t(platform ? 'See it on your table' : 'Explore in 3D')}</span>
     </button>
-    <p className="mk-hero-ar-status" role="status" aria-live="polite">{notice}</p>
+    <p className="mk-hero-ar-status" role="status" aria-live="polite">{notice && t(notice)}</p>
   </div>
 }

@@ -1,9 +1,10 @@
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
+import { translatePublic } from '@/lib/marketing/public-translate'
 import {nativeBlogSelected} from '@/lib/blog/native/selected'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { PLATFORM_BASE } from '@/lib/seo'
 import { BlogPostList } from '@/components/blog/post-list'
 import { listArchive, listPostsByMonth, listTags } from '@/lib/blog/public-queries'
 
@@ -23,15 +24,19 @@ function parseYear(raw: string): number | null {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const year = parseYear((await params).year)
   if (!year) return {}
   return {
-    title: `Arquivo de ${year} | Blog Xprout`,
-    alternates: { canonical: `${PLATFORM_BASE}/blog/archive/${year}` },
+    title: `${t('Archive')} ${year} | Blog Xprout`,
+    alternates: { canonical: `/blog/archive/${year}` },
   }
 }
 
 export default async function PlatformBlogYearPage({ params }: Props) {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const year = parseYear((await params).year)
   if (!year) notFound()
 
@@ -48,7 +53,8 @@ export default async function PlatformBlogYearPage({ params }: Props) {
 
   return (
     <BlogPostList
-      heading={`Arquivo de ${year}`}
+      locale={locale}
+      heading={`${t('Archive')} ${year}`}
       posts={posts}
       basePath="/blog"
       archive={archive}

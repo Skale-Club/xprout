@@ -21,6 +21,7 @@
 import type { ReactNode } from 'react'
 
 export interface LegalDoc {
+  language?: string
   title?: string
   body?: string
   updated_at?: string
@@ -167,16 +168,21 @@ export function renderLegalBody(body: string): ReactNode[] {
 }
 
 /** Reads one document out of the `legal` jsonb blob, tolerating any shape. */
-export function pickLegalDoc(legal: unknown, key: 'terms' | 'privacy'): LegalDoc | null {
+export function pickLegalDoc(legal: unknown, key: 'terms' | 'privacy', locale = 'en'): LegalDoc | null {
   if (!legal || typeof legal !== 'object') return null
   const doc = (legal as Record<string, unknown>)[key]
   if (!doc || typeof doc !== 'object') return null
 
-  const { title, body, updated_at } = doc as Record<string, unknown>
+  const source = doc as Record<string, unknown>
+  const translations = source.translations && typeof source.translations === 'object' ? source.translations as Record<string, unknown> : {}
+  const candidate = translations[locale]
+  const translated = candidate && typeof candidate === 'object' && typeof (candidate as Record<string, unknown>).body === 'string' && String((candidate as Record<string, unknown>).body).trim() ? candidate as Record<string, unknown> : null
+  const { title, body, updated_at } = translated ?? source
   const text = typeof body === 'string' ? body.trim() : ''
   if (!text) return null
 
   return {
+    ...(translated || typeof source.language === 'string' ? { language: translated ? locale : source.language as string } : {}),
     title: typeof title === 'string' && title.trim() ? title.trim() : undefined,
     body: text,
     updated_at: typeof updated_at === 'string' && updated_at.trim() ? updated_at.trim() : undefined,

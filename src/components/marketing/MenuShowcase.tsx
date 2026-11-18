@@ -4,18 +4,19 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import { ArrowUpRight } from 'lucide-react'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useMarketingMotionPreference } from './MarketingMotion'
+import { usePublicLocale } from './PublicLocale'
 
 const examples = [
   {
     // The demo store is Aurora; /demo redirects to it (src/app/demo/route.ts).
-    name: 'Photo menu', category: 'Photo-led menu', href: '/demo',
+    category: 'Photo-led menu', href: '/demo',
     title: 'A closer look, before the first bite.',
     description: 'Browse a photo-led menu and open the dish details, with selected dishes to explore from every angle in 3D.',
     image: '/marketing/v3/demo-photo-menu.webp',
     alt: 'Illustrative photo feed showing a dish, description and price',
   },
   {
-    name: 'Italian menu', category: 'Italian menu', href: '/bella-vista',
+    category: 'Italian menu', href: '/bella-vista',
     title: 'Let the food do the talking.',
     description: 'Browse an Italian menu with generous dish photography and the detail guests want before they choose.',
     image: '/marketing/v3/demo-italian-menu.webp',
@@ -23,7 +24,7 @@ const examples = [
   },
   {
     // Celes is a real prospect, not a demo: this example opens the demo store instead.
-    name: 'Dessert feed', category: 'Dessert feed', href: '/demo',
+    category: 'Dessert feed', href: '/demo',
     title: 'Save a little room for something sweet.',
     description: 'See a different expression of the same platform: a confectionery menu made around its own food and identity.',
     image: '/marketing/v3/demo-dessert-feed.webp',
@@ -33,6 +34,7 @@ const examples = [
 
 /** Real, optional destinations rather than a simulated checkout or embedded app. */
 export default function MenuShowcase() {
+  const { t, href } = usePublicLocale()
   // An endless turn: `position` only ever counts up or down; the menu in front is position mod 3.
   const [position, setPosition] = useState(0)
   const count = examples.length
@@ -99,18 +101,18 @@ export default function MenuShowcase() {
     <div id="experience" className="mk-container">
       <div className="mb-8 grid gap-6 md:mb-12 md:grid-cols-[1.2fr_1fr] md:items-end">
         <div>
-          <p className="mk-eyebrow mb-4">Try Xprout</p>
-          <h2 id="examples-title" className="mk-h2 max-w-xl">Visit the demo store.</h2>
+          <p className="mk-eyebrow mb-4">{t('Try Xprout')}</p>
+          <h2 id="examples-title" className="mk-h2 max-w-xl">{t('Visit the demo store.')}</h2>
         </div>
-        <p className="mk-lead max-w-md md:justify-self-end">Browse a complete menu and open selected dishes in 3D. Choose a demonstration to try the guest experience.</p>
+        <p className="mk-lead max-w-md md:justify-self-end">{t('Browse a complete menu and open selected dishes in 3D. Choose a demonstration to try the guest experience.')}</p>
       </div>
 
 
       <div data-example={selected} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className="mk-showcase-stage grid overflow-hidden rounded-3xl border border-[var(--mk-line)] bg-[var(--mk-panel)] md:grid-cols-2">
         <figure className="m-0 flex min-w-0 flex-col items-center justify-center gap-6 bg-[color-mix(in_srgb,var(--mk-forest)_8%,var(--mk-paper))] p-6 sm:p-10">
-          <p className="mk-eyebrow text-center">Guest menu preview</p>
+          <p className="mk-eyebrow text-center">{t('Guest menu preview')}</p>
           {/* The chosen menu in front, the other two behind it; drag, tap a phone or use the arrow keys. */}
-          <div ref={stage} role="group" aria-roledescription="carousel" aria-label="Menu examples, use the arrow keys to turn" tabIndex={0}
+          <div ref={stage} role="group" aria-roledescription={t('carousel')} aria-label={t('Menu examples, use the arrow keys to turn')} tabIndex={0}
             className={`mk-phone-carousel ${drag ? 'is-dragging' : ''}`}
             onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => setDrag(null)} onKeyDown={onKeyDown}>
             {slots.map(virtual => {
@@ -129,21 +131,21 @@ export default function MenuShowcase() {
                   filter: `brightness(${1 - depth * 0.18}) saturate(${1 - depth * 0.25})`,
                   transition: drag ? 'none' : undefined,
                 }}>
-                <DeliveryImage src={item.image} alt={front ? item.alt : ''} width={390} height={844} draggable={false}
+                <DeliveryImage src={item.image} alt={front ? t(item.alt) : ''} width={390} height={844} draggable={false}
                   sizes="210px" className="pointer-events-none h-auto w-full select-none" />
               </div>
             })}
           </div>
         </figure>
         <div className="flex min-w-0 flex-col justify-center p-6 sm:p-10 lg:p-14">
-          <div aria-live="polite" aria-atomic="true"><div key={example.name} className="mk-copy-swap">
-            <p className="mk-eyebrow mb-5">{example.category} · Demo</p>
-            <h3 className="mk-h2 mb-5">{example.title}</h3>
-            <p className="mk-lead mb-8">{example.description}</p>
+          <div aria-live="polite" aria-atomic="true"><div key={example.category} className="mk-copy-swap">
+            <p className="mk-eyebrow mb-5">{t('{category} · Demo', { category: t(example.category) })}</p>
+            <h3 className="mk-h2 mb-5">{t(example.title)}</h3>
+            <p className="mk-lead mb-8">{t(example.description)}</p>
           </div></div>
-          <a href={example.href} target="_blank" rel="noopener noreferrer" className="mk-button w-full sm:w-fit">
-            Visit the demo store <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
-            <span className="sr-only"> menu in a new tab</span>
+          <a href={href(example.href)} target="_blank" rel="noopener noreferrer" className="mk-button w-full sm:w-fit">
+            {t('Visit the demo store')}{' '}<ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
+            <span className="sr-only">{' '}{t('(opens in a new tab)')}</span>
           </a>
         </div>
       </div>

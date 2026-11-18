@@ -1,9 +1,9 @@
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
 import {nativeBlogSelected} from '@/lib/blog/native/selected'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { PLATFORM_BASE } from '@/lib/seo'
 import { BlogPostList, monthName } from '@/components/blog/post-list'
 import { listArchive, listPostsByMonth, listTags } from '@/lib/blog/public-queries'
 
@@ -20,6 +20,7 @@ function parseYearMonth(rawYear: string, rawMonth: string): { year: number; mont
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = await getPublicLocale()
   const { year: rawYear, month: rawMonth } = await params
   const parsed = parseYearMonth(rawYear, rawMonth)
   if (!parsed) return {}
@@ -28,12 +29,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // responderiam os dois, e o mesmo arquivo teria dois URLs indexáveis.
   const path = `/blog/archive/${parsed.year}/${String(parsed.month).padStart(2, '0')}`
   return {
-    title: `${monthName(parsed.month)} de ${parsed.year} | Blog Xprout`,
-    alternates: { canonical: `${PLATFORM_BASE}${path}` },
+    title: `${monthName(parsed.month, locale)} · ${parsed.year} | Blog Xprout`,
+    alternates: { canonical: path },
   }
 }
 
 export default async function PlatformBlogMonthPage({ params }: Props) {
+  const locale = await getPublicLocale()
   const { year: rawYear, month: rawMonth } = await params
   const parsed = parseYearMonth(rawYear, rawMonth)
   if (!parsed) notFound()
@@ -50,7 +52,8 @@ export default async function PlatformBlogMonthPage({ params }: Props) {
 
   return (
     <BlogPostList
-      heading={`${monthName(parsed.month)} de ${parsed.year}`}
+      locale={locale}
+      heading={`${monthName(parsed.month, locale)} · ${parsed.year}`}
       posts={posts}
       basePath="/blog"
       archive={archive}

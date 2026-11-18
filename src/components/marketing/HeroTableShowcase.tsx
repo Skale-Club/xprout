@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useMarketingMotionPreference } from './MarketingMotion'
 import HeroDishARButton from './HeroDishARButton'
+import { usePublicLocale } from './PublicLocale'
 import { canAutomaticallyRender3D } from '@/lib/marketing/automatic-3d'
 
 const dishes = [
@@ -17,6 +18,7 @@ const dishes = [
 
 /** One photographed table, one active dish model, and a matching transparent poster. */
 export default function HeroTableShowcase() {
+  const { locale, t } = usePublicLocale()
   const motion = useMarketingMotionPreference()
   const root = useRef<HTMLDivElement>(null)
   const viewer = useRef<HTMLElement>(null)
@@ -34,7 +36,7 @@ export default function HeroTableShowcase() {
   const [focused, setFocused] = useState(false)
   const [manual, setManual] = useState(false)
   const [manipulatedModel, setManipulatedModel] = useState('')
-  const [announcement, setAnnouncement] = useState('')
+  const [announcedIndex, setAnnouncedIndex] = useState<number>()
   const dish = dishes[selected]
   const source = `/marketing/v3/dish-${dish.id}`
   const modelSource = `${source}.glb${retry > 0 ? `?retry=${retry}` : ''}`
@@ -156,11 +158,11 @@ export default function HeroTableShowcase() {
     if (index !== selected) setManipulatedModel('')
     setFailed(false)
     go(index)
-    setAnnouncement(`${dishes[index].name}, ${index + 1} of ${dishes.length}`)
+    setAnnouncedIndex(index)
   }
   const controlClass = 'min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current'
 
-  return <div ref={root} className="mk-table-showcase" role="region" aria-roledescription="carousel" aria-label="Interactive dish demonstration"
+  return <div ref={root} className="mk-table-showcase" role="region" aria-roledescription={t('carousel')} aria-label={t('Interactive dish demonstration')}
     data-current-dish={dish.id} data-model-ready={ready && !failed} data-automatic-3d={automatic3D}
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
@@ -171,7 +173,7 @@ export default function HeroTableShowcase() {
       {/* Every poster stays mounted (and loaded), so switching never waits on an image. */}
       {dishes.map((item, index) => {
         const current = index === selected
-        return <DeliveryImage key={item.id} src={`/marketing/v3/dish-${item.id}.webp`} alt={current ? `${item.name} served on a photographed restaurant table` : ''}
+        return <DeliveryImage key={item.id} src={`/marketing/v3/dish-${item.id}.webp`} alt={current ? t('{dish} served on a photographed restaurant table', { dish: t(item.name) }) : ''}
           aria-hidden={current ? undefined : true} draggable={false}
           loading={index === 0 ? 'eager' : 'lazy'} fetchPriority={index === 0 ? 'high' : 'low'}
           width={960} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 45vw, 549px"
@@ -182,28 +184,28 @@ export default function HeroTableShowcase() {
             transition: motion === 'reduced' ? 'none' : !current ? 'opacity 200ms ease-in' : ready && !failed ? 'opacity 450ms ease' : 'opacity 280ms ease 200ms' }} />
       })}
       {enabled && libraryReady ? <model-viewer key={modelKey} ref={viewer} src={modelSource}
-        alt={`3D ${dish.name} on a photographed restaurant table`} poster={`${source}.webp`}
+        lang={locale} alt={t('3D {dish} on a photographed restaurant table', { dish: t(dish.name) })} poster={`${source}.webp`}
         className="mk-table-viewer" camera-orbit="0deg 62deg 0.55m" camera-target="0m 0.04m 0m" field-of-view="30deg"
         min-camera-orbit="auto 62deg 0.55m" max-camera-orbit="auto 62deg 0.55m" camera-controls disable-zoom disable-pan disable-tap touch-action="pan-y" interaction-prompt="none" loading="eager"
         shadow-intensity="0.7" shadow-softness="0.8" environment-image="neutral" exposure="1" tabIndex={ready && !failed ? 0 : -1} aria-hidden={!ready || failed}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: ready && !failed ? 1 : 0, pointerEvents: ready && !failed ? 'auto' : 'none' }}><span slot="progress-bar" hidden /></model-viewer> : null}
-      <div className="mk-table-name-overlay" role="group" aria-label="Choose a dish">
+      <div className="mk-table-name-overlay" role="group" aria-label={t('Choose a dish')}>
         <div className="mk-table-controls">
-          <button type="button" className={controlClass} aria-label="Previous dish" onClick={() => choose((selected + dishes.length - 1) % dishes.length)}><ArrowLeft size={18} aria-hidden="true" /></button>
-          <p className="mk-table-name">{dish.name}</p>
-          <button type="button" className={controlClass} aria-label="Next dish" onClick={() => choose((selected + 1) % dishes.length)}><ArrowRight size={18} aria-hidden="true" /></button>
+          <button type="button" className={controlClass} aria-label={t('Previous dish')} onClick={() => choose((selected + dishes.length - 1) % dishes.length)}><ArrowLeft size={18} aria-hidden="true" /></button>
+          <p className="mk-table-name">{t(dish.name)}</p>
+          <button type="button" className={controlClass} aria-label={t('Next dish')} onClick={() => choose((selected + 1) % dishes.length)}><ArrowRight size={18} aria-hidden="true" /></button>
         </div>
       </div>
       <div className="mk-table-bottom-controls">
-        <MorsePositionIndicator index={selected} total={dishes.length} label={`Dish ${selected + 1} of ${dishes.length}`} className="mk-table-position text-white" shadow />
+        <MorsePositionIndicator index={selected} total={dishes.length} label={t('Dish {position} of {total}', { position: selected + 1, total: dishes.length })} className="mk-table-position text-white" shadow />
         <HeroDishARButton dishId={dish.id} onExplore3D={() => { setExplicit(true); setManual(true) }} />
       </div>
       {failed ? <button type="button" className={`mk-table-retry ${controlClass}`} onClick={() => { setFailed(false); setLoaded(''); setRetry(current => current + 1) }}>
-        <RotateCcw size={16} aria-hidden="true" /> Retry 3D
+        <RotateCcw size={16} aria-hidden="true" />{' '}{t('Retry 3D')}
       </button> : null}
     </div>
 
 
-    <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</span>
+    <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcedIndex !== undefined && t('{dish}, {position} of {total}', { dish: t(dishes[announcedIndex].name), position: announcedIndex + 1, total: dishes.length })}</span>
   </div>
 }

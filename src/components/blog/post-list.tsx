@@ -1,20 +1,18 @@
+import { publicHref, publicIntlLocale, type PublicLocale } from '@/lib/marketing/public-locale'
+import { translatePublic } from '@/lib/marketing/public-translate'
 import { DeliveryImage } from '@/components/delivery-image'
 import Link from 'next/link'
 
 import type { ArchiveEntry, PublicPostCard } from '@/lib/blog/public-queries'
 
-const MONTHS = [
-  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
-]
-
-export function monthName(month: number): string {
-  return MONTHS[month - 1] ?? String(month)
+export function monthName(month: number, locale: PublicLocale = 'pt'): string {
+  if (month < 1 || month > 12) return String(month)
+  return new Intl.DateTimeFormat(publicIntlLocale(locale), { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, month - 1, 1)))
 }
 
-export function formatDate(value: string | null): string {
+export function formatDate(value: string | null, locale: PublicLocale = 'pt'): string {
   if (!value) return ''
-  return new Intl.DateTimeFormat('pt-BR', {
+  return new Intl.DateTimeFormat(publicIntlLocale(locale), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -38,7 +36,8 @@ export function BlogPostList({
   basePath,
   archive = [],
   tags = [],
-  emptyMessage = 'Nenhum post publicado ainda.',
+  emptyMessage,
+  locale = 'pt',
 }: {
   heading: string
   lead?: string | null
@@ -46,8 +45,11 @@ export function BlogPostList({
   basePath: string
   archive?: ArchiveEntry[]
   tags?: Array<{ slug: string; name: string; count: number }>
+  locale?: PublicLocale
   emptyMessage?: string
 }) {
+  const t = (source: string) => translatePublic(locale, source)
+  const href = (path: string) => basePath === '/blog' ? publicHref(path, locale) : path
   const byYear = new Map<number, ArchiveEntry[]>()
   for (const entry of archive) {
     const list = byYear.get(entry.year) ?? []
@@ -65,14 +67,14 @@ export function BlogPostList({
       <div className="flex flex-col gap-12 lg:flex-row">
         <div className="flex-1">
           {posts.length === 0 ? (
-            <p className="text-muted-foreground">{emptyMessage}</p>
+            <p className="text-muted-foreground">{emptyMessage ?? t('No posts published yet.')}</p>
           ) : (
             <ul className="space-y-10">
               {posts.map((post) => (
                 <li key={post.slug}>
                   <article>
                     {post.cover_image_url && (
-                      <Link href={`${basePath}/${post.slug}`} className="mb-4 block">
+                      <Link href={href(`${basePath}/${post.slug}`)} className="mb-4 block">
                         <DeliveryImage
                           src={post.cover_image_url}
                           width={1200} height={675} sizes={tags.length > 0 || byYear.size > 0
@@ -84,15 +86,15 @@ export function BlogPostList({
                       </Link>
                     )}
                     <h2 className="text-xl font-medium tracking-tight">
-                      <Link href={`${basePath}/${post.slug}`} className="hover:underline">
+                      <Link href={href(`${basePath}/${post.slug}`)} className="hover:underline">
                         {post.title}
                       </Link>
                     </h2>
                     {post.excerpt && <p className="mt-2 text-muted-foreground">{post.excerpt}</p>}
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {formatDate(post.published_at)}
+                      {formatDate(post.published_at, locale)}
                       {post.reading_time_minutes
-                        ? ` · ${post.reading_time_minutes} min de leitura`
+                        ? ` · ${post.reading_time_minutes} ${t('min read')}`
                         : ''}
                     </p>
                   </article>
@@ -105,13 +107,13 @@ export function BlogPostList({
         {(tags.length > 0 || byYear.size > 0) && (
           <aside className="flex w-full flex-col gap-8 lg:w-56 lg:shrink-0">
             {tags.length > 0 && (
-              <nav aria-label="Assuntos" className="flex flex-col gap-2">
-                <h2 className="font-medium">Assuntos</h2>
+              <nav aria-label={t('Topics')} className="flex flex-col gap-2">
+                <h2 className="font-medium">{t('Topics')}</h2>
                 <ul className="flex flex-wrap gap-x-3 gap-y-1">
                   {tags.map((tag) => (
                     <li key={tag.slug}>
                       <Link
-                        href={`${basePath}/tag/${tag.slug}`}
+                        href={href(`${basePath}/tag/${tag.slug}`)}
                         className="text-sm text-muted-foreground hover:text-foreground"
                       >
                         #{tag.name}
@@ -123,13 +125,13 @@ export function BlogPostList({
             )}
 
             {byYear.size > 0 && (
-              <nav aria-label="Arquivo" className="flex flex-col gap-4">
-                <h2 className="font-medium">Arquivo</h2>
+              <nav aria-label={t('Archive')} className="flex flex-col gap-4">
+                <h2 className="font-medium">{t('Archive')}</h2>
                 {Array.from(byYear.entries())
                   .sort((a, b) => b[0] - a[0])
                   .map(([year, months]) => (
                     <div key={year} className="flex flex-col gap-1">
-                      <Link href={`${basePath}/archive/${year}`} className="font-medium hover:underline">
+                      <Link href={href(`${basePath}/archive/${year}`)} className="font-medium hover:underline">
                         {year}
                       </Link>
                       <ul className="flex flex-col gap-0.5 pl-3">
@@ -138,10 +140,10 @@ export function BlogPostList({
                           .map((entry) => (
                             <li key={entry.month}>
                               <Link
-                                href={`${basePath}/archive/${entry.year}/${String(entry.month).padStart(2, '0')}`}
+                                href={href(`${basePath}/archive/${entry.year}/${String(entry.month).padStart(2, '0')}`)}
                                 className="text-sm text-muted-foreground hover:text-foreground"
                               >
-                                {monthName(entry.month)}{' '}
+                                {monthName(entry.month, locale)}{' '}
                                 <span className="opacity-60">({entry.count})</span>
                               </Link>
                             </li>

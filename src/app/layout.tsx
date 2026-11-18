@@ -11,6 +11,9 @@ import './globals.css'
 import { requestSite } from '@/lib/site/request-runtime'
 import { siteLocale } from '@/lib/site/request-contract'
 import { tenantMonogramIcon } from '@/lib/tenant-metadata'
+import { PublicLocaleProvider } from '@/components/marketing/PublicLocale'
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
+import { translatePublic } from '@/lib/marketing/public-translate'
 
 // Authority/language are request data. Anonymous HTML is explicitly cached by
 // middleware/Cloudflare; authenticated and parameterized responses remain private.
@@ -33,15 +36,16 @@ export async function generateViewport(): Promise<Viewport> {
 
 export async function generateMetadata(): Promise<Metadata> {
   const [ps, site] = await Promise.all([getPlatformAppearance(), requestSite()])
+  const locale = await getPublicLocale()
   const appUrl = site.origin
   const partner = site.brand.name !== BRAND_NAME
   const appName = partner ? site.brand.name : BRAND_NAME
   return {
     title: {
       template: `%s | ${appName}`,
-      default: partner ? appName : `${appName} | ${landingCopy.seo.titleSuffix}`,
+      default: partner ? appName : `${appName} | ${translatePublic(locale, landingCopy.seo.titleSuffix)}`,
     },
-    description: partner ? undefined : landingCopy.seo.description,
+    description: partner ? undefined : translatePublic(locale, landingCopy.seo.description),
     metadataBase: new URL(appUrl),
     robots: { index: site.indexable, follow: site.indexable },
     applicationName: appName,
@@ -67,6 +71,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const [ps, site] = await Promise.all([getPlatformAppearance(), requestSite()])
+  const locale = await getPublicLocale()
   const { primary, onPrimary } = platformColors(site.brand.name === BRAND_NAME ? ps?.cta_color : '#18181b')
 
   return (
@@ -75,7 +80,7 @@ export default async function RootLayout({
         <style>{`:root{--primary:${primary};--primary-foreground:${onPrimary};}`}</style>
       </head>
       <body className={`${inter.className} min-h-full`}>
-        {children}
+        <PublicLocaleProvider locale={locale}>{children}</PublicLocaleProvider>
         <ServiceWorkerRegistrar />
       </body>
     </html>

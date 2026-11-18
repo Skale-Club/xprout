@@ -1,5 +1,7 @@
 'use client'
 
+import { usePublicLocale, PublicLanguagePicker } from '@/components/marketing/PublicLocale'
+
 import { DeliveryImage } from '@/components/delivery-image'
 import PlatformSignature from '@/components/branding/PlatformSignature'
 import GradientTopLine from '@/components/ui/GradientTopLine'
@@ -57,6 +59,13 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
   brand?: GuestBrand | null
   platformBrand?: PublicPlatformBrand
 }) {
+  const { t, href: platformHref, locale } = usePublicLocale()
+  const href = (path: string) => {
+    if (!brand) return platformHref(path)
+    const url = new URL(path, 'https://xprout.invalid')
+    url.searchParams.set('lang', brand.lang)
+    return `${url.pathname}${url.search}${url.hash}`
+  }
   const [phone, setPhone] = useState('')
   /** Branded sign-in: the number the code went to, shown while the code is typed. */
   const [sentPhone, setSentPhone] = useState('')
@@ -121,7 +130,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
         setGoogleAttempted(true)
         setMessage('Google confirmed. Verify your phone number first; you can then link Google to your account.'); setError(''); document.getElementById('identity-phone')?.focus(); return
       }
-      setError(error instanceof IdentityRequestError ? error.message : 'Could not complete verification. Check your details and try again. If the problem continues, contact support.')
+      setError(error instanceof IdentityRequestError ? error.message : t("Could not complete verification. Check your details and try again. If the problem continues, contact support."))
     }
     finally { pending.current = false; setBusy(false) }
   }
@@ -144,7 +153,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
         // Google that waited for a phone is linked afterwards, from this fresh session, after showing which Google account it is.
         leaveTo(googleAttempted && !link
           ? `/identity?action=link${customerFlow ? '&flow=customer' : ''}&from=${encodeURIComponent(destination)}` : destination)
-      } catch (error) { throw new IdentityRequestError(error instanceof Error ? error.message : 'Your access could not be confirmed.', error instanceof OwnedLoginError ? error.code : undefined) }
+      } catch (error) { throw new IdentityRequestError(error instanceof Error ? error.message : t("Your access could not be confirmed."), error instanceof OwnedLoginError ? error.code : undefined) }
       finally { setExistingPassword('') }
       return
     }
@@ -243,8 +252,8 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
           <p className="text-[16px] font-semibold text-zinc-900">{copy.loginDone}</p>
           <style>{'@keyframes guest-done{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}'}</style>
         </div> : <div className="space-y-4 px-6 pb-6 pt-5">
-          {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-medium leading-snug text-red-800">{error}</p> : null}
-          {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] font-medium leading-snug text-emerald-800">{message}</p> : null}
+          {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-medium leading-snug text-red-800">{t(error)}</p> : null}
+          {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] font-medium leading-snug text-emerald-800">{t(message)}</p> : null}
           <form className="space-y-4" onSubmit={event => { event.preventDefault(); submit() }}>
             {sent ? <div>
               <label htmlFor="identity-code" className={label}>{copy.loginCodeLabel}</label>
@@ -328,46 +337,43 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
             ? <PlatformSignature tone="ivory" className="mx-auto mb-1" />
             : <DeliveryImage src={platformLogoUrl(platformLogo)} width={48} height={48} sizes="48px" alt="Xprout" className="mx-auto mb-7 size-12 object-contain" />}
           {/* One door for both: a new phone goes on to create its restaurant (/onboarding). */}
-          <h1 id="identity-title" className="text-[15px] font-medium leading-6 text-[#F3EFE5]/80">{sent ? `Enter the code we sent to ${phoneLabel(sentPhone) || sentPhone}` : 'Sign in or create your account.'}</h1>
+          <h1 id="identity-title" className="text-[15px] font-medium leading-6 text-[#F3EFE5]/80">{sent ? t('Enter the code we sent to {phone}', { phone: phoneLabel(sentPhone) || sentPhone }) : t("Sign in or create your account.")}</h1>
         </div>
-        {error ? <p role="alert" className="mb-4 rounded-xl border border-[#F3EFE5]/20 bg-[#602021] px-4 py-3 text-[14px] font-medium leading-snug text-[#F3EFE5]">{error}</p> : null}
-        {message ? <p role="status" className="mb-4 rounded-xl border border-[#F3EFE5]/20 bg-[#F3EFE5]/10 px-4 py-3 text-[14px] font-medium leading-snug text-[#F3EFE5]">{message}</p> : null}
+        {error ? <p role="alert" className="mb-4 rounded-xl border border-[#F3EFE5]/20 bg-[#602021] px-4 py-3 text-[14px] font-medium leading-snug text-[#F3EFE5]">{t(error)}</p> : null}
+        {message ? <p role="status" className="mb-4 rounded-xl border border-[#F3EFE5]/20 bg-[#F3EFE5]/10 px-4 py-3 text-[14px] font-medium leading-snug text-[#F3EFE5]">{t(message)}</p> : null}
         {sent ? <button type="button" disabled={busy}
           onClick={() => { attempt.current?.cancel(); attempt.current = null; setSent(false); setCode(''); setError('') }}
           className="mb-4 flex min-h-12 items-center gap-1 text-sm font-medium text-[#F3EFE5]/75 transition-colors hover:text-[#F3EFE5]">
-          <ChevronLeft className="size-3.5" aria-hidden="true" /> Use another number
-        </button> : null}
+          <ChevronLeft className="size-3.5" aria-hidden="true" />{t("Use another number")}</button> : null}
         {/* The phone comes first: it is how the platform signs people in. */}
         <form className="space-y-4" onSubmit={event => { event.preventDefault(); submit() }}>
           {sent ? <div>
-            <label htmlFor="identity-code" className={label}>Verification code</label>
+            <label htmlFor="identity-code" className={label}>{t("Verification code")}</label>
             <input id="identity-code" className={`${fieldClass} text-center text-[22px] font-semibold tracking-[0.4em] tabular-nums`} inputMode="numeric" autoComplete="one-time-code"
               enterKeyHint="done" pattern="[0-9]*" maxLength={6} placeholder="000000" required autoFocus value={code}
               onChange={event => setCode(event.target.value.replace(/\D/g, ''))} onFocus={keepFieldVisible} disabled={busy} />
           </div> : <div>
-            <label htmlFor="identity-phone" className={label}>Phone</label>
-            <PhoneField ghost id="identity-phone" value={phone} onChange={setPhone} tone="ivory"
-              countryLabel="Country" countrySearchLabel="Search country" enterKeyHint="send" required
+            <label htmlFor="identity-phone" className={label}>{t("Phone")}</label>
+            <PhoneField ghost id="identity-phone" value={phone} onChange={setPhone} tone="ivory" locale={localeFor(locale)}
+              countryLabel={getMenuCopy(locale).loginCountry} countrySearchLabel={getMenuCopy(locale).loginCountrySearch} enterKeyHint="send" required
               onFocus={keepFieldVisible} className={fieldClass} />
           </div>}
           <div ref={container} />
           <button data-testid="identity-phone-submit" className={primary} disabled={busy || leaving || (sent ? code.length < 6 : phone.replace(/\D/g, '').length < 6)}>
-            {busy || leaving ? 'Please wait…' : sent ? 'Sign in' : 'Continue'}{busy || leaving ? null : <ArrowRight className="size-4" aria-hidden="true" />}
+            {busy || leaving ? t("Please wait…") : sent ? t("Sign in") : t("Continue")}{busy || leaving ? null : <ArrowRight className="size-4" aria-hidden="true" />}
           </button>
         </form>
         {!sent ? <>
           <div className="my-6 flex items-center gap-3" aria-hidden="true">
             <div className="h-px flex-1 bg-[#F3EFE5]/15" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#F3EFE5]/60">or</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#F3EFE5]/60">{t("or")}</span>
             <div className="h-px flex-1 bg-[#F3EFE5]/15" />
           </div>
           <button type="button" disabled={busy || leaving} onClick={() => void run(async () => { await complete(await googleProof(config)) })}
             className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-transparent bg-[#F3EFE5] px-4 text-sm font-semibold text-[#283F32] transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F3EFE5] disabled:opacity-50">
-            <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
-            Continue with Google
-          </button>
+            <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>{t("Continue with Google")}</button>
         </> : null}
-        <p className="mt-6 px-4 text-center text-[12px] font-medium leading-relaxed text-[#F3EFE5]/65">By signing in, you agree to the platform terms of use and privacy policy.</p>
+        <p className="mt-6 px-4 text-center text-[12px] font-medium leading-relaxed text-[#F3EFE5]/65">{t("By signing in, you agree to the platform terms of use and privacy policy.")}</p>
       </section>
     </main>
   }
@@ -378,17 +384,18 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
       <style>{'html,body{background:#fff;color-scheme:light}'}</style>
       <GuestSignInHeader bannerUrl={tenantLinkBrand.bannerUrl} logoUrl={tenantLinkBrand.logoUrl} restaurantName={tenantLinkBrand.name}
         accent={tenantLinkBrand.primaryColor} onAccent={computePrimaryForeground(tenantLinkBrand.primaryColor)}
-        title="Link your existing account" subtitle="Prove your previous account, then verify a phone number or Google account. Your company access stays unchanged." />
+        title={t("Link your existing account")} subtitle={t("Prove your previous account, then verify a phone number or Google account. Your company access stays unchanged.")} />
     </> : null}
+    {!brand && !embedded ? <div className="fixed right-4 top-4 text-platform-ivory"><PublicLanguagePicker /></div> : null}
     <section aria-labelledby="identity-title" className={embedded ? 'w-full px-6 pb-6 pt-7' : 'relative isolate w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-900/60 p-6 sm:p-8'}>
       {!tenantLinkBrand && !brand && !embedded ? <GradientTopLine glow={false} /> : null}
       {!tenantLinkBrand ? <>
       {platformBrand ? <PartnerSignature brand={platformBrand} className="mb-6" /> : <PlatformSignature tone="ivory" className="mb-6" />}
-      <h1 id="identity-title" className="text-2xl font-bold tracking-tight">{existingAccountLink ? 'Link your existing account' : 'Sign in with your phone'}</h1>
-      <p className="mt-2 text-sm leading-6 text-zinc-400">{existingAccountLink ? 'Prove your previous account, then verify a phone number or Google account. Your company access stays unchanged.' : 'Verify your number by SMS, or continue with Google.'}</p>
+      <h1 id="identity-title" className="text-2xl font-bold tracking-tight">{existingAccountLink ? t("Link your existing account") : t("Sign in with your phone")}</h1>
+      <p className="mt-2 text-sm leading-6 text-zinc-400">{existingAccountLink ? t("Prove your previous account, then verify a phone number or Google account. Your company access stays unchanged.") : t("Verify your number by SMS, or continue with Google.")}</p>
       </> : null}
-      {error ? <p role="alert" className={tenantLinkBrand ? 'mt-5 text-sm leading-6 text-red-800' : 'mt-5 text-sm leading-6 text-red-300'}>{error}</p> : null}
-      {message ? <p role="status" className={tenantLinkBrand ? 'mt-5 text-sm leading-6 text-emerald-800' : 'mt-5 text-sm leading-6 text-emerald-300'}>{message}</p> : null}
+      {error ? <p role="alert" className={tenantLinkBrand ? 'mt-5 text-sm leading-6 text-red-800' : 'mt-5 text-sm leading-6 text-red-300'}>{t(error)}</p> : null}
+      {message ? <p role="status" className={tenantLinkBrand ? 'mt-5 text-sm leading-6 text-emerald-800' : 'mt-5 text-sm leading-6 text-emerald-300'}>{t(message)}</p> : null}
       {/* One form for everything typed (old account e-mail and password, phone, code): the keyboard's
           Next walks through the fields and Go on the last one sends; the button sits right under them. */}
       <form className="mt-6 space-y-4" onSubmit={event => { event.preventDefault(); void run(async () => {
@@ -405,30 +412,29 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
         }
       }) }}>
         {existingAccountLink ? <div className="space-y-3">
-          <label htmlFor="existing-email" className="block text-sm font-semibold">Previous account email</label>
+          <label htmlFor="existing-email" className="block text-sm font-semibold">{t("Previous account email")}</label>
           <input id="existing-email" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false} enterKeyHint="next" maxLength={320}
             value={existingEmail} onChange={event => setExistingEmail(event.target.value)} onFocus={keepFieldVisible} onKeyDown={nextFieldOnEnter} disabled={busy} className={field} />
-          <label htmlFor="existing-password" className="block text-sm font-semibold">Previous account password</label>
+          <label htmlFor="existing-password" className="block text-sm font-semibold">{t("Previous account password")}</label>
           <input id="existing-password" type="password" autoComplete="current-password" enterKeyHint="next" maxLength={4096}
             value={existingPassword} onChange={event => setExistingPassword(event.target.value)} onFocus={keepFieldVisible} onKeyDown={nextFieldOnEnter} disabled={busy} className={field} />
         </div> : null}
-        <label htmlFor="identity-phone" className="block text-sm font-semibold">Phone number</label>
+        <label htmlFor="identity-phone" className="block text-sm font-semibold">{t("Phone number")}</label>
         <input id="identity-phone" data-testid="identity-phone" className={field} type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="send" placeholder="+1 000 000 0000" required
           value={phone} onChange={event => setPhone(event.target.value)} onFocus={keepFieldVisible} disabled={busy || sent} />
         <div ref={container} />
         {sent ? <>
-          <label htmlFor="identity-code" className="block text-sm font-semibold">Verification code</label>
+          <label htmlFor="identity-code" className="block text-sm font-semibold">{t("Verification code")}</label>
           {/* Focused as it appears: sending disabled the phone field and closed the keyboard. */}
           <input id="identity-code" className={`${field} text-center text-[22px] font-semibold tracking-[0.4em] tabular-nums`} inputMode="numeric" autoComplete="one-time-code" enterKeyHint="done"
             pattern="[0-9]*" maxLength={6} placeholder="000000" required autoFocus value={code}
             onChange={event => setCode(event.target.value.replace(/\D/g, ''))} onFocus={keepFieldVisible} disabled={busy} />
         </> : null}
-        <button data-testid="identity-phone-submit" className={button} disabled={busy}>{busy ? 'Please wait…' : sent ? 'Verify and continue' : 'Send verification code'}</button>
+        <button data-testid="identity-phone-submit" className={button} disabled={busy}>{busy ? t("Please wait…") : sent ? t("Verify and continue") : t("Send verification code")}</button>
         {sent ? <button type="button" disabled={busy}
           onClick={() => { attempt.current?.cancel(); attempt.current = null; setSent(false); setCode(''); setMessage(''); setError('') }}
           className={`flex min-h-11 w-full items-center justify-center gap-1 text-sm font-semibold disabled:opacity-50 ${tenantLinkBrand ? 'text-zinc-700 hover:text-zinc-950' : 'text-zinc-300 hover:text-platform-ivory'}`}>
-          <ChevronLeft className="size-4" aria-hidden="true" /> Use another number
-        </button> : null}
+          <ChevronLeft className="size-4" aria-hidden="true" />{t("Use another number")}</button> : null}
       </form>
       <button className={tenantLinkBrand ? 'mt-4 w-full rounded-full border border-zinc-300 bg-white px-5 py-3 font-bold text-zinc-900 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--tenant-link-focus)] disabled:opacity-50' : `${button} mt-4 border border-white/15 bg-transparent text-platform-ivory hover:bg-white/5`} disabled={busy || sent} onClick={() => void run(async () => {
         requireExistingCredentials()
@@ -436,24 +442,22 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
         // Linking: show the Google account first and let the person confirm it is theirs.
         if (linkCurrentAccount && link) { setConfirmLink({ token, email: googleEmail(token) }); return }
         await complete(token)
-      })}>Continue with Google</button>
-      {confirmLink ? <div role="alertdialog" aria-label="Confirm Google account" className="mt-4 space-y-3 rounded-2xl border border-white/15 p-4">
-        <p className="text-sm leading-6">Link <strong>{confirmLink.email}</strong> to your account? Only continue if this is your own Google account.</p>
-        <button className={button} disabled={busy} onClick={() => void run(async () => { const token = confirmLink.token; setConfirmLink(null); await complete(token) })}>Link this Google account</button>
-        <button className={`w-full text-sm font-semibold ${tenantLinkBrand ? 'text-zinc-700 hover:text-zinc-950' : 'text-zinc-300 hover:text-platform-ivory'}`} disabled={busy} onClick={() => setConfirmLink(null)}>Cancel</button>
+      })}>{t("Continue with Google")}</button>
+      {confirmLink ? <div role="alertdialog" aria-label={t("Confirm Google account")} className="mt-4 space-y-3 rounded-2xl border border-white/15 p-4">
+        <p className="text-sm leading-6">{t("Link")}  <strong>{confirmLink.email}</strong>  {t("to your account? Only continue if this is your own Google account.")}</p>
+        <button className={button} disabled={busy} onClick={() => void run(async () => { const token = confirmLink.token; setConfirmLink(null); await complete(token) })}>{t("Link this Google account")}</button>
+        <button className={`w-full text-sm font-semibold ${tenantLinkBrand ? 'text-zinc-700 hover:text-zinc-950' : 'text-zinc-300 hover:text-platform-ivory'}`} disabled={busy} onClick={() => setConfirmLink(null)}>{t("Cancel")}</button>
       </div> : null}
       {!staffAccess && !existingAccountLink && (!continueToApp || signedIn) ? <label className="mt-6 flex items-start gap-3 text-sm leading-5 text-zinc-400">
-        <input className="mt-1 accent-primary" type="checkbox" checked={link} onChange={event => setLink(event.target.checked)} disabled={busy} />
-        Link this sign-in method to my existing signed-in account
-      </label> : null}
-      {!staffAccess && continueToApp && !existingAccountLink ? <Link className="mt-6 block text-sm font-semibold text-zinc-300 underline underline-offset-4" href={`/auth/login?action=existing-account-link${customerFlow ? `&flow=customer&from=${encodeURIComponent(next)}${embedded ? '&embed=1' : ''}` : ''}`}>Have an account with e-mail and password? Enter it once to add your phone</Link> : null}
+        <input className="mt-1 accent-primary" type="checkbox" checked={link} onChange={event => setLink(event.target.checked)} disabled={busy} />{t("Link this sign-in method to my existing signed-in account")}</label> : null}
+      {!staffAccess && continueToApp && !existingAccountLink ? <Link className="mt-6 block text-sm font-semibold text-zinc-300 underline underline-offset-4" href={href(`/auth/login?action=existing-account-link${customerFlow ? `&flow=customer&from=${encodeURIComponent(next)}${embedded ? '&embed=1' : ''}` : ''}`)}>{t("Have an account with e-mail and password? Enter it once to add your phone")}</Link> : null}
       {continueToApp && linkCurrentAccount ? <Link className="mt-4 block text-sm font-semibold text-zinc-300 underline underline-offset-4"
-        href={`/auth/login?flow=customer&from=${encodeURIComponent(`/identity?action=link&flow=customer&from=${encodeURIComponent(next)}`)}`}>Sign in again before linking if your current sign-in is no longer recent</Link> : null}
-      {continueToApp ? <p className={`mt-4 text-xs leading-5 ${tenantLinkBrand ? 'text-zinc-600' : 'text-zinc-400'}`}>If your account requires recovery or no longer has access to its previous sign-in, contact support for reviewed recovery.</p> : null}
+        href={href(`/auth/login?flow=customer&from=${encodeURIComponent(`/identity?action=link&flow=customer&from=${encodeURIComponent(next)}`)}`)}>{t("Sign in again before linking if your current sign-in is no longer recent")}</Link> : null}
+      {continueToApp ? <p className={`mt-4 text-xs leading-5 ${tenantLinkBrand ? 'text-zinc-600' : 'text-zinc-400'}`}>{t("If your account requires recovery or no longer has access to its previous sign-in, contact support for reviewed recovery.")}</p> : null}
       {signedIn ? <div className="mt-6 space-y-3 border-t border-white/10 pt-5">
-        {continueToApp && !staffAccess ? <button className={button} disabled={busy} onClick={() => void run(continueToDashboard)}>Continue to your account</button> : null}
-        <button className={`w-full text-sm font-semibold disabled:opacity-50 ${tenantLinkBrand ? 'text-zinc-700 hover:text-zinc-950' : 'text-zinc-300 hover:text-platform-ivory'}`} disabled={busy} onClick={() => void run(async () => { await post('logout', {}); setSignedIn(false); setMessage('You are signed out.') })}>Sign out</button>
-        <button className={`w-full text-sm font-semibold disabled:opacity-50 ${tenantLinkBrand ? 'text-zinc-600 hover:text-zinc-950' : 'text-zinc-400 hover:text-platform-ivory'}`} disabled={busy} onClick={() => void run(async () => { await post('revoke-all', {}); setSignedIn(false); setMessage('All your sessions have been signed out.') })}>Sign out all devices</button>
+        {continueToApp && !staffAccess ? <button className={button} disabled={busy} onClick={() => void run(continueToDashboard)}>{t("Continue to your account")}</button> : null}
+        <button className={`w-full text-sm font-semibold disabled:opacity-50 ${tenantLinkBrand ? 'text-zinc-700 hover:text-zinc-950' : 'text-zinc-300 hover:text-platform-ivory'}`} disabled={busy} onClick={() => void run(async () => { await post('logout', {}); setSignedIn(false); setMessage('You are signed out.') })}>{t("Sign out")}</button>
+        <button className={`w-full text-sm font-semibold disabled:opacity-50 ${tenantLinkBrand ? 'text-zinc-600 hover:text-zinc-950' : 'text-zinc-400 hover:text-platform-ivory'}`} disabled={busy} onClick={() => void run(async () => { await post('revoke-all', {}); setSignedIn(false); setMessage('All your sessions have been signed out.') })}>{t("Sign out all devices")}</button>
       </div> : null}
     </section>
   </main>

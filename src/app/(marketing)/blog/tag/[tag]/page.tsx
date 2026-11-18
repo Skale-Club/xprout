@@ -1,9 +1,10 @@
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
+import { translatePublic } from '@/lib/marketing/public-translate'
 import {nativeBlogSelected} from '@/lib/blog/native/selected'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { PLATFORM_BASE } from '@/lib/seo'
 import { BlogPostList } from '@/components/blog/post-list'
 import { listArchive, listPostsByTag, listTags } from '@/lib/blog/public-queries'
 
@@ -12,18 +13,21 @@ export const revalidate = 300
 type Props = { params: Promise<{ tag: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const { tag: slug } = await params
   const tag = (await listTags((nativeBlogSelected()?null:createServiceClient()), null)).find((t) => t.slug === slug)
   if (!tag) return {}
 
   return {
     title: `${tag.name} | Blog Xprout`,
-    description: `Posts sobre ${tag.name}.`,
-    alternates: { canonical: `${PLATFORM_BASE}/blog/tag/${slug}` },
+    description: `${t('Posts tagged')} ${tag.name}.`,
+    alternates: { canonical: `/blog/tag/${slug}` },
   }
 }
 
 export default async function PlatformBlogTagPage({ params }: Props) {
+  const locale = await getPublicLocale()
   const { tag: slug } = await params
   const svc = (nativeBlogSelected()?null:createServiceClient())
 
@@ -41,6 +45,7 @@ export default async function PlatformBlogTagPage({ params }: Props) {
 
   return (
     <BlogPostList
+      locale={locale}
       heading={`#${tag.name}`}
       posts={posts}
       basePath="/blog"

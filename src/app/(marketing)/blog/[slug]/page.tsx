@@ -1,3 +1,6 @@
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
+import { translatePublic } from '@/lib/marketing/public-translate'
+import { publicIntlLocale, publicHref } from '@/lib/marketing/public-locale'
 /**
  * A published blog post (autoblog-parity XM-03).
  *
@@ -64,9 +67,11 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const { slug } = await params
   const post = await getPost(slug)
-  if (!post) return { title: 'Post não encontrado' }
+  if (!post) return { title: t('Post not found') }
 
   return {
     title: post.title,
@@ -92,14 +97,16 @@ export async function generateMetadata({
   }
 }
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, locale: 'en' | 'pt' | 'es'): string {
   if (!value) return ''
-  return new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }).format(
+  return new Intl.DateTimeFormat(publicIntlLocale(locale), { day: 'numeric', month: 'long', year: 'numeric' }).format(
     new Date(value),
   )
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const { slug } = await params
   const post = await getPost(slug)
   if (!post) notFound()
@@ -122,16 +129,17 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       />
 
       <p className="mb-8">
-        <Link href="/blog" className="text-sm text-muted-foreground hover:underline">
-          ← Blog
+        <Link href={publicHref('/blog', locale)} className="text-sm text-muted-foreground hover:underline">
+          ← {t('Back to blog')}
         </Link>
       </p>
 
+      <p className="mb-4 text-sm text-muted-foreground">{t('This article is shown in its original language.')}</p>
       <article>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{post.title}</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          {formatDate(post.published_at)}
-          {post.reading_time_minutes ? ` · ${post.reading_time_minutes} min de leitura` : ''}
+          {formatDate(post.published_at, locale)}
+          {post.reading_time_minutes ? ` · ${post.reading_time_minutes} ${t('min read')}` : ''}
         </p>
         {post.cover_image_url && (
           <DeliveryImage

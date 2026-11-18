@@ -15,6 +15,7 @@ import { subdomainBase, subdomainLabelFromHost } from './lib/tenant-subdomain'
 import { lookupRequestSite, type SiteCacheEntry } from './lib/site/request-lookup'
 import { serializeRequestSite, SITE_CONTEXT_HEADER, SITE_PATH_HEADER } from './lib/site/request-contract'
 import { anonymousPublicHtml, PUBLIC_HTML_CACHE, PRIVATE_HTML_CACHE } from './lib/site/cache-policy'
+import { PUBLIC_LOCALE_COOKIE, PUBLIC_LOCALE_HEADER, resolvePublicLocale, isPublicPlatformPath } from './lib/marketing/public-locale'
 
 // Cache BOTH hits and misses. Without caching misses, every request carrying an
 // unknown Host header (bots hitting the raw IP, preview hosts, misconfigured
@@ -66,10 +67,17 @@ export async function middleware(request: NextRequest) {
   const requestId = resolveRequestId(request.headers)
   request.headers.set(REQUEST_ID_HEADER, requestId)
   request.headers.delete(SITE_CONTEXT_HEADER)
+  request.headers.delete(PUBLIC_LOCALE_HEADER)
   request.headers.set(SITE_PATH_HEADER, request.nextUrl.pathname)
   // Internal lookup bypasses this branch and never forwards credentials/cookies.
   const publicSurface = !/^\/(?:api|_next)(?:\/|$)/.test(request.nextUrl.pathname)
-  const site = publicSurface ? await lookupRequestSite(request.headers.get('host') ?? '', request.nextUrl.pathname, siteContextCache, fetch, Date.now, request.nextUrl.searchParams.get('brand') ?? undefined) : null
+  let site = publicSurface ? await lookupRequestSite(request.headers.get('host') ?? '', request.nextUrl.pathname, siteContextCache, fetch, Date.now, request.nextUrl.searchParams.get('brand') ?? undefined) : null
+  if (site?.brand.id === '00000000-0000-4000-8000-000000000001' && !site.tenant && isPublicPlatformPath(request.nextUrl.pathname)) {
+    const locale = resolvePublicLocale(request.nextUrl.searchParams.get('lang'), request.cookies.get(PUBLIC_LOCALE_COOKIE)?.value)
+    request.headers.set(PUBLIC_LOCALE_HEADER, locale)
+    // Copy the cache entry: a visitor preference must never mutate shared identity.
+    site = { ...site, lang: locale }
+  }
   if (site) request.headers.set(SITE_CONTEXT_HEADER, serializeRequestSite(site))
   let response: NextResponse
   try {
@@ -106,7 +114,7 @@ async function route(request: NextRequest) {
   // The opt-in pilot owns its cookies and validates its canonical host/origin.
   // It must not depend on or refresh a legacy session in middleware.
   if (pathname === '/identity' || pathname.startsWith('/api/identity/')) {
-    return NextResponse.next()
+    return NextResponse.next({ request })
   }
 
   // Internal QStash worker routes authenticate by signature, not session.

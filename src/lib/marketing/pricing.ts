@@ -4,9 +4,11 @@
  * here. "3D" is the customer-facing name for the dish viewer: never say AR.
  */
 
+import { publicIntlLocale, type PublicLocale } from './public-locale'
+
 export const CURRENCY = 'USD'
 export const LAUNCH_SLOTS = 20
-export const LAUNCH_ENDS = 'March 31, 2027'
+const LAUNCH_ENDS = '2027-03-31'
 export const PRICING_CTA_HREF = '/auth/register'
 export const PRICING_PATH = '/pricing'
 export const NFC_NOTE = 'NFC Stands and NFC Plates for your tables are sold separately.'
@@ -64,9 +66,19 @@ export const MAX_LANGUAGES = 10
 const money = (n: number, decimals = false): string =>
   '$' + n.toLocaleString('en-US', decimals ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { maximumFractionDigits: 0 })
 
-/** "$34.90" for fractional amounts, "$39" for whole ones. */
-export function formatUsd(n: number): string {
-  return money(n, !Number.isInteger(n))
+/** Keep USD throughout and omit trailing zeroes for whole amounts. */
+export function formatUsd(n: number, locale: PublicLocale = 'en'): string {
+  const decimals = !Number.isInteger(n)
+  if (locale === 'en') return money(n, decimals)
+  return new Intl.NumberFormat(publicIntlLocale(locale), {
+    style: 'currency', currency: CURRENCY, minimumFractionDigits: decimals ? 2 : 0, maximumFractionDigits: decimals ? 2 : 0,
+  }).format(n)
+}
+
+export function formatLaunchEnd(locale: PublicLocale): string {
+  return new Intl.DateTimeFormat(publicIntlLocale(locale), {
+    dateStyle: 'long', timeZone: 'UTC',
+  }).format(new Date(LAUNCH_ENDS))
 }
 
 /** Cost of n 3D dishes with volume tiers. */

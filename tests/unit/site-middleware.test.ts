@@ -10,6 +10,7 @@ vi.mock('@/lib/supabase/middleware', () => ({ updateSession: mocks.session }))
 vi.mock('@/lib/data/owned-mode', () => ({ ownedModeActive: () => true }))
 vi.mock('@/lib/custom-domain-lookup', () => ({ resolveOwnedDomainSlug: vi.fn(async () => null), rememberDomain: vi.fn() }))
 import { middleware } from '@/middleware'
+import { PUBLIC_LOCALE_HEADER } from '@/lib/marketing/public-locale'
 
 const host = 'restaurant.example.org'
 const tenant = { slug: 'pizza', name: 'Pizza', is_active: true, is_demo: false, published_at: '2026-01-01T00:00:00Z', custom_domain: host, custom_domain_verified: true }
@@ -23,6 +24,30 @@ beforeEach(() => {
 })
 
 describe('middleware site authority and cache boundary', () => {
+  it('localizes a platform request without modifying the shared site lookup entry', async () => {
+    const platform = { ...resolveSite({ host: 'xprout.app', pathname: '/', tenant: null }), pathname: '/', rewrite: null, privatePage: false }
+    mocks.lookup.mockResolvedValue(platform)
+    const response = await middleware(new NextRequest('https://xprout.app/?lang=pt', { headers: { host: 'xprout.app', [PUBLIC_LOCALE_HEADER]: 'es' } }))
+    const forwarded = mocks.session.mock.calls[0][0] as NextRequest
+    expect(forwarded.headers.get(PUBLIC_LOCALE_HEADER)).toBe('pt')
+    expect(parseRequestSite(forwarded.headers.get(SITE_CONTEXT_HEADER))?.lang).toBe('pt')
+    expect(platform.lang).toBe('en')
+    expect(response.headers.get('cache-control')).toBe(PRIVATE_HTML_CACHE)
+  })
+  it('uses a saved platform language but refuses a forged locale header', async () => {
+    const platform = { ...resolveSite({ host: 'xprout.app', pathname: '/', tenant: null }), pathname: '/', rewrite: null, privatePage: false }
+    mocks.lookup.mockResolvedValue(platform)
+    await middleware(new NextRequest('https://xprout.app/', { headers: { host: 'xprout.app', cookie: 'xprout_public_lang=es', [PUBLIC_LOCALE_HEADER]: 'pt' } }))
+    expect(mocks.session.mock.calls[0][0].headers.get(PUBLIC_LOCALE_HEADER)).toBe('es')
+    await middleware(new NextRequest('https://xprout.app/', { headers: { host: 'xprout.app', [PUBLIC_LOCALE_HEADER]: 'pt' } }))
+    expect(mocks.session.mock.calls[1][0].headers.get(PUBLIC_LOCALE_HEADER)).toBe('en')
+  })
+  it('does not apply a platform preference to tenant menus', async () => {
+    await middleware(request('/?lang=pt', { cookie: 'xprout_public_lang=es', [PUBLIC_LOCALE_HEADER]: 'es' }))
+    const forwarded = mocks.session.mock.calls[0][0] as NextRequest
+    expect(forwarded.headers.get(PUBLIC_LOCALE_HEADER)).toBeNull()
+    expect(parseRequestSite(forwarded.headers.get(SITE_CONTEXT_HEADER))?.lang).toBe(site.lang)
+  })
   it('overwrites both attacker-controlled context and original-path headers before forwarding', async () => {
     const forged = serializeRequestSite({ ...site, origin: 'https://evil.example.org', indexable: true })
     const response = await middleware(request('/', { [SITE_CONTEXT_HEADER]: forged, [SITE_PATH_HEADER]: '/admin' }))

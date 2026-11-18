@@ -1,3 +1,6 @@
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
+import { translatePublic } from '@/lib/marketing/public-translate'
+import { publicIntlLocale } from '@/lib/marketing/public-locale'
 import { platformMetadataIcons } from '@/lib/platform-metadata'
 import { PLATFORM_SOCIAL_IMAGE } from '@/lib/platform-brand'
 import { BRAND_NAME, BRAND_URL } from '@/lib/brand'
@@ -39,13 +42,13 @@ async function getPlatformSettings(): Promise<MarketingSettings | null> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const ps = await getPlatformSettings()
 
   const appName = ps?.app_name ?? BRAND_NAME
-  const title = ps?.seo_title ?? `${appName} | ${landingCopy.seo.titleSuffix}`
-  const description =
-    ps?.seo_description ??
-    landingCopy.seo.description
+  const title = ps?.seo_title ? t(ps.seo_title) : `${appName} | ${t(landingCopy.seo.titleSuffix)}`
+  const description = t(ps?.seo_description ?? landingCopy.seo.description)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || BRAND_URL
 
   return {
@@ -59,7 +62,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       url: appUrl,
       siteName: appName,
-      locale: 'en_US',
+      locale: publicIntlLocale(locale).replace('-', '_'),
       type: 'website',
       images: [
         {
