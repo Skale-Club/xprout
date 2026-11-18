@@ -11,9 +11,9 @@ are access methods rather than the main product promise.
 
 Hero: **Let guests explore. Before the first bite.**
 
-Supporting copy: “Bring your dishes to life with photography and interactive 3D.
-Let guests see selected dishes on their own table, then choose the ordering tools
-that fit your service.” The adjacent note qualifies selected dishes and supported
+Supporting copy: “A visual menu guests love to explore. Add 3D to show your dishes
+right on their table.” (owner, 2026-11-17: short, no photography, 3D is the
+differentiator but optional, since not every restaurant wants it.) The adjacent note qualifies selected dishes and supported
 phones. The primary action starts a project; the secondary action opens the
 experience section. No free trial, instant launch or guaranteed revenue claim.
 
