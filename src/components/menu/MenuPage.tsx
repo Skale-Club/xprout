@@ -1490,10 +1490,13 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           <footer className="mt-8" style={{ marginBottom: showOrderBar ? 88 : 0 }}>
             <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
               <section aria-label={copy.contactTitle} className="rounded-3xl bg-white p-5 shadow-card sm:p-7">
+                {/* The page's h1 already names the restaurant: the section heading stays for screen readers
+                    and the name below is plain text, so there is one heading with the restaurant's name. */}
+                <h2 className="sr-only">{copy.contactTitle}</h2>
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
                   <address className="min-w-0 not-italic">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                      <h2 className="text-[19px] font-bold leading-tight tracking-tight text-zinc-900">{publicNap?.name ?? tenant.name}</h2>
+                      <p className="text-[19px] font-bold leading-tight tracking-tight text-zinc-900">{publicNap?.name ?? tenant.name}</p>
                       {openLabel && (
                         <button
                           type="button"
