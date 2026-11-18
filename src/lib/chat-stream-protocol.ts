@@ -9,12 +9,14 @@
  * (older cached widget builds) keeps getting the plain JSON response.
  * Pure and client-safe (no server imports): used by the widget and the server.
  */
+import type { ResolvedCartItem, ResolvedCartLineChange } from './chat-agent'
+
 export const NDJSON_CONTENT_TYPE = 'application/x-ndjson'
 
 export interface ChatDonePayload {
   text: string
-  cart_items: unknown[]
-  cart_changes: Array<{ line_id: string; quantity: number }>
+  cart_items: ResolvedCartItem[]
+  cart_changes: Array<Pick<ResolvedCartLineChange, 'line_id' | 'quantity'>>
   staff_called: boolean
   remaining_today: number
 }

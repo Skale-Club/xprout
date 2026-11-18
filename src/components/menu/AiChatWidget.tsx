@@ -6,7 +6,7 @@ import { MessageCircle, X, Send, Mic, Trash2, Loader2, Check, UtensilsCrossed } 
 import type { Product, IngredientModifications } from '@/types/database'
 import type { CartEditorState } from './menu-utils'
 import { getProductImages } from './menu-utils'
-import type { CartSnapshotItem, ResolvedCartItem } from '@/lib/chat-agent'
+import type { CartSnapshotItem } from '@/lib/chat-agent'
 import { getGuestCopy } from './guest-copy'
 import { fill, formatMoney, getMenuCopy } from './menu-i18n'
 import { ctaStyle, ui } from './menu-ui'
@@ -16,7 +16,7 @@ import PhoneField from '@/components/ui/PhoneField'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useVisibleBox } from '@/components/ui/keyboard-fields'
-import { createChatEventParser, type ChatStreamEvent } from '@/lib/chat-stream-protocol'
+import { createChatEventParser, type ChatDonePayload, type ChatStreamEvent } from '@/lib/chat-stream-protocol'
 
 interface Props {
   tenantSlug: string
@@ -268,7 +268,8 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
     setSending(true)
     const epoch = sessionEpochRef.current
 
-    type ChatReply = { text: string; cart_items?: ResolvedCartItem[]; cart_changes?: Array<{ line_id: string; quantity: number }>; staff_called?: boolean; remaining_today: number }
+    // The stream's done line and an older server's JSON share one shape (fields optional on old servers).
+    type ChatReply = Pick<ChatDonePayload, 'text' | 'remaining_today'> & Partial<Pick<ChatDonePayload, 'cart_items' | 'cart_changes' | 'staff_called'>>
     const assistantId = crypto.randomUUID()
     let data: ChatReply
     try {
