@@ -8,8 +8,10 @@ import { Nav, Footer, type FooterData } from '@/components/marketing/MarketingCh
 import MenuShowcase from '@/components/marketing/MenuShowcase'
 import HeroTableShowcase from '@/components/marketing/HeroTableShowcase'
 import MarketingFilm from '@/components/marketing/MarketingFilm'
+import { usePublicLocale } from '@/components/marketing/PublicLocale'
 import { useMarketingMotionPreference } from '@/components/marketing/MarketingMotion'
 import { PROJECTS, PLANS, PRICING_PATH, formatUsd } from '@/lib/marketing/pricing'
+import type { PublicLocale } from '@/lib/marketing/public-locale'
 import { contrastRatio, readableTextColor, safeCssColor } from '@/lib/color-utils'
 import landingCopy from '@/lib/marketing/landing-copy.json'
 
@@ -51,13 +53,14 @@ interface LandingData {
   footer?: FooterData | null
 }
 
+type LandingSettings = LandingData & { translations?: Partial<Record<PublicLocale, LandingData>> }
+
 const faqs = [
   { q: 'How is Xprout different from a QR menu?', a: 'A QR code is one way to open the menu. Xprout brings together a photo feed, dish details, your restaurant’s identity and interactive 3D for selected dishes. You choose whether to add ordering and other services.' },
   { q: 'How does viewing a dish on the table work?', a: 'A dish needs a prepared 3D model. Guests can turn it on screen, and on supported phones they can use the camera to see it on their own table. Availability depends on the dish, phone and browser. No app download is needed.' },
   { q: 'Can guests order and pay?', a: 'The Waiter plan supports staff ordering, tables and a kitchen display. Guest ordering is available with the Payments plan when enabled by your restaurant. Online payments also require a connected Stripe account. You can also choose a menu-only setup.' },
   { q: 'Can my menu be in multiple languages?', a: 'Yes. Choose the languages you need. Additional languages are available, with the options and prices explained on our pricing page.' },
   { q: 'Can you build the menu for me?', a: 'Yes. Send us your menu and dish photos, and our team puts it together. We can also discuss which dishes you would like to prepare for 3D.' },
-  { q: 'What does it cost?', a: `Setup starts at ${formatUsd(PROJECTS.we.launch)}, paid once, with our team building your menu and adding your first ${PROJECTS.we.includedItems} dishes. Plans start at ${formatUsd(PLANS.menu.monthly)}/month from month two. The pricing page has every option.` },
 ]
 
 function FoodDrinkCombo({ className }: { className?: string }) {
@@ -111,6 +114,7 @@ function DeferredHeroVideo({ src, poster, onError }: { src: string; poster?: str
 }
 
 function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) {
+  const { t } = usePublicLocale()
   const [videoError, setVideoError] = useState(false)
   const bgType = s.bg_type ?? 'color'
   const bgImage = s.bg_image_url ?? ''
@@ -133,17 +137,17 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
     {hasMedia ? <div className="absolute inset-0 bg-[#14271d]/85" aria-hidden="true" /> : null}
     <div className="mk-container relative grid min-w-0 items-center gap-8 md:grid-cols-[1.1fr_1fr] md:gap-10 lg:gap-12">
       <div className="mk-hero-copy min-w-0">
-        <p className="mk-eyebrow mb-4">{s.badge ?? landingCopy.hero.badge}</p>
+        <p className="mk-eyebrow mb-4">{t(s.badge ?? landingCopy.hero.badge)}</p>
         <h1 id="hero-title" className="mk-display max-w-2xl">
-          {s.heading ?? landingCopy.hero.heading}{' '}
-          <span className="block">{s.heading_highlight ?? landingCopy.hero.heading_highlight}</span>
+          {t(s.heading ?? landingCopy.hero.heading)}{' '}
+          <span className="block">{t(s.heading_highlight ?? landingCopy.hero.heading_highlight)}</span>
         </h1>
-        <p className="mk-lead mt-5 max-w-lg">{s.subheading ?? landingCopy.hero.subheading}</p>
+        <p className="mk-lead mt-5 max-w-lg">{t(s.subheading ?? landingCopy.hero.subheading)}</p>
         <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <button type="button" onClick={onLoginOpen} className={`mk-button ${dark ? 'mk-button--light' : ''}`}>
-            {s.cta_primary ?? landingCopy.hero.cta_primary} <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+            {t(s.cta_primary ?? landingCopy.hero.cta_primary)} <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
           </button>
-          <a href="#demo-store" className="mk-button mk-button--outline">{s.cta_secondary ?? landingCopy.hero.cta_secondary}</a>
+          <a href="#demo-store" className="mk-button mk-button--outline">{t(s.cta_secondary ?? landingCopy.hero.cta_secondary)}</a>
         </div>
       </div>
       <div className="mk-hero-art relative min-w-0"><HeroTableShowcase /></div>
@@ -152,6 +156,7 @@ function Hero({ s, onLoginOpen }: { s: HeroSettings; onLoginOpen: () => void }) 
 }
 
 function FeatureRibbon() {
+  const { t } = usePublicLocale()
   const items = [
     { icon: BookOpen, label: 'Photo-led menus', body: 'Every dish leads with a real photo, not a wall of text.' },
     { icon: Box, label: 'Interactive 3D', body: 'Guests turn selected dishes around right inside the menu.' },
@@ -159,24 +164,25 @@ function FeatureRibbon() {
     { icon: Palette, label: 'Your identity', body: 'Your logo and colors on every page of the menu.' },
   ]
   return <div className="mk-feature-ribbon">
-    <ul aria-label="Ways to experience your menu" className="mk-container">
+    <ul aria-label={t('Ways to experience your menu')} className="mk-container">
       {items.map(({ icon: Icon, label, body }) => <li key={label}>
         <span className="mk-feature-ribbon-icon" aria-hidden="true"><Icon /></span>
-        <div className="min-w-0"><p className="mk-feature-ribbon-title">{label}</p><p className="mk-feature-ribbon-body">{body}</p></div>
+        <div className="min-w-0"><p className="mk-feature-ribbon-title">{t(label)}</p><p className="mk-feature-ribbon-body">{t(body)}</p></div>
       </li>)}
     </ul>
   </div>
 }
 
 function HowItWorks({ data }: { data?: HowItWorksData | null }) {
+  const { t } = usePublicLocale()
   const resolved = (data?.steps?.length ? data.steps : landingCopy.how_it_works.steps).map((step, index) => ({
-    step: step.step ?? String(index + 1).padStart(2, '0'), icon: getIcon(step.icon ?? ''), title: step.title, body: step.desc,
+    step: step.step ?? String(index + 1).padStart(2, '0'), icon: getIcon(step.icon ?? ''), title: t(step.title), body: t(step.desc),
   }))
   return <section id="how-it-works" className="mk-process mk-section scroll-mt-24 border-t border-[var(--mk-line)]" aria-labelledby="process-title">
     <div className="mk-container">
       <div className="mb-10 grid gap-5 md:mb-14 md:grid-cols-2 md:items-end">
-        <div><p className="mk-eyebrow mb-4">From your kitchen to their table</p><h2 id="process-title" className="mk-h2 max-w-xl">{data?.title ?? landingCopy.how_it_works.title}</h2></div>
-        <p className="mk-lead max-w-md md:justify-self-end">{data?.subtitle ?? landingCopy.how_it_works.subtitle}</p>
+        <div><p className="mk-eyebrow mb-4">{t('From your kitchen to their table')}</p><h2 id="process-title" className="mk-h2 max-w-xl">{t(data?.title ?? landingCopy.how_it_works.title)}</h2></div>
+        <p className="mk-lead max-w-md md:justify-self-end">{t(data?.subtitle ?? landingCopy.how_it_works.subtitle)}</p>
       </div>
       <ol className="grid gap-8 md:grid-cols-3 md:gap-10">
         {resolved.map(({ step, icon: Icon, title, body }, index) => <li key={`${step}-${index}`} className="min-w-0 border-t border-[var(--mk-line)] pt-6">
@@ -189,12 +195,14 @@ function HowItWorks({ data }: { data?: HowItWorksData | null }) {
 }
 
 function FeatureBlocks({ data }: { data?: FeaturesData | null }) {
-  const resolved = (data?.items?.length ? data.items : landingCopy.features.items).map(item => ({ icon: getIcon(item.icon ?? ''), title: item.title, body: item.desc }))
+  const { t } = usePublicLocale()
+  const resolved = (data?.items?.length ? data.items : landingCopy.features.items)
+    .map(item => ({ icon: getIcon(item.icon ?? ''), title: t(item.title), body: t(item.desc) }))
   return <section className="mk-dark mk-section" aria-labelledby="features-title">
     <div className="mk-container">
       <div className="mb-12 grid gap-6 md:grid-cols-[1.15fr_1fr] md:items-end">
-        <div><p className="mk-eyebrow mb-4">Made for discovery</p><h2 id="features-title" className="mk-h2 max-w-xl">{data?.title ?? landingCopy.features.title}</h2></div>
-        <p className="mk-lead max-w-md md:justify-self-end">{data?.subtitle ?? landingCopy.features.subtitle}</p>
+        <div><p className="mk-eyebrow mb-4">{t('Made for discovery')}</p><h2 id="features-title" className="mk-h2 max-w-xl">{t(data?.title ?? landingCopy.features.title)}</h2></div>
+        <p className="mk-lead max-w-md md:justify-self-end">{t(data?.subtitle ?? landingCopy.features.subtitle)}</p>
       </div>
       <div className="grid grid-cols-1 gap-x-12 gap-y-9 sm:grid-cols-2">
         {resolved.map(({ icon: Icon, title, body }, index) => <article key={`${title}-${index}`} className="grid min-w-0 grid-cols-[40px_1fr] gap-4 border-t border-[var(--mk-line)] pt-7 sm:gap-5">
@@ -202,34 +210,45 @@ function FeatureBlocks({ data }: { data?: FeaturesData | null }) {
           <div className="min-w-0"><h3 className="mb-3 text-xl font-semibold">{title}</h3><p className="mk-muted text-base leading-relaxed">{body}</p></div>
         </article>)}
       </div>
-      <p className="mk-muted mt-12 max-w-2xl border-t border-[var(--mk-line)] pt-6 text-sm leading-relaxed">3D models and AI are optional. Ordering and payments depend on your plan and enabled services.</p>
+      <p className="mk-muted mt-12 max-w-2xl border-t border-[var(--mk-line)] pt-6 text-sm leading-relaxed">{t('3D models and AI are optional. Ordering and payments depend on your plan and enabled services.')}</p>
     </div>
   </section>
 }
 
 function PricingTeaser() {
+  const { locale, t, href } = usePublicLocale()
   return <section className="mk-pricing-teaser mk-section" aria-labelledby="pricing-title">
     <div className="mk-container grid gap-10 md:grid-cols-[1.15fr_1fr] md:items-center">
-      <div><p className="mk-eyebrow mb-4">A place to start</p><h2 id="pricing-title" className="mk-h2 max-w-xl">A clear price.<br />Room to grow.</h2>
-        <p className="mk-lead mt-6 max-w-lg">Our team builds your menu with you. After that, one monthly plan keeps it fresh.</p>
-        <a href={PRICING_PATH} className="mk-button mk-button--outline mt-8">Explore pricing <ArrowRight className="size-4" aria-hidden="true" /></a>
+      <div><p className="mk-eyebrow mb-4">{t('A place to start')}</p><h2 id="pricing-title" className="mk-h2 max-w-xl">{t('A clear price.')}<br />{t('Room to grow.')}</h2>
+        <p className="mk-lead mt-6 max-w-lg">{t('Our team builds your menu with you. After that, one monthly plan keeps it fresh.')}</p>
+        <a href={href(PRICING_PATH)} className="mk-button mk-button--outline mt-8">{t('Explore pricing')}{' '}<ArrowRight className="size-4" aria-hidden="true" /></a>
       </div>
       <div className="mk-panel min-w-0 p-7 sm:p-10">
-        <p className="mk-eyebrow mb-5">Menu project · from</p>
-        <p className="mk-price text-5xl sm:text-6xl">{formatUsd(PROJECTS.we.launch)}</p>
-        <p className="mk-muted mt-3 text-base">One-time setup</p>
-        <div className="mt-8 border-t border-[var(--mk-line)] pt-6"><p className="text-lg font-semibold">Then from {formatUsd(PLANS.menu.monthly)} / month</p><p className="mk-muted mt-2 text-sm leading-relaxed">Your first month comes with the setup. Every plan and add-on is on the pricing page.</p></div>
+        <p className="mk-eyebrow mb-5">{t('Menu project · from')}</p>
+        <p className="mk-price text-5xl sm:text-6xl">{formatUsd(PROJECTS.we.launch, locale)}</p>
+        <p className="mk-muted mt-3 text-base">{t('One-time setup')}</p>
+        <div className="mt-8 border-t border-[var(--mk-line)] pt-6"><p className="text-lg font-semibold">{t('Then from {price} / month', { price: formatUsd(PLANS.menu.monthly, locale) })}</p><p className="mk-muted mt-2 text-sm leading-relaxed">{t('Your first month comes with the setup. Every plan and add-on is on the pricing page.')}</p></div>
       </div>
     </div>
   </section>
 }
 
 function FAQ() {
+  const { locale, t } = usePublicLocale()
+  const entries = [
+    ...faqs.map(({ q, a }) => ({ q: t(q), a: t(a) })),
+    {
+      q: t('What does it cost?'),
+      a: t('Setup starts at {setup}, paid once, with our team building your menu and adding your first {count} dishes. Plans start at {monthly}/month from month two. The pricing page has every option.', {
+        setup: formatUsd(PROJECTS.we.launch, locale), count: PROJECTS.we.includedItems, monthly: formatUsd(PLANS.menu.monthly, locale),
+      }),
+    },
+  ]
   return <section className="mk-faq mk-section border-t border-[var(--mk-line)]" aria-labelledby="faq-title">
     <div className="mk-container grid items-start gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
-      <div><p className="mk-eyebrow mb-4">A few things to know</p><h2 id="faq-title" className="mk-h2">Before we<br className="hidden lg:block" /> set the table.</h2><p className="mk-lead mt-5 max-w-sm">Straight answers, so you can get back to what you do best.</p></div>
+      <div><p className="mk-eyebrow mb-4">{t('A few things to know')}</p><h2 id="faq-title" className="mk-h2">{t('Before we')}<br className="hidden lg:block" />{' '}{t('set the table.')}</h2><p className="mk-lead mt-5 max-w-sm">{t('Straight answers, so you can get back to what you do best.')}</p></div>
       <div className="min-w-0 border-t border-[var(--mk-line)]">
-        {faqs.map(({ q, a }) => <details key={q} className="group border-b border-[var(--mk-line)] [&_summary::-webkit-details-marker]:hidden">
+        {entries.map(({ q, a }) => <details key={q} className="group border-b border-[var(--mk-line)] [&_summary::-webkit-details-marker]:hidden">
           <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-5 py-5 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--mk-forest)] sm:text-lg">
             {q}<ChevronDown className="size-5 shrink-0 transition-transform motion-reduce:transition-none group-open:rotate-180" aria-hidden="true" />
           </summary>
@@ -241,19 +260,29 @@ function FAQ() {
 }
 
 function FooterCTABand({ data, onLoginOpen }: { data?: CtaData | null; onLoginOpen: () => void }) {
+  const { t } = usePublicLocale()
   return <section className="mk-invitation mk-dark mk-section relative isolate" aria-labelledby="invitation-title">
     {data?.bg_image_url ? <><DeliveryImage src={data.bg_image_url} alt="" aria-hidden="true" fill sizes="100vw" className="object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-platform-brand-accent/70 via-platform-brand-accent/45 to-platform-brand-accent/25" aria-hidden="true" /></> : null}
     <div className="mk-container relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-end">
-      <div><p className="mk-eyebrow mb-5">Your next chapter</p><h2 id="invitation-title" className="mk-h2 max-w-2xl whitespace-pre-line">{data?.heading ?? landingCopy.cta.heading}</h2>
-        <p className="mk-lead mt-6 max-w-xl">{data?.text ?? landingCopy.cta.text}</p>
+      <div><p className="mk-eyebrow mb-5">{t('Your next chapter')}</p><h2 id="invitation-title" className="mk-h2 max-w-2xl whitespace-pre-line">{t(data?.heading ?? landingCopy.cta.heading)}</h2>
+        <p className="mk-lead mt-6 max-w-xl">{t(data?.text ?? landingCopy.cta.text)}</p>
       </div>
-      <div className="md:justify-self-end"><button type="button" onClick={onLoginOpen} className="mk-button mk-button--light w-full sm:w-auto">{data?.button ?? landingCopy.cta.button} <ArrowRight className="size-4" aria-hidden="true" /></button></div>
+      <div className="md:justify-self-end"><button type="button" onClick={onLoginOpen} className="mk-button mk-button--light w-full sm:w-auto">{t(data?.button ?? landingCopy.cta.button)} <ArrowRight className="size-4" aria-hidden="true" /></button></div>
     </div>
   </section>
 }
 
 export default function ClientLandingPage({ platformLanding, appName, logoUrl }: { platformLanding?: unknown; appName?: string | null; logoUrl?: string | null }) {
-  const landing = platformLanding && typeof platformLanding === 'object' ? platformLanding as LandingData : null
+  const { locale } = usePublicLocale()
+  const original = platformLanding && typeof platformLanding === 'object' ? platformLanding as LandingSettings : null
+  const translation = original?.translations?.[locale]
+  const landing: LandingData | null = translation ? {
+    hero: { ...original?.hero, ...translation.hero },
+    how_it_works: { ...original?.how_it_works, ...translation.how_it_works },
+    features: { ...original?.features, ...translation.features },
+    cta: { ...original?.cta, ...translation.cta },
+    footer: { ...original?.footer, ...translation.footer },
+  } : original
   const [loginOpen, setLoginOpen] = useState(false)
   useEffect(() => {
     const url = new URL(window.location.href)

@@ -1,3 +1,6 @@
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
+import { translatePublic } from '@/lib/marketing/public-translate'
+import { publicAlternates, publicIntlLocale } from '@/lib/marketing/public-locale'
 export const revalidate = 60
 
 import { BRAND_NAME } from '@/lib/brand'
@@ -47,15 +50,17 @@ async function getPlatformSettings() {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const settings = await getPlatformSettings()
   const name = settings.appName ?? BRAND_NAME
-  const title = settings.title ?? `${name} | ${landingCopy.seo.titleSuffix}`
-  const description = settings.description ?? landingCopy.seo.description
+  const title = settings.title ? t(settings.title) : `${name} | ${t(landingCopy.seo.titleSuffix)}`
+  const description = t(settings.description ?? landingCopy.seo.description)
   return {
     title: { absolute: title }, description,
-    alternates: { canonical: PLATFORM_BASE },
+    alternates: publicAlternates('/', locale),
     openGraph: {
-      title, description, url: PLATFORM_BASE, siteName: name, type: 'website', locale: 'en_US',
+      title, description, url: PLATFORM_BASE, siteName: name, type: 'website', locale: publicIntlLocale(locale).replace('-', '_'),
       images: [{ url: PLATFORM_SOCIAL_IMAGE, width: 1200, height: 630, alt: name }],
     },
     twitter: { card: 'summary_large_image', title, description },
@@ -63,18 +68,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LandingPage() {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const { landing: platformLanding, appName, logoUrl, description, socialLinks } = await getPlatformSettings()
   const name = appName ?? BRAND_NAME
 
   const organization = buildPlatformOrganizationJsonLd({
     name,
     url: PLATFORM_BASE,
-    description: description ?? landingCopy.seo.description,
+    description: t(description ?? landingCopy.seo.description),
     logoUrl,
     sameAs: socialLinks,
   })
-  const website = buildWebSiteJsonLd({ name, url: PLATFORM_BASE })
-  const software = buildSoftwareApplicationJsonLd({ name })
+  const website = { ...buildWebSiteJsonLd({ name, url: PLATFORM_BASE }), inLanguage: locale }
+  const software = { ...buildSoftwareApplicationJsonLd({ name }), description: t(landingCopy.seo.description) }
 
   return (
     <>

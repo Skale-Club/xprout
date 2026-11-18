@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import { Play } from 'lucide-react'
 import { DeliveryImage } from '@/components/delivery-image'
 import { useMarketingMotionPreference } from './MarketingMotion'
+import { usePublicLocale } from './PublicLocale'
 
 /** Download on visibility and loop quietly without player chrome. */
 export default function MarketingFilm() {
+  const { t } = usePublicLocale()
   const root = useRef<HTMLElement>(null)
   const video = useRef<HTMLVideoElement>(null)
   const motion = useMarketingMotionPreference()
@@ -105,25 +107,25 @@ export default function MarketingFilm() {
   return <section ref={root} id="film" className="mk-film mk-section" aria-labelledby="marketing-film-title">
     <div className="mk-container">
       <div className="mk-film-copy">
-        <p className="mk-eyebrow">Made to whet the appetite</p>
-        <h2 id="marketing-film-title" className="mk-h2">Good food deserves a closer look.</h2>
-        <p className="mk-lead">Give guests a feel for the food before they choose. A visual menu invites them to look closer, explore the details and find their next dish.</p>
+        <p className="mk-eyebrow">{t('Made to whet the appetite')}</p>
+        <h2 id="marketing-film-title" className="mk-h2">{t('Good food deserves a closer look.')}</h2>
+        <p className="mk-lead">{t('Give guests a feel for the food before they choose. A visual menu invites them to look closer, explore the details and find their next dish.')}</p>
       </div>
       <div className="mk-film-player" style={{ position: 'relative', aspectRatio: '16 / 9', overflow: 'hidden' }}>
-        <DeliveryImage src="/marketing/v3/restaurant-film-poster.webp" alt="A cinematic close-up of freshly prepared food"
+        <DeliveryImage src="/marketing/v3/restaurant-film-poster.webp" alt={t('A cinematic close-up of freshly prepared food')}
           width={1280} height={720} sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) calc(100vw - 80px), 1160px"
           className="mk-film-poster" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: started && !failed ? 0 : 1 }} />
         <video ref={video} controls={false} disablePictureInPicture disableRemotePlayback muted loop playsInline preload="none" tabIndex={-1} className="mk-film-video"
-          aria-label="A short silent food film featuring burger, pizza and sushi"
+          aria-label={t('A short silent food film featuring burger, pizza and sushi')}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: started && !failed ? 1 : 0, pointerEvents: 'none' }}
           onPlaying={() => { setStarted(true); setFailed(false); setBlocked(false); setStatus('') }}
           onError={() => { failure.current = true; setFailed(true); setStarted(false); setStatus('The film could not load. Please try again.') }} />
         {failed || blocked || (motion === 'reduced' && !started) ? <button type="button" onClick={play} className="mk-film-play min-h-11 min-w-11 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
           style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-          <Play size={18} aria-hidden="true" /><span>{failed ? 'Retry the film' : 'Play the film'}</span>
+          <Play size={18} aria-hidden="true" /><span>{t(failed ? 'Retry the film' : 'Play the film')}</span>
         </button> : null}
       </div>
-      <p className="mk-film-status" role="status" aria-live="polite">{status}</p>
+      <p className="mk-film-status" role="status" aria-live="polite">{status && t(status)}</p>
     </div>
   </section>
 }

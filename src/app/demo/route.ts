@@ -1,3 +1,4 @@
+import { publicHref, publicLocale } from '@/lib/marketing/public-locale'
 import { NextResponse } from 'next/server'
 import { getRequestOrigin } from '@/lib/site-url'
 import { cookies } from 'next/headers'
@@ -26,7 +27,11 @@ const publicDemo = (origin: string) => NextResponse.redirect(`${origin}/${PUBLIC
 export async function GET(request: Request) {
   // The admin demo creates and signs in a Supabase Auth user, which owned mode
   // never does: send the visitor to the public showcase menu instead.
-  if (ownedModeActive()) return publicDemo(getRequestOrigin(request))
+  if (ownedModeActive()) {
+    const locale = publicLocale(new URL(request.url).searchParams.get('lang'))
+    if (locale) return NextResponse.redirect(`${getRequestOrigin(request)}${publicHref(`/${PUBLIC_DEMO_SLUG}`, locale)}`, { status: 307, headers: { 'Cache-Control': 'private, no-store' } })
+    return publicDemo(getRequestOrigin(request))
+  }
   const DEMO_PASSWORD = demoPassword()
   const origin = getRequestOrigin(request)
   const service = createServiceClient()

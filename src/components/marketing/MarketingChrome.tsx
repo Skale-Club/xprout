@@ -7,6 +7,7 @@ import { BRAND_NAME } from '@/lib/brand'
 import { DeliveryImage } from '@/components/delivery-image'
 import PlatformSignature from '@/components/branding/PlatformSignature'
 import { isDefaultPlatformLogo, platformLogoUrl } from '@/lib/platform-brand'
+import { PublicLanguagePicker, usePublicLocale } from './PublicLocale'
 import { PRICING_PATH } from '@/lib/marketing/pricing'
 
 export interface FooterData { copyright?: string }
@@ -21,6 +22,7 @@ function Brand({ appName, logoUrl, tone }: { appName?: string | null; logoUrl?: 
 export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'home' }: {
   appName?: string | null; logoUrl?: string | null; onLoginOpen?: () => void; startHref?: string; activePage?: 'home' | 'pricing'
 }) {
+  const { t, href } = usePublicLocale()
   const [open, setOpen] = useState(false)
   const toggle = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -30,45 +32,50 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
     return () => window.removeEventListener('keydown', escape)
   }, [open])
   const links = <>
-    <Link className="mk-nav-link" href="/#demo-store" onClick={() => setOpen(false)}>Demo store</Link>
-    <Link className="mk-nav-link" href="/#how-it-works" onClick={() => setOpen(false)}>How it works</Link>
-    <Link className="mk-nav-link" href={PRICING_PATH} aria-current={activePage === 'pricing' ? 'page' : undefined} onClick={() => setOpen(false)}>Pricing</Link>
+    <Link className="mk-nav-link" href={href('/#demo-store')} onClick={() => setOpen(false)}>{t('Demo store')}</Link>
+    <Link className="mk-nav-link" href={href('/#how-it-works')} onClick={() => setOpen(false)}>{t('How it works')}</Link>
+    <Link className="mk-nav-link" href={href(PRICING_PATH)} aria-current={activePage === 'pricing' ? 'page' : undefined} onClick={() => setOpen(false)}>{t('Pricing')}</Link>
   </>
-  return <nav className="mk-nav mk-dark" aria-label="Main navigation">
+  return <nav className="mk-nav mk-dark" aria-label={t('Main navigation')}>
     <div className="mk-container mk-nav-inner">
-      <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="mk-nav-brand shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
+      <Link href={href('/')} aria-label={`${appName ?? BRAND_NAME} ${t('home')}`} className="mk-nav-brand shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
       <div className="mk-nav-links">{links}</div>
       <div className="mk-nav-actions">
-        {startHref ? <Link href={startHref} onClick={() => setOpen(false)} className="mk-button mk-button--light mk-nav-cta">Get started</Link>
-          : <button type="button" onClick={() => { setOpen(false); onLoginOpen?.() }} className="mk-button mk-button--light mk-nav-cta">Get started</button>}
-        <button ref={toggle} type="button" className="mk-nav-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="marketing-mobile-navigation" onClick={() => setOpen(value => !value)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
+        <PublicLanguagePicker />
+        {startHref ? <Link href={href(startHref)} onClick={() => setOpen(false)} className="mk-button mk-button--light mk-nav-cta">{t('Get started')}</Link>
+          : <button type="button" onClick={() => { setOpen(false); onLoginOpen?.() }} className="mk-button mk-button--light mk-nav-cta">{t('Get started')}</button>}
+        <button ref={toggle} type="button" className="mk-nav-toggle" aria-label={open ? t('Close navigation') : t('Open navigation')} aria-expanded={open} aria-controls="marketing-mobile-navigation" onClick={() => setOpen(value => !value)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
       </div>
     </div>
-    {open ? <div id="marketing-mobile-navigation" className="mk-mobile-nav">{links}</div> : null}
+    {open ? <div id="marketing-mobile-navigation" className="mk-mobile-nav">{links}
+      {startHref ? <Link href={href(startHref)} className="mk-nav-link" onClick={() => setOpen(false)}>{t('Get started')}</Link>
+        : <button type="button" className="mk-nav-link text-left" onClick={() => { setOpen(false); onLoginOpen?.() }}>{t('Get started')}</button>}
+    </div> : null}
     <div aria-hidden="true" className="mk-scroll-progress" />
   </nav>
 }
 
 export function Footer({ data, appName, logoUrl }: { data?: FooterData | null; appName?: string | null; logoUrl?: string | null }) {
-  const copyright = data?.copyright ? `© ${data.copyright}` : `© 2026 ${appName ?? BRAND_NAME}. All rights reserved.`
+  const { t, href } = usePublicLocale()
+  const copyright = data?.copyright ? `© ${t(data.copyright)}` : `© 2026 ${appName ?? BRAND_NAME}. ${t('All rights reserved.')}`
   return <footer className="mk-footer mk-dark">
     <div className="mk-container">
       <div className="mk-footer-grid">
         <div>
-          <Link href="/" aria-label={`${appName ?? BRAND_NAME} home`} className="mk-footer-brand inline-block"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
-          <p className="mt-1 max-w-xs text-[15px] leading-snug text-[var(--mk-muted)]">Visual menus that bring your food closer.</p>
+          <Link href={href('/')} aria-label={`${appName ?? BRAND_NAME} ${t('home')}`} className="mk-footer-brand inline-block"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
+          <p className="mt-1 max-w-xs text-[15px] leading-snug text-[var(--mk-muted)]">{t('Visual menus that bring your food closer.')}</p>
         </div>
-        <div><span className="mk-footer-label">Explore {appName ?? BRAND_NAME}</span><ul className="mk-footer-links">
-          <li><Link href="/#demo-store">Demo store</Link></li>
-          <li><Link href="/#how-it-works">How it works</Link></li>
-          <li><Link href={PRICING_PATH}>Plans &amp; pricing</Link></li>
+        <div><span className="mk-footer-label">{t('Explore')} {appName ?? BRAND_NAME}</span><ul className="mk-footer-links">
+          <li><Link href={href('/#demo-store')}>{t('Demo store')}</Link></li>
+          <li><Link href={href('/#how-it-works')}>{t('How it works')}</Link></li>
+          <li><Link href={href(PRICING_PATH)}>{t('Plans & pricing')}</Link></li>
         </ul></div>
-        <div><span className="mk-footer-label">The essentials</span><ul className="mk-footer-links">
-          <li><Link href="/privacy">Privacy policy</Link></li>
-          <li><Link href="/terms">Terms of service</Link></li>
+        <div><span className="mk-footer-label">{t('The essentials')}</span><ul className="mk-footer-links">
+          <li><Link href={href('/privacy')}>{t('Privacy policy')}</Link></li>
+          <li><Link href={href('/terms')}>{t('Terms of service')}</Link></li>
         </ul></div>
       </div>
-      <div className="mk-footer-bottom"><p>{copyright}</p><p>Made for the way restaurants serve.</p></div>
+      <div className="mk-footer-bottom"><p>{copyright}</p><p>{t('Made for the way restaurants serve.')}</p></div>
     </div>
   </footer>
 }

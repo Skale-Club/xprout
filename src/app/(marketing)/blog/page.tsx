@@ -1,3 +1,6 @@
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
+import { translatePublic } from '@/lib/marketing/public-translate'
+import { publicIntlLocale } from '@/lib/marketing/public-locale'
 import {nativeBlogSelected} from '@/lib/blog/native/selected'
 /**
  * O blog da PLATAFORMA (autoblog-parity XM-18).
@@ -18,7 +21,7 @@ export const revalidate = 300
 
 const BLOG_TITLE = 'Blog | Xprout'
 const BLOG_DESCRIPTION =
-  'Cardápio, margem, delivery e operação — o que aprendemos ajudando restaurantes a vender mais.'
+  'Menus, margins, delivery and operations — what we learn helping restaurants sell more.'
 
 const BLOG_METADATA: Metadata = {
   title: BLOG_TITLE,
@@ -39,17 +42,22 @@ const loadBlogIndex = cache(async () => {
 })
 
 export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const { posts } = await loadBlogIndex()
-  return { ...BLOG_METADATA, ...(!posts.length ? { robots: { index: false, follow: false } } : {}) }
+  return { ...BLOG_METADATA, description: t(BLOG_DESCRIPTION), alternates: { canonical: '/blog' }, openGraph: { ...BLOG_METADATA.openGraph, description: t(BLOG_DESCRIPTION), locale: publicIntlLocale(locale).replace('-', '_') }, twitter: { ...BLOG_METADATA.twitter, description: t(BLOG_DESCRIPTION) }, ...(!posts.length ? { robots: { index: false, follow: false } } : {}) }
 }
 
 export default async function BlogIndexPage() {
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const { posts, archive, tags } = await loadBlogIndex()
 
   return (
     <BlogPostList
+      locale={locale}
       heading="Blog"
-      lead="Cardápio, margem, delivery e operação — o que aprendemos ajudando restaurantes a vender mais."
+      lead={t('Menus, margins, delivery and operations — what we learn helping restaurants sell more.')}
       posts={posts}
       basePath="/blog"
       archive={archive}

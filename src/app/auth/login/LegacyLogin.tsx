@@ -1,5 +1,7 @@
 'use client'
 
+import { usePublicLocale, PublicLanguagePicker } from '@/components/marketing/PublicLocale'
+
 import { platformLogoUrl } from '@/lib/platform-brand'
 
 export const dynamic = 'force-dynamic'
@@ -13,6 +15,7 @@ import { ArrowRight, ChevronLeft } from 'lucide-react'
 import { requireLoginAuthority } from '@/lib/auth/browser-login-authority'
 
 export default function LegacyLogin() {
+  const { t, href } = usePublicLocale()
   const [step, setStep] = useState<'email' | 'password'>('email')
   const [googleLoading, setGoogleLoading] = useState(false)
   const [email, setEmail] = useState('')
@@ -86,6 +89,7 @@ export default function LegacyLogin() {
 
   return (
     <div className="platform-dark min-h-screen flex items-center justify-center bg-zinc-950 px-4 selection:bg-primary/30 relative overflow-hidden">
+      <div className="fixed right-4 top-4 z-20 text-platform-ivory"><PublicLanguagePicker /></div>
       {/* Background Glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] opacity-40 pointer-events-none" />
 
@@ -94,8 +98,8 @@ export default function LegacyLogin() {
           {/* Marca */}
           <div className="mb-8 text-center">
             <DeliveryImage src={logoUrl} width={48} height={48} sizes="48px" alt="Logo" className="w-12 h-12 mx-auto mb-5" />
-            <a href="/" className="text-2xl font-black text-platform-ivory hover:text-primary transition-colors tracking-tight">Xprout</a>
-            <p className="text-sm font-bold text-zinc-400 mt-2">Sign in to your menu dashboard</p>
+            <a href={href("/")} className="text-2xl font-black text-platform-ivory hover:text-primary transition-colors tracking-tight">Xprout</a>
+            <p className="text-sm font-bold text-zinc-400 mt-2">{t("Sign in to your menu dashboard")}</p>
           </div>
 
           {step === 'email' ? (
@@ -119,20 +123,20 @@ export default function LegacyLogin() {
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                   </svg>
                 )}
-                {googleLoading ? 'Redirecting...' : 'Continue with Google'}
+                {googleLoading ? t("Redirecting...") : t("Continue with Google")}
               </button>
 
               {/* Divisor */}
               <div className="flex items-center gap-3 my-8">
                 <div className="flex-1 h-px bg-white/5" />
-                <span className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">or sign in with email</span>
+                <span className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">{t("or sign in with email")}</span>
                 <div className="flex-1 h-px bg-white/5" />
               </div>
 
               {/* Step 1: Email */}
               <form onSubmit={handleEmailContinue} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">Email</label>
+                  <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">{t("Email")}</label>
                   <input
                     type="email"
                     required
@@ -144,15 +148,13 @@ export default function LegacyLogin() {
                   />
                 </div>
 
-                {error && <p className="text-xs text-red-500 font-bold ml-1">{error}</p>}
+                {error && <p className="text-xs text-red-500 font-bold ml-1">{t(error)}</p>}
 
                 <button
                   type="submit"
                   disabled={googleLoading}
                   className="w-full bg-primary text-primary-foreground py-4 rounded-full text-base font-black transition-all hover:scale-[1.02] active:scale-95 mt-4 flex items-center justify-center gap-2"
-                >
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
+                >{t("Continue")}<ArrowRight className="w-4 h-4" />
                 </button>
               </form>
             </>
@@ -164,15 +166,13 @@ export default function LegacyLogin() {
                   onClick={() => { setStep('email'); setError(null) }}
                   className="flex items-center gap-1 text-xs font-bold text-zinc-400 hover:text-zinc-300 transition-colors mb-4"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  Back
-                </button>
+                  <ChevronLeft className="w-3.5 h-3.5" />{t("Back")}</button>
                 <p className="text-sm text-zinc-400 font-medium truncate">{email}</p>
               </div>
 
               <form onSubmit={handleEmailLogin} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">Password</label>
+                  <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">{t("Password")}</label>
                   <input
                     type="password"
                     required
@@ -184,17 +184,15 @@ export default function LegacyLogin() {
                   />
                 </div>
 
-                {error && <p className="text-xs text-red-500 font-bold ml-1">{error}</p>}
+                {error && <p className="text-xs text-red-500 font-bold ml-1">{t(error)}</p>}
 
                 <button
                   type="submit"
                   disabled={emailLoading}
                   className="w-full bg-primary text-primary-foreground py-4 rounded-full text-base font-black transition-all hover:scale-[1.02] active:scale-95 mt-4 flex items-center justify-center gap-2"
                 >
-                  {emailLoading ? 'Signing in...' : (
-                    <>
-                      Sign in
-                      <ArrowRight className="w-4 h-4" />
+                  {emailLoading ? t("Signing in...") : (
+                    <>{t("Sign in")}<ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
@@ -202,21 +200,16 @@ export default function LegacyLogin() {
             </>
           )}
 
-          <p className="text-[10px] font-medium text-zinc-400 text-center mt-8 px-4 leading-relaxed">
-            By signing in, you agree to the platform terms of use and privacy policy.
-          </p>
+          <p className="text-[10px] font-medium text-zinc-400 text-center mt-8 px-4 leading-relaxed">{t("By signing in, you agree to the platform terms of use and privacy policy.")}</p>
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
-            <p className="text-sm text-zinc-400 font-medium">
-              Don&apos;t have an account?{' '}
-              <a href="/auth/register" className="text-platform-ivory font-black hover:text-primary transition-colors underline underline-offset-4 decoration-white/20 hover:decoration-primary/50">
-                Create one
-              </a>
+            <p className="text-sm text-zinc-400 font-medium">{t("Don't have an account?")}{' '}
+              <a href={href("/auth/register")} className="text-platform-ivory font-black hover:text-primary transition-colors underline underline-offset-4 decoration-white/20 hover:decoration-primary/50">{t("Create one")}</a>
             </p>
           </div>
         </div>
 
         <p className="text-[10px] font-bold text-zinc-700 text-center mt-8 uppercase tracking-[0.2em]">
-          <a href="/" className="hover:text-zinc-400 transition-colors">Xprout</a> © {new Date().getFullYear()}
+          <a href={href("/")} className="hover:text-zinc-400 transition-colors">Xprout</a> © {new Date().getFullYear()}
         </p>
       </div>
     </div>

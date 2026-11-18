@@ -1,3 +1,6 @@
+import { getPublicLocale } from '@/lib/marketing/public-locale-server'
+import { translatePublic } from '@/lib/marketing/public-translate'
+import { publicHref } from '@/lib/marketing/public-locale'
 import { platformLogoUrl } from '@/lib/platform-brand'
 import { DeliveryImage } from '@/components/delivery-image'
 import { Clock } from 'lucide-react'
@@ -22,6 +25,8 @@ async function pendingLogoUrl(): Promise<string> {
 export default async function PendingPage() {
   // Appearance comes from live runtime configuration, never the build database.
   await connection()
+  const locale = await getPublicLocale()
+  const t = (source: string) => translatePublic(locale, source)
   const logoUrl = await pendingLogoUrl()
 
   return (
@@ -34,15 +39,15 @@ export default async function PendingPage() {
         <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto mb-8">
           <Clock className="w-10 h-10 text-primary-on-dark" />
         </div>
-        <h1 className="text-2xl font-black text-platform-ivory mb-4 tracking-tight">Account under review</h1>
+        <h1 className="text-2xl font-black text-platform-ivory mb-4 tracking-tight">{t('Account under review')}</h1>
         <p className="text-sm font-medium text-zinc-400 mb-8 leading-relaxed">
-          Your request is under review. The Xprout team will get in touch with you soon to set up your menu.
+          {t('Your request is under review. The Xprout team will get in touch with you soon to set up your menu.')}
         </p>
         <a
-          href="/auth/login"
+          href={publicHref('/auth/login', locale)}
           className="inline-flex items-center justify-center bg-primary text-primary-foreground px-8 py-4 rounded-full text-base font-black transition-all hover:scale-[1.02] active:scale-95"
         >
-          Back to login
+          {t('Back to login')}
         </a>
       </div>
     </div>

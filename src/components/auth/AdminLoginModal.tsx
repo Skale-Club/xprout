@@ -1,5 +1,7 @@
 'use client'
 
+import { usePublicLocale } from '@/components/marketing/PublicLocale'
+
 import { DeliveryImage } from '@/components/delivery-image'
 import { platformLogoUrl } from '@/lib/platform-brand'
 import { useEffect, useState } from 'react'
@@ -21,6 +23,7 @@ interface Props {
 }
 
 export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
+  const { t, href } = usePublicLocale()
   const [step, setStep] = useState<'email' | 'password'>('email')
   const [googleLoading, setGoogleLoading] = useState(false)
   const [email, setEmail] = useState('')
@@ -131,10 +134,10 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
   // The platform's own sign-in, right here in the popup (as in Xpot): the sign-in page on its dark card in a
   // same-origin frame; when it finishes, this page goes where the sign-in wanted to go (the panel).
   if (authority !== 'legacy') return <SignInFrameDialog
-    src={authority === 'owned' ? '/auth/login?embed=1' : null}
+    src={authority === 'owned' ? href('/auth/login?embed=1') : null}
     unavailable={authority === 'unavailable'}
-    title="Sign in to Xprout"
-    closeLabel="Close sign in"
+    title={t("Sign in to Xprout")}
+    closeLabel={t("Close sign in")}
     tone="marketing"
     // Top corner, as on the site's e-mail sign-in card.
     closeTop={12}
@@ -152,14 +155,14 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Admin sign in"
+        aria-label={t("Admin sign in")}
         className="relative max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-[1.25rem] border border-white/10 bg-zinc-900/95 p-5 shadow-2xl backdrop-blur-xl sm:p-8"
         onClick={e => e.stopPropagation()}
       >
         <GradientTopLine />
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("Close")}
           className="absolute right-3 top-3 flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors sm:right-4 sm:top-4"
         >
           <X className="w-4 h-4 text-zinc-400" />
@@ -169,7 +172,7 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
         <div className="mb-8 text-center">
           <DeliveryImage src={platformLogoUrl(logoUrl)} width={48} height={48} sizes="48px" alt="" className="w-12 h-12 mx-auto mb-5" />
           <p className="text-2xl font-black text-platform-ivory tracking-tight">Xprout</p>
-          <p className="text-sm font-bold text-zinc-400 mt-2">Sign in to your menu dashboard</p>
+          <p className="text-sm font-bold text-zinc-400 mt-2">{t("Sign in to your menu dashboard")}</p>
         </div>
 
         {step === 'email' ? (
@@ -193,18 +196,18 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
               )}
-              {googleLoading ? 'Redirecting...' : 'Continue with Google'}
+              {googleLoading ? t("Redirecting...") : t("Continue with Google")}
             </button>
 
             <div className="flex items-center gap-3 my-6">
               <div className="flex-1 h-px bg-white/5" />
-              <span className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">or sign in with email</span>
+              <span className="text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em]">{t("or sign in with email")}</span>
               <div className="flex-1 h-px bg-white/5" />
             </div>
 
             <form onSubmit={handleEmailContinue} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">Email</label>
+                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">{t("Email")}</label>
                 <input
                   type="email"
                   required
@@ -215,13 +218,12 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
                   className="w-full px-5 py-3.5 bg-white/5 border border-white/10 rounded-xl text-sm text-platform-ivory placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
                 />
               </div>
-              {error && <p className="text-xs text-red-500 font-bold ml-1">{error}</p>}
+              {error && <p className="text-xs text-red-500 font-bold ml-1">{t(error)}</p>}
               <button
                 type="submit"
                 disabled={googleLoading}
                 className="w-full bg-primary text-primary-foreground py-4 rounded-full text-base font-black transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
-              >
-                Continue <ArrowRight className="w-4 h-4" />
+              >{t("Continue")}<ArrowRight className="w-4 h-4" />
               </button>
             </form>
           </>
@@ -232,14 +234,13 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
                 onClick={() => { setStep('email'); setError(null) }}
                 className="flex items-center gap-1 text-xs font-bold text-zinc-400 hover:text-zinc-300 transition-colors mb-4"
               >
-                <ChevronLeft className="w-3.5 h-3.5" /> Back
-              </button>
+                <ChevronLeft className="w-3.5 h-3.5" />{t("Back")}</button>
               <p className="text-sm text-zinc-400 font-medium truncate">{email}</p>
             </div>
 
             <form onSubmit={handleEmailLogin} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">Password</label>
+                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2 ml-1">{t("Password")}</label>
                 <input
                   type="password"
                   required
@@ -250,21 +251,19 @@ export default function AdminLoginModal({ open, onClose, logoUrl }: Props) {
                   className="w-full px-5 py-3.5 bg-white/5 border border-white/10 rounded-xl text-sm text-platform-ivory placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
                 />
               </div>
-              {error && <p className="text-xs text-red-500 font-bold ml-1">{error}</p>}
+              {error && <p className="text-xs text-red-500 font-bold ml-1">{t(error)}</p>}
               <button
                 type="submit"
                 disabled={emailLoading}
                 className="w-full bg-primary text-primary-foreground py-4 rounded-full text-base font-black transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
               >
-                {emailLoading ? 'Signing in...' : <><span>Sign in</span><ArrowRight className="w-4 h-4" /></>}
+                {emailLoading ? t("Signing in...") : <><span>{t("Sign in")}</span><ArrowRight className="w-4 h-4" /></>}
               </button>
             </form>
           </>
         )}
 
-        <p className="text-[10px] font-medium text-zinc-400 text-center mt-6 px-4 leading-relaxed">
-          By signing in, you agree to the platform terms of use and privacy policy.
-        </p>
+        <p className="text-[10px] font-medium text-zinc-400 text-center mt-6 px-4 leading-relaxed">{t("By signing in, you agree to the platform terms of use and privacy policy.")}</p>
       </div>
     </div>
     </ModalPortal>
