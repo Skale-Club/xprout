@@ -1,6 +1,6 @@
 import type { Location, TenantSettings } from '@/types/database'
 import type { TenantCapabilities } from './service-modes'
-import { buildSystemPrompt, formatMenuContext, parseCartSnapshot, type MenuCatalog } from './chat-agent'
+import { buildSystemPrompt, formatMenuContext, parseCartSnapshot, type ChatAbilities, type MenuCatalog } from './chat-agent'
 import { computeOpenStatus, describeOrdering, describeProfile, resolveTimeZone, type DeliveryZone } from './chat-context'
 import { MENU_LANGUAGE_CODES, menuLanguage } from '@/components/menu/menu-i18n'
 
@@ -12,10 +12,12 @@ export type ChatLocation = Pick<Location, 'id' | 'name' | 'address' | 'city' | '
 export interface PublicChatPromptContext {
   tenantName: string; settingsRow: ChatSettings; capabilities: TenantCapabilities; catalog: MenuCatalog | null
   locations: ChatLocation[]; zones: DeliveryZone[]; onlinePayment: boolean; canAddToCart: boolean; body: PublicChatBody | null
+  /** Per-restaurant abilities (resolveChatAbilities); omitted = ordering help follows canAddToCart, no staff call. */
+  abilities?: ChatAbilities
 }
 /** Same pure prompt assembly for legacy/native data; no DB or provider access. */
 export function buildPublicChatPrompt(input: PublicChatPromptContext, now = new Date()) {
-  const { tenantName, settingsRow, capabilities, catalog, locations, zones, onlinePayment, canAddToCart, body } = input
+  const { tenantName, settingsRow, capabilities, catalog, locations, zones, onlinePayment, canAddToCart, body, abilities } = input
   const locationId = typeof body?.location_id === 'string' ? body.location_id : null
   const location = locationId ? locations.find(row => row.id === locationId) ?? null : null
   const hours = location?.business_hours && Object.values(location.business_hours).some(Boolean) ? location.business_hours : settingsRow.business_hours
@@ -31,8 +33,8 @@ export function buildPublicChatPrompt(input: PublicChatPromptContext, now = new 
   }, computeOpenStatus(hours, now, timeZone))
   return buildSystemPrompt({
     name: tenantName, profile, menuContext: formatMenuContext(catalog),
-    ordering: describeOrdering(settingsRow, { onlinePayment, deliveryZones: zones, capabilities, atTable: typeof body?.table_id === 'string' && body.table_id.length > 0 }),
-    canAddToCart, cart: body?.cart === undefined ? null : parseCartSnapshot(body.cart),
+    ordering: describeOrdering(settingsRow, { onlinePayment, deliveryZones: zones, capabilities, atTable: typeof body?.table_id === 'string' && body.table_id.length > 0, orderingHelp: abilities?.orderingHelp ?? canAddToCart }),
+    canAddToCart, orderingHelp: abilities?.orderingHelp ?? canAddToCart, staffCall: abilities?.staffCall ?? false, cart: body?.cart === undefined ? null : parseCartSnapshot(body.cart),
     guestLanguage: typeof body?.language === 'string' && (MENU_LANGUAGE_CODES as readonly string[]).includes(body.language) ? menuLanguage(body.language).englishName : null,
   })
 }

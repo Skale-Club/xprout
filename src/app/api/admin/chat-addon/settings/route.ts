@@ -62,6 +62,9 @@ async function handlePUT(request: Request) {
     openrouter_model,
     audio_enabled,
     text_enabled,
+    ordering_help_enabled,
+    staff_call_enabled,
+    suggestions_enabled,
     audio_provider,
     rate_limit_per_phone_per_day,
   } = body as Record<string, any>
@@ -75,6 +78,9 @@ async function handlePUT(request: Request) {
   }
   if (typeof audio_enabled === 'boolean') payload.audio_enabled = audio_enabled
   if (typeof text_enabled === 'boolean') payload.text_enabled = text_enabled
+  if (typeof ordering_help_enabled === 'boolean') payload.ordering_help_enabled = ordering_help_enabled
+  if (typeof staff_call_enabled === 'boolean') payload.staff_call_enabled = staff_call_enabled
+  if (typeof suggestions_enabled === 'boolean') payload.suggestions_enabled = suggestions_enabled
   if (audio_provider === null || audio_provider === 'whisper' || audio_provider === 'deepgram') {
     payload.audio_provider = audio_provider
   }

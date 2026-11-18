@@ -17,7 +17,7 @@ afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); state.cache.clear(); s
 const base = () => ({ kind: 'menu', tenant: { id: randomUUID() }, footerBrand: 'Brand', menu: { is_private: true }, location: null,
   categories: [{ id: randomUUID() }], products: [{ id: randomUUID() }], capabilities: resolveTenantCapabilities(null, null),
   optionGroupsByProductId: {}, productIngredientsByProductId: {}, productMediaByProductId: {}, deliveryZones: [],
-  chatAddonEnabled: false, chatAddonAudioEnabled: false, chatAddonTextEnabled: false, tables: [] })
+  chatAddonEnabled: false, chatAddonAudioEnabled: false, chatAddonTextEnabled: false, chatAddonSuggestionsEnabled: true, tables: [] })
 
 describe('public menu source and private-access boundary', () => {
   it('does not reuse a legacy cache entry when the independent source is enabled', async () => {

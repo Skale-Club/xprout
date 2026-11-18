@@ -25,7 +25,7 @@ it('finishes the read transaction before provider work and persists both trusted
   const order: string[] = []
   state.read.mockImplementation(async () => { order.push('read'); return context() }); state.agent.mockImplementation(async () => { order.push('provider'); return { text: 'Answer', cartItems: [], totalTokens: 12 } }); state.save.mockImplementation(async () => { order.push('persist'); return { remaining_today: 16 } })
   const response = await handleOwnedChatMessage('restaurant', conversationId, 'Question', { menu_id: 'requested' })
-  expect(response.status).toBe(200); expect(await response.json()).toEqual({ text: 'Answer', cart_items: [], remaining_today: 16 }); expect(order).toEqual(['read', 'provider', 'persist'])
+  expect(response.status).toBe(200); expect(await response.json()).toEqual({ text: 'Answer', cart_items: [], cart_changes: [], staff_called: false, remaining_today: 16 }); expect(order).toEqual(['read', 'provider', 'persist'])
   expect(state.agent.mock.calls[0][0].messages).toEqual([{ role: 'user', content: 'Previous question' }, { role: 'assistant', content: 'Previous answer' }, { role: 'user', content: 'Question' }])
   expect(state.save).toHaveBeenCalledWith({ slug: 'restaurant', tenantId, conversationId, user: 'Question', assistant: 'Answer', tokens: 12, voiceVerified: false })
 })

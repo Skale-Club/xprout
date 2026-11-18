@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { Bot, Sparkles, Mic, MessageSquare, AlertCircle, CheckCircle2, Save, ChevronRight } from 'lucide-react'
+import { Bot, Sparkles, Mic, MessageSquare, ShoppingCart, BellRing, Lightbulb, AlertCircle, CheckCircle2, Save, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CHAT_MODELS, resolveChatModel } from '@/lib/ai/chat-models'
 
@@ -20,16 +20,28 @@ interface Settings {
   openrouter_model: string
   audio_enabled: boolean
   text_enabled: boolean
+  ordering_help_enabled: boolean
+  staff_call_enabled: boolean
+  suggestions_enabled: boolean
   audio_provider: 'whisper' | 'deepgram' | null
   rate_limit_per_phone_per_day: number
 }
 
-export default function ChatAddonClient({ initialSettings, status }: { initialSettings: any; status: Status }) {
+/** What the plan and the restaurant's switches allow (TenantCapabilities.guestOrdering / waiterCalls). */
+interface AbilityAccess {
+  guestOrdering: boolean
+  waiterCalls: boolean
+}
+
+export default function ChatAddonClient({ initialSettings, status, abilityAccess }: { initialSettings: any; status: Status; abilityAccess: AbilityAccess }) {
   const [form, setForm] = useState<Settings>({
     enabled: initialSettings?.enabled ?? false,
     openrouter_model: resolveChatModel(initialSettings?.openrouter_model),
     audio_enabled: initialSettings?.audio_enabled ?? false,
     text_enabled: initialSettings?.text_enabled ?? true,
+    ordering_help_enabled: initialSettings?.ordering_help_enabled ?? true,
+    staff_call_enabled: initialSettings?.staff_call_enabled ?? true,
+    suggestions_enabled: initialSettings?.suggestions_enabled ?? true,
     audio_provider: initialSettings?.audio_provider ?? 'whisper',
     rate_limit_per_phone_per_day: initialSettings?.rate_limit_per_phone_per_day ?? 30,
   })
@@ -230,6 +242,35 @@ export default function ChatAddonClient({ initialSettings, status }: { initialSe
           )}
         </div>
 
+        {/* Abilities: what the assistant may do. Off = the tool is not offered to the model at all. */}
+        <div className="space-y-4 pt-4 border-t border-zinc-100">
+          <AbilityToggle
+            icon={<ShoppingCart className="w-4 h-4" />}
+            label="Help guests order (add, remove, change items)"
+            description="The assistant can put dishes in the guest's cart and change quantities. The guest still reviews the cart and checks out."
+            checked={form.ordering_help_enabled && abilityAccess.guestOrdering}
+            disabled={!abilityAccess.guestOrdering}
+            hint="Needs guest ordering: turn on online ordering in Settings › Store (Orders plan)."
+            onChange={() => setForm(f => ({ ...f, ordering_help_enabled: !f.ordering_help_enabled }))}
+          />
+          <AbilityToggle
+            icon={<BellRing className="w-4 h-4" />}
+            label="Call staff from the chat (table links)"
+            description="When a guest on a table link asks for a waiter or the bill, the assistant notifies your staff, like the Call waiter button."
+            checked={form.staff_call_enabled && abilityAccess.waiterCalls}
+            disabled={!abilityAccess.waiterCalls}
+            hint="Needs calls from the table: tables and ordering on your plan, with table links in use."
+            onChange={() => setForm(f => ({ ...f, staff_call_enabled: !f.staff_call_enabled }))}
+          />
+          <AbilityToggle
+            icon={<Lightbulb className="w-4 h-4" />}
+            label="Suggested questions"
+            description="Shows quick question buttons when a guest opens an empty chat."
+            checked={form.suggestions_enabled}
+            onChange={() => setForm(f => ({ ...f, suggestions_enabled: !f.suggestions_enabled }))}
+          />
+        </div>
+
         {!form.text_enabled && !form.audio_enabled && (
           <p role="alert" className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
             <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -252,6 +293,41 @@ export default function ChatAddonClient({ initialSettings, status }: { initialSe
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function AbilityToggle({ icon, label, description, checked, disabled = false, hint, onChange }: {
+  icon: ReactNode
+  label: string
+  description: string
+  checked: boolean
+  disabled?: boolean
+  /** Why the switch is unavailable (shown only when disabled). */
+  hint?: string
+  onChange: () => void
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between p-5 rounded-[1rem] bg-zinc-50 transition-all",
+        disabled ? "opacity-60" : "hover:bg-zinc-100 cursor-pointer"
+      )}
+      onClick={disabled ? undefined : onChange}
+    >
+      <div className="max-w-[70%]">
+        <p className="text-sm font-black text-zinc-950 uppercase tracking-tight flex items-center gap-2">{icon}{label}</p>
+        <p className="text-[10px] text-zinc-500 font-medium leading-relaxed mt-0.5">{disabled && hint ? hint : description}</p>
+      </div>
+      <button type="button" aria-pressed={checked} aria-label={label} disabled={disabled} className={cn(
+        "relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none",
+        checked ? "bg-primary" : "bg-zinc-200"
+      )}>
+        <span className={cn(
+          "inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform duration-300",
+          checked ? "translate-x-5" : "translate-x-1"
+        )} />
+      </button>
     </div>
   )
 }

@@ -497,6 +497,10 @@ export interface ChatAddonSettings {
   audio_enabled: boolean
   /** Typed messages in the chat box (default true); audio_enabled is voice notes. */
   text_enabled: boolean
+  /** Assistant abilities, each switchable per restaurant (default true). */
+  ordering_help_enabled: boolean
+  staff_call_enabled: boolean
+  suggestions_enabled: boolean
   audio_provider: 'whisper' | 'deepgram' | null
   audio_api_key: string | null              // encrypted ciphertext at rest
   rate_limit_per_phone_per_day: number

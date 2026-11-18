@@ -40,8 +40,12 @@ interface Props {
   orderBarVisible?: boolean
   /** The menu language on screen: the box's texts and the assistant's first language. */
   language?: string
-  /** What is in the cart now, so the assistant does not re-add it and can suggest the rest. */
+  /** What is in the cart now, so the assistant does not re-add it and can suggest the rest. Each line carries its stable line_id. */
   cart?: CartSnapshotItem[] | null
+  /** Sets the quantity of one cart line by its line_id (0 removes it); the assistant's updateCartItem lands here. */
+  onSetCartLineQuantity?: (lineId: string, quantity: number) => void
+  /** Suggested-question chips (the restaurant may switch them off). */
+  suggestionsEnabled?: boolean
   /** Guests can order on this menu; off (showcase) the box only answers questions about the menu. */
   canOrder?: boolean
   /** restaurant_tables.id when the guest opened a table link. */
@@ -77,6 +81,10 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   cartItems?: AddedItem[]
+  /** Lines of the guest's cart the assistant changed (quantity 0 = removed). */
+  cartChanges?: Array<{ name: string; quantity: number }>
+  /** The assistant let the staff know (waiter call). */
+  staffCalled?: boolean
 }
 
 const SESSION_KEY_PREFIX = 'aiChat:'
@@ -89,7 +97,7 @@ function subscribeWide(onChange: () => void) {
   return () => mq.removeEventListener('change', onChange)
 }
 
-export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = null, currency = 'USD', primaryColor = BRAND_PRIMARY, audioEnabled = false, textEnabled = true, products, onAddToCart, menuId = null, locationId = null, onOpenCart, orderBarVisible = false, language = 'en', cart = null, canOrder = true, tableId = null, phoneContext = null, locale = 'en' }: Props) {
+export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = null, currency = 'USD', primaryColor = BRAND_PRIMARY, audioEnabled = false, textEnabled = true, products, onAddToCart, menuId = null, locationId = null, onOpenCart, orderBarVisible = false, language = 'en', cart = null, onSetCartLineQuantity, suggestionsEnabled = true, canOrder = true, tableId = null, phoneContext = null, locale = 'en' }: Props) {
   const copy = getGuestCopy(language)
   const menuCopy = getMenuCopy(language)
   // Text and icons on the brand colour: black or white, whichever reads (never a fixed one).
@@ -222,11 +230,23 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
       setSending(false)
       return
     }
-    const data = await res.json() as { text: string; cart_items?: ResolvedCartItem[]; remaining_today: number }
+    const data = await res.json() as { text: string; cart_items?: ResolvedCartItem[]; cart_changes?: Array<{ line_id: string; quantity: number }>; staff_called?: boolean; remaining_today: number }
 
     // Apply cart items via parent callback. Options, editor state and unit
     // price were resolved by the server from the menu, exactly as the product
     // modal would build them.
+    // Changes to lines already in the cart come first (a swap is "set the old
+    // line to 0, then add the new one"). Names come from the cart the widget
+    // itself reported; a line that is gone by now is skipped.
+    const changedLines: Array<{ name: string; quantity: number }> = []
+    if (canOrder && onSetCartLineQuantity) {
+      for (const change of data.cart_changes ?? []) {
+        const line = cart?.find((l) => l.line_id === change.line_id)
+        if (!line || !Number.isInteger(change.quantity) || change.quantity < 0) continue
+        onSetCartLineQuantity(change.line_id, change.quantity)
+        changedLines.push({ name: line.name, quantity: change.quantity })
+      }
+    }
     const addedItems: AddedItem[] = []
     // A view-only menu has no cart: nothing the server returns is added.
     for (const item of canOrder ? data.cart_items ?? [] : []) {
@@ -244,6 +264,8 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
       role: 'assistant',
       content: data.text,
       cartItems: addedItems.length ? addedItems : undefined,
+      cartChanges: changedLines.length ? changedLines : undefined,
+      staffCalled: data.staff_called === true ? true : undefined,
     }
     setMessages((prev) => [...prev, assistantMsg])
     setRemaining(data.remaining_today)
@@ -401,7 +423,7 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
                 <div className={`max-w-[88%] ${assistantBubble}`}>
                   <p className="whitespace-pre-wrap">{greeting}</p>
                 </div>
-                {textEnabled && (
+                {textEnabled && suggestionsEnabled && (
                   <div className="flex flex-wrap gap-2">
                     {suggestions.map((text) => (
                       <button
@@ -433,6 +455,28 @@ export default function AiChatWidget({ tenantSlug, tenantName, tenantLogoUrl = n
                       <div className={assistantBubble}>
                         <p className="whitespace-pre-wrap">{m.content}</p>
                       </div>
+                    )}
+                    {m.staffCalled && (
+                      <div role="status" className="inline-flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-[14px] font-semibold text-emerald-700 ring-1 ring-zinc-200">
+                        <Check className="size-4" aria-hidden="true" />
+                        {copy.staffNotified}
+                      </div>
+                    )}
+                    {m.cartChanges && m.cartChanges.length > 0 && (
+                      <ul className="flex w-full flex-col gap-2">
+                        {m.cartChanges.map((change, i) => (
+                          <li key={i} className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 ring-1 ring-zinc-200">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[14px] font-semibold text-zinc-900">{change.name}</p>
+                              {change.quantity > 0 && <p className="text-[13px] text-zinc-600 tabular-nums">× {change.quantity}</p>}
+                            </div>
+                            <span className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-emerald-700">
+                              <Check className="size-3.5" aria-hidden="true" />
+                              {change.quantity > 0 ? copy.cartUpdatedLabel : copy.cartRemovedLabel}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     )}
                     {m.cartItems && m.cartItems.length > 0 && (
                       <ul className="flex w-full flex-col gap-2">

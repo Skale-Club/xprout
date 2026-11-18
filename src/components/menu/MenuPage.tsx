@@ -140,6 +140,7 @@ interface Props {
   chatAddonAudioEnabled?: boolean
   /** Typed messages in the AI chat (the restaurant can allow voice notes only). */
   chatAddonTextEnabled?: boolean
+  chatAddonSuggestionsEnabled?: boolean
   /**
    * What the plan and the restaurant allow right now (service-modes.ts
    * TenantCapabilities): guest ordering, order types, tips, notes, ingredients,
@@ -170,7 +171,7 @@ function getTranslatedMenuField(
   return typeof value === 'string' && value.trim() ? value : fallback
 }
 
-export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null, dishPage }: Props) {
+export default function MenuPage({ tenant, categories: baseCategories, products: baseProducts, menu = null, location = null, initialLanguage, initialView, footerBrand = BRAND_NAME, pageLinks = [], navigationLinks = [], canonicalBaseUrl, publicNap, optionGroupsByProductId: baseOptionGroups = {}, productIngredientsByProductId = {}, deliveryZones = [], productMediaByProductId = {}, productArModelByProductId = {}, chatAddonEnabled = false, chatAddonAudioEnabled = false, chatAddonTextEnabled = true, chatAddonSuggestionsEnabled = true, capabilities = NO_CAPABILITIES, table = null, waiterCallTable = null, dishPage }: Props) {
   const router = useRouter()
   const onDishPage = dishPage !== undefined && dishPage !== null
   const [feedPreview, setFeedPreview] = useState(false)
@@ -1691,6 +1692,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           primaryColor={primaryColor}
           audioEnabled={chatAddonAudioEnabled}
           textEnabled={chatAddonTextEnabled}
+          suggestionsEnabled={chatAddonSuggestionsEnabled}
           products={baseProducts}
           onAddToCart={(product, options, unitPrice, note, mods, editorState) => { if (directOrdersEnabled) addToCart(product, options, unitPrice, note, mods, editorState, undefined, 1, 'chat') }}
           menuId={menu?.id ?? null}
@@ -1701,7 +1703,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           language={selectedLanguage}
           phoneContext={{ country: settings?.country, currency }}
           locale={localeFor(selectedLanguage)}
-          cart={directOrdersEnabled ? cart.map(i => ({ name: i.product.name, quantity: i.quantity, options: summarizeOptions(i.selectedOptions) || undefined })) : null}
+          cart={directOrdersEnabled ? cart.map(i => ({ name: i.product.name, quantity: i.quantity, options: summarizeOptions(i.selectedOptions) || undefined, line_id: i.cartKey })) : null}
+          onSetCartLineQuantity={directOrdersEnabled ? updateCartQuantity : undefined}
           canOrder={directOrdersEnabled}
           tableId={waiterCallTable?.id ?? orderingTable?.id ?? null}
         />

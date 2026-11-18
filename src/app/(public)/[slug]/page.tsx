@@ -168,6 +168,7 @@ export default async function PublicMenuPage({ params, searchParams }: Props) {
       chatAddonEnabled={data.chatAddonEnabled}
       chatAddonAudioEnabled={data.chatAddonAudioEnabled}
       chatAddonTextEnabled={data.chatAddonTextEnabled}
+      chatAddonSuggestionsEnabled={data.chatAddonSuggestionsEnabled}
       capabilities={capabilities}
       pageLinks={pageLinks}
       navigationLinks={navigation}

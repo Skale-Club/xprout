@@ -23,7 +23,7 @@ export class ChatLimitError extends AdminMenuError {
 // Same fixed context columns requested by the legacy message route; no keys.
 const SETTINGS = 'orders_enabled,direct_orders_enabled,whatsapp_orders_enabled,dine_in_enabled,pickup_enabled,pickup_eta_minutes,delivery_enabled,delivery_fee_cents,tips_enabled,currency,address,city,region,postal_code,country,phone,whatsapp,instagram,business_hours,business_type,tagline,about,price_range'
 type Conversation = { id: string; tenant_id: string; phone_hash: string; status: string; message_count: number }
-type ChatConfiguration = { openrouter_model: string | null; rate_limit_per_phone_per_day: number | null; text_enabled: boolean | null; audio_enabled: boolean | null; audio_provider: string | null }
+type ChatConfiguration = { openrouter_model: string | null; rate_limit_per_phone_per_day: number | null; text_enabled: boolean | null; audio_enabled: boolean | null; audio_provider: string | null; ordering_help_enabled: boolean | null; staff_call_enabled: boolean | null }
 
 async function admission(query: AdminMenuQuery, slug: string, conversationId: string, audio = false, lock = false) {
   if (!UUID.test(conversationId)) throw new AdminMenuError(400, 'Invalid conversation')
@@ -46,7 +46,7 @@ async function admission(query: AdminMenuQuery, slug: string, conversationId: st
   if (conversation.status === 'blocked') throw new AdminMenuError(audio ? 400 : 403, audio ? 'Invalid conversation' : 'Conversation has been blocked')
   const blocked = await rows<Row>(query, 'SELECT id FROM public.chat_blocked_phones WHERE tenant_id=$1 AND phone_hash=$2 LIMIT 2', [tenant.id, conversation.phone_hash], 1)
   if (blocked.length) throw new AdminMenuError(403, 'This number is blocked')
-  const configuration = one(await rows<ChatConfiguration>(query, `SELECT openrouter_model,rate_limit_per_phone_per_day,text_enabled,audio_enabled,audio_provider FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`, [tenant.id], 1))
+  const configuration = one(await rows<ChatConfiguration>(query, `SELECT openrouter_model,rate_limit_per_phone_per_day,text_enabled,audio_enabled,audio_provider,ordering_help_enabled,staff_call_enabled FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2`, [tenant.id], 1))
   if (!configuration) throw new AdminMenuError(503, audio ? 'Audio not configured' : 'AI assistant not configured')
   const limit = configuration.rate_limit_per_phone_per_day ?? 30
   if (!Number.isInteger(limit) || limit < 1 || limit > 500) throw new AdminMenuError(503, 'AI assistant not configured')

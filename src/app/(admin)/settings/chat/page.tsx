@@ -8,14 +8,18 @@ import ChatAddonClient from './ChatAddonClient'
 import { adminMenusOwned } from '@/lib/data/admin-menus'
 import { adminChatContext } from '@/lib/admin/chat-context'
 import { readOwnedAdminChatSettings } from '@/lib/data/admin-chat-runtime'
+import { getTenantCapabilities } from '@/lib/tenant-plan'
 
 export default async function ChatAddonSettingsPage() {
   const effective = await getEffectiveTenant()
   if (!effective) redirect('/auth/login')
   if (effective.role === 'store-staff') redirect('/dashboard')
+  // What the plan and the restaurant's own switches allow: decides which abilities can be switched on.
+  const { guestOrdering, waiterCalls } = await getTenantCapabilities(effective.tenantId)
+  const abilityAccess = { guestOrdering, waiterCalls }
   if (adminMenusOwned()) {
     const result = await readOwnedAdminChatSettings(await adminChatContext(effective))
-    return <ChatAddonClient initialSettings={result.settings} status={result.status} />
+    return <ChatAddonClient initialSettings={result.settings} status={result.status} abilityAccess={abilityAccess} />
   }
 
   const supabase = createServiceClient()
@@ -30,5 +34,5 @@ export default async function ChatAddonSettingsPage() {
   // Keys live in Settings › AI & billing now; never send the legacy columns out.
   const masked = settings ? { ...settings, openrouter_api_key: undefined, audio_api_key: undefined } : null
 
-  return <ChatAddonClient initialSettings={masked} status={status} />
+  return <ChatAddonClient initialSettings={masked} status={status} abilityAccess={abilityAccess} />
 }

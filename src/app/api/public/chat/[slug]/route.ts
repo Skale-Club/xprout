@@ -31,6 +31,8 @@ import {
   assistantTurnForHistory,
   buildModelMessages,
   loadMenuCatalog,
+  parseCartSnapshot,
+  resolveChatAbilities,
   runChatAgent,
 } from '@/lib/chat-agent'
 import { resolveOrderingMode } from '@/lib/chat-context'
@@ -42,6 +44,7 @@ import { log } from '@/lib/observability/log'
 import { adminMenusOwned, AdminMenuError } from '@/lib/data/admin-menus'
 import { readNativeAnalyticsBody } from '@/lib/data/public-analytics'
 import { handleOwnedChatMessage } from '@/lib/chat-native'
+import { legacyStaffCaller } from '@/lib/chat-staff-call'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -143,7 +146,7 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
   // the client's AI billing mode (src/lib/ai/billing-rules.ts).
   const { data: settings } = await supabase
     .from('chat_addon_settings')
-    .select('openrouter_model, rate_limit_per_phone_per_day, text_enabled, audio_enabled')
+    .select('openrouter_model, rate_limit_per_phone_per_day, text_enabled, audio_enabled, ordering_help_enabled, staff_call_enabled')
     .eq('tenant_id', tenant.id)
     .maybeSingle()
   const access = await resolveAiAccess(tenant.id, 'chat')
@@ -202,8 +205,13 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
     canAddToCart ? isStripeEnabled(tenant.id, supabase).catch(() => false) : Promise.resolve(false),
   ])
 
+  // What the assistant may do: the plan and the guest's table link decide first,
+  // then the restaurant's own switches (no tool registered and no prompt rule when off).
+  const abilities = resolveChatAbilities({ canAddToCart, waiterCalls: capabilities.waiterCalls, tableId: body?.table_id,
+    orderingHelpEnabled: (settings as { ordering_help_enabled?: boolean | null }).ordering_help_enabled,
+    staffCallEnabled: (settings as { staff_call_enabled?: boolean | null }).staff_call_enabled })
   const systemPrompt = buildPublicChatPrompt({ tenantName: tenant.name, settingsRow, capabilities, catalog,
-    locations: locations ?? [], zones: zones ?? [], onlinePayment, canAddToCart, body })
+    locations: locations ?? [], zones: zones ?? [], onlinePayment, canAddToCart, body, abilities })
 
   let result
   try {
@@ -213,7 +221,9 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
       system: systemPrompt,
       messages: buildModelMessages([...(history ?? [])].reverse(), userMessage),
       catalog,
-      ordersEnabled: canAddToCart,
+      ordersEnabled: abilities.orderingHelp,
+      cart: parseCartSnapshot(body?.cart),
+      callStaff: abilities.staffCall ? legacyStaffCaller({ supabase, tenantId: tenant.id, tableId: body?.table_id, conversationId: conversation_id }) : undefined,
     }))
   } catch (e) {
     log.error('chat.generate_error', { err: e })
@@ -233,7 +243,7 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
     {
       conversation_id: convo.id,
       role: 'assistant',
-      content: assistantTurnForHistory(result.text, result.cartItems),
+      content: assistantTurnForHistory(result.text, result.cartItems, result.cartChanges, result.staffCalled),
       created_at: new Date(now + 1).toISOString(),
       tokens_used: result.totalTokens,
     },
@@ -249,6 +259,8 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
   return NextResponse.json({
     text: result.text,
     cart_items: result.cartItems,
+    cart_changes: result.cartChanges.map(({ line_id, quantity }) => ({ line_id, quantity })),
+    staff_called: result.staffCalled !== null,
     remaining_today: Math.max(0, limit - used - 1),
   })
 }

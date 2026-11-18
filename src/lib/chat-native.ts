@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { resolveAiAccess, runAi } from './ai/access'
 import { resolveChatModel } from './ai/chat-models'
 import { openRouterModel, OpenRouterError, transcribeWithOpenRouter, transcriptionModelId } from './ai/openrouter'
-import { assistantTurnForHistory, buildModelMessages, MAX_USER_MESSAGE_CHARS, runChatAgent } from './chat-agent'
+import { assistantTurnForHistory, buildModelMessages, MAX_USER_MESSAGE_CHARS, parseCartSnapshot, resolveChatAbilities, runChatAgent } from './chat-agent'
+import { ownedStaffCaller } from './chat-staff-call'
 import { hasAnyChannel, resolveChatChannels, signVoiceTranscript, verifyVoiceTranscript } from './chat-channels'
 import { buildPublicChatPrompt, type PublicChatBody } from './chat-prompt'
 import { voiceTokenSecret } from './crypto'
@@ -33,19 +34,22 @@ export async function handleOwnedChatMessage(slug: string, conversationId: strin
     }
     if (!channels.text && !voiceVerified) throw new AdminMenuError(403, 'This restaurant takes voice messages only')
     if (context.used >= context.limit) throw new ChatLimitError(context.limit, context.used)
-    const system = buildPublicChatPrompt({ tenantName: context.tenant.name, ...context, body })
+    const abilities = resolveChatAbilities({ canAddToCart: context.canAddToCart, waiterCalls: context.capabilities.waiterCalls, tableId: body?.table_id,
+      orderingHelpEnabled: context.configuration.ordering_help_enabled, staffCallEnabled: context.configuration.staff_call_enabled })
+    const system = buildPublicChatPrompt({ tenantName: context.tenant.name, ...context, body, abilities })
     let result
     try {
       const modelId = resolveChatModel(context.configuration.openrouter_model)
       result = await runAi(access, choice => runChatAgent({ model: openRouterModel(choice.apiKey, modelId, access.fetchFor(choice, modelId)), system,
-        messages: buildModelMessages([...context.history].reverse(), userMessage), catalog: context.catalog, ordersEnabled: context.canAddToCart }))
+        messages: buildModelMessages([...context.history].reverse(), userMessage), catalog: context.catalog, ordersEnabled: abilities.orderingHelp,
+        cart: parseCartSnapshot(body?.cart), callStaff: abilities.staffCall ? ownedStaffCaller({ slug, tableId: body?.table_id, conversationId }) : undefined }))
     } catch (error) {
       log.error('chat.generate_error', { err: error })
       return NextResponse.json({ error: 'Assistant temporarily unavailable' }, { status: 502 })
     }
     const persisted = await saveOwnedPublicChatTurn({ slug, tenantId: context.tenant.id, conversationId, user: userMessage,
-      assistant: assistantTurnForHistory(result.text, result.cartItems), tokens: result.totalTokens, voiceVerified })
-    return NextResponse.json({ text: result.text, cart_items: result.cartItems, remaining_today: persisted.remaining_today })
+      assistant: assistantTurnForHistory(result.text, result.cartItems, result.cartChanges ?? [], result.staffCalled ?? null), tokens: result.totalTokens, voiceVerified })
+    return NextResponse.json({ text: result.text, cart_items: result.cartItems, cart_changes: (result.cartChanges ?? []).map(({ line_id, quantity }) => ({ line_id, quantity })), staff_called: result.staffCalled != null, remaining_today: persisted.remaining_today })
   } catch (error) { return rejected(error) }
 }
 

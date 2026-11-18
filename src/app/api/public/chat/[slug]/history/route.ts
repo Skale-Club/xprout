@@ -20,7 +20,7 @@ export const runtime = 'nodejs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-async function handleGET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function loadHistory(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
   const rl = await rateLimit('chat-history', getClientIp(request), 30, '1 m')
@@ -66,6 +66,13 @@ async function handleGET(request: Request, { params }: { params: Promise<{ slug:
     .order('created_at', { ascending: false })
     .limit(HISTORY_LIMIT)
   return NextResponse.json({ messages: historyForDisplay(history ?? []) })
+}
+
+/** A conversation is private to its guest: every answer, errors included, is uncacheable. */
+async function handleGET(request: Request, context: { params: Promise<{ slug: string }> }) {
+  const response = await loadHistory(request, context)
+  response.headers.set('Cache-Control', 'no-store')
+  return response
 }
 
 export const GET = withApi('GET /api/public/chat/[slug]/history', handleGET)

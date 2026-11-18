@@ -64,6 +64,7 @@ export default async function StagingPreviewPage({ params, searchParams }: Props
         chatAddonEnabled={false}
         chatAddonAudioEnabled={false}
         chatAddonTextEnabled={false}
+        chatAddonSuggestionsEnabled={false}
         capabilities={capabilities}
         table={null}
         waiterCallTable={null}

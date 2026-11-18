@@ -160,7 +160,7 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       ? subscription.features.filter((value): value is string => typeof value === 'string') : null
     const capabilities = resolveTenantCapabilities(features, settings)
     const chat = one(await rows<Row>(query,
-      'SELECT jsonb_build_object(\'enabled\', enabled, \'audio_enabled\', audio_enabled, \'text_enabled\', text_enabled) AS row FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2', [tenantId], 1))
+      'SELECT jsonb_build_object(\'enabled\', enabled, \'audio_enabled\', audio_enabled, \'text_enabled\', text_enabled, \'suggestions_enabled\', suggestions_enabled) AS row FROM public.chat_addon_settings WHERE tenant_id=$1 LIMIT 2', [tenantId], 1))
     const chatActive = subscription?.chat_addon_override === true
       || (subscription?.chat_addon_override !== false && subscription?.chat_addon_available === true && subscription?.chat_addon_active === true)
     const channels = resolveChatChannels(chatActive && chat?.enabled === true
@@ -216,7 +216,7 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       optionGroupsByProductId: buildOptionGroupsByProductId(groups), productIngredientsByProductId: groupByProductId(ingredients),
       productMediaByProductId: groupByProductId(media), productArModelByProductId: arModelsByProductId(arModels), deliveryZones: zones as unknown as DeliveryZone[],
       chatAddonEnabled: chatActive && chat?.enabled === true && hasAnyChannel(channels), chatAddonAudioEnabled: channels.voice,
-      chatAddonTextEnabled: channels.text, tables: tableRows }
+      chatAddonTextEnabled: channels.text, chatAddonSuggestionsEnabled: chat?.suggestions_enabled !== false, tables: tableRows }
   } catch { throw new Error('Public menu is unavailable') }
 }
 

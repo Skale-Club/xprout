@@ -54,6 +54,10 @@ export interface GuestCopy {
   suggestOrder: string
   suggestSpecials: string
   addedLabel: string
+  /** A cart line the assistant changed / removed, and the "team notified" card. */
+  cartUpdatedLabel: string
+  cartRemovedLabel: string
+  staffNotified: string
   expandChat: string
   shrinkChat: string
 }
@@ -81,6 +85,9 @@ const en: GuestCopy = {
   suggestOrder: "Help me order",
   suggestSpecials: "Tell me about the specials",
   addedLabel: "Added",
+  cartUpdatedLabel: "Updated",
+  cartRemovedLabel: "Removed",
+  staffNotified: "We've let the team know",
   expandChat: "Expand chat",
   shrinkChat: "Shrink chat",
 }
@@ -108,6 +115,9 @@ const pt: GuestCopy = {
   suggestOrder: "Me ajude a pedir",
   suggestSpecials: "Fale das sugestões do dia",
   addedLabel: "Adicionado",
+  cartUpdatedLabel: "Atualizado",
+  cartRemovedLabel: "Removido",
+  staffNotified: "Avisamos a equipe",
   expandChat: "Expandir conversa",
   shrinkChat: "Reduzir conversa",
 }
@@ -135,6 +145,9 @@ const es: GuestCopy = {
   suggestOrder: "Ayúdame a pedir",
   suggestSpecials: "Cuéntame las especialidades",
   addedLabel: "Añadido",
+  cartUpdatedLabel: "Actualizado",
+  cartRemovedLabel: "Quitado",
+  staffNotified: "Hemos avisado al equipo",
   expandChat: "Ampliar el chat",
   shrinkChat: "Reducir el chat",
 }
@@ -162,6 +175,9 @@ const fr: GuestCopy = {
   suggestOrder: "Aidez-moi à commander",
   suggestSpecials: "Parlez-moi des spécialités",
   addedLabel: "Ajouté",
+  cartUpdatedLabel: "Mis à jour",
+  cartRemovedLabel: "Retiré",
+  staffNotified: "Nous avons prévenu l'équipe",
   expandChat: "Agrandir le chat",
   shrinkChat: "Réduire le chat",
 }
@@ -189,6 +205,9 @@ const de: GuestCopy = {
   suggestOrder: "Hilf mir beim Bestellen",
   suggestSpecials: "Erzähl mir von den Spezialitäten",
   addedLabel: "Hinzugefügt",
+  cartUpdatedLabel: "Aktualisiert",
+  cartRemovedLabel: "Entfernt",
+  staffNotified: "Wir haben das Team informiert",
   expandChat: "Chat vergrößern",
   shrinkChat: "Chat verkleinern",
 }
@@ -216,6 +235,9 @@ const it: GuestCopy = {
   suggestOrder: "Aiutami a ordinare",
   suggestSpecials: "Parlami delle specialità",
   addedLabel: "Aggiunto",
+  cartUpdatedLabel: "Aggiornato",
+  cartRemovedLabel: "Rimosso",
+  staffNotified: "Abbiamo avvisato il team",
   expandChat: "Espandi la chat",
   shrinkChat: "Riduci la chat",
 }
@@ -243,6 +265,9 @@ const nl: GuestCopy = {
   suggestOrder: "Help me bestellen",
   suggestSpecials: "Vertel me over de specialiteiten",
   addedLabel: "Toegevoegd",
+  cartUpdatedLabel: "Bijgewerkt",
+  cartRemovedLabel: "Verwijderd",
+  staffNotified: "We hebben het team op de hoogte gebracht",
   expandChat: "Chat vergroten",
   shrinkChat: "Chat verkleinen",
 }
@@ -270,6 +295,9 @@ const pl: GuestCopy = {
   suggestOrder: "Pomóż mi zamówić",
   suggestSpecials: "Opowiedz o specjałach",
   addedLabel: "Dodano",
+  cartUpdatedLabel: "Zaktualizowano",
+  cartRemovedLabel: "Usunięto",
+  staffNotified: "Daliśmy znać zespołowi",
   expandChat: "Powiększ czat",
   shrinkChat: "Zmniejsz czat",
 }
@@ -297,6 +325,9 @@ const tr: GuestCopy = {
   suggestOrder: "Sipariş vermeme yardım et",
   suggestSpecials: "Özel lezzetlerden bahset",
   addedLabel: "Eklendi",
+  cartUpdatedLabel: "Güncellendi",
+  cartRemovedLabel: "Kaldırıldı",
+  staffNotified: "Ekibe haber verdik",
   expandChat: "Sohbeti büyüt",
   shrinkChat: "Sohbeti küçült",
 }
@@ -324,6 +355,9 @@ const ru: GuestCopy = {
   suggestOrder: "Помогите сделать заказ",
   suggestSpecials: "Расскажите о фирменных блюдах",
   addedLabel: "Добавлено",
+  cartUpdatedLabel: "Обновлено",
+  cartRemovedLabel: "Удалено",
+  staffNotified: "Мы сообщили команде",
   expandChat: "Развернуть чат",
   shrinkChat: "Свернуть чат",
 }
@@ -351,6 +385,9 @@ const hi: GuestCopy = {
   suggestOrder: "ऑर्डर करने में मदद करें",
   suggestSpecials: "स्पेशल के बारे में बताइए",
   addedLabel: "जोड़ा गया",
+  cartUpdatedLabel: "अपडेट किया गया",
+  cartRemovedLabel: "हटाया गया",
+  staffNotified: "हमने टीम को सूचित कर दिया है",
   expandChat: "चैट बड़ा करें",
   shrinkChat: "चैट छोटा करें",
 }
@@ -378,6 +415,9 @@ const ja: GuestCopy = {
   suggestOrder: "注文を手伝って",
   suggestSpecials: "日替わりやおすすめを教えて",
   addedLabel: "追加済み",
+  cartUpdatedLabel: "更新しました",
+  cartRemovedLabel: "削除しました",
+  staffNotified: "スタッフに連絡しました",
   expandChat: "チャットを広げる",
   shrinkChat: "チャットを縮める",
 }
@@ -405,6 +445,9 @@ const ko: GuestCopy = {
   suggestOrder: "주문을 도와주세요",
   suggestSpecials: "스페셜 메뉴를 알려주세요",
   addedLabel: "추가됨",
+  cartUpdatedLabel: "업데이트됨",
+  cartRemovedLabel: "삭제됨",
+  staffNotified: "직원에게 알렸어요",
   expandChat: "채팅 확대",
   shrinkChat: "채팅 축소",
 }
@@ -432,6 +475,9 @@ const zh: GuestCopy = {
   suggestOrder: "帮我点餐",
   suggestSpecials: "介绍一下特色菜",
   addedLabel: "已添加",
+  cartUpdatedLabel: "已更新",
+  cartRemovedLabel: "已移除",
+  staffNotified: "已通知店员",
   expandChat: "展开聊天",
   shrinkChat: "收起聊天",
 }
@@ -459,6 +505,9 @@ const zhTW: GuestCopy = {
   suggestOrder: "幫我點餐",
   suggestSpecials: "介紹一下特色餐點",
   addedLabel: "已加入",
+  cartUpdatedLabel: "已更新",
+  cartRemovedLabel: "已移除",
+  staffNotified: "已通知店員",
   expandChat: "展開聊天",
   shrinkChat: "收合聊天",
 }

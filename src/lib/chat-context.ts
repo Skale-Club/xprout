@@ -89,6 +89,8 @@ export function describeOrdering(
     capabilities?: OrderingCapabilities | null
     /** The guest opened the menu from a table link (?table=). */
     atTable?: boolean
+    /** The restaurant lets the assistant change the cart (default true). */
+    orderingHelp?: boolean
   },
 ): string {
   const mode = resolveOrderingMode(s, opts.capabilities)
@@ -120,10 +122,17 @@ export function describeOrdering(
     ? 'Payment is online, by card, at checkout (secure Stripe payment). The order only goes to the kitchen once it is paid.'
     : 'There is no online payment: the customer pays in person (at the restaurant, on pickup or on delivery). If they ask which payment methods are accepted, tell them to check with the restaurant.'
 
-  return `Orders are placed through the cart on this page. You CAN add items with the addToCart tool.
+  const help = opts.orderingHelp !== false
+  const intro = help
+    ? 'Orders are placed through the cart on this page. You CAN add items with the addToCart tool.'
+    : 'Orders are placed through the cart on this page, by the customer. You CANNOT add, remove or change items in it: help them choose, then tell them to add the dishes from the menu screen.'
+  const how = help
+    ? 'you add the items, the cart opens, and the customer reviews it'
+    : 'the customer adds the items from the menu and reviews the cart'
+  return `${intro}
 - Order types available: ${types.length ? types.join('; ') : 'not configured'}. Only offer these.
 - ${payment}
-${s.tips_enabled ? '- Customers can add an optional tip at checkout.\n' : ''}- How it works: you add the items, the cart opens, and the customer reviews it and taps checkout to choose the order type, enter name and phone (and the address for delivery)${opts.onlinePayment ? ' and pay' : ''}. You cannot place the order yourself.`
+${s.tips_enabled ? '- Customers can add an optional tip at checkout.\n' : ''}- How it works: ${how} and taps checkout to choose the order type, enter name and phone (and the address for delivery)${opts.onlinePayment ? ' and pay' : ''}. You cannot place the order yourself.`
 }
 
 // ── Time zone ──────────────────────────────────────────────────────────────
