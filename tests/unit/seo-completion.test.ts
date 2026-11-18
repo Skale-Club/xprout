@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { resolveSite } from '@/lib/site/resolve-site'
+vi.mock('@/lib/marketing/public-locale-server', () => ({ getPublicLocale: async () => 'en' }))
 
 const mocks = vi.hoisted(() => ({ owned: vi.fn(), native: vi.fn(), publicPosts: vi.fn(), tags: vi.fn(), archive: vi.fn(), nativePosts: vi.fn(), nativeTags: vi.fn(), nativeArchive: vi.fn(), ownedBlog: vi.fn(), image: vi.fn(), dish: vi.fn(), site: vi.fn() }))
 vi.mock('@/lib/blog/native/selected', () => ({ nativeBlogSelected: mocks.native, requireNativeBlogConfiguration: () => {} }))
