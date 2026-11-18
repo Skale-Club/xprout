@@ -9,7 +9,7 @@ import { googleProof, phoneProof, type IdentityWebConfig } from '@/lib/auth/iden
 import { requireLoginAuthority } from '@/lib/auth/browser-login-authority'
 import { completeOwnedLogin, ownedLoginDestination, OwnedLoginError } from '@/lib/auth/browser-owned-login'
 import Link from 'next/link'
-import { ArrowRight, ChevronLeft } from 'lucide-react'
+import { ArrowRight, Check, ChevronLeft } from 'lucide-react'
 import type { GuestBrand } from '@/lib/auth/guest-brand'
 import type { PublicPlatformBrand } from '@/lib/site/public-brand'
 
@@ -217,8 +217,10 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
       if (sent) {
         const current = attempt.current
         if (!current) throw new IdentityRequestError('Request another verification code.')
-        try { await complete(await current.confirm(code)) }
-        finally { attempt.current = null; setSent(false); setCode('') }
+        // Success keeps the code step on screen (it turns into the confirmation while the page moves on);
+        // only a failed code goes back to the phone step, since the attempt is used up.
+        try { await complete(await current.confirm(code)); attempt.current = null }
+        catch (error) { attempt.current = null; setSent(false); setCode(''); throw error }
         return
       }
       const e164 = toE164Phone(phone)
@@ -233,7 +235,14 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
         <GuestSignInHeader bannerUrl={brand.bannerUrl} logoUrl={brand.logoUrl} restaurantName={brand.name} accent={accent} onAccent={onAccent}
           title={sent ? copy.loginVerifyTitle : copy.loginTitle}
           subtitle={sent ? fill(copy.loginCodeSent, { phone: phoneLabel(sentPhone, context) || sentPhone }) : copy.loginSubtitle} />
-        <div className="space-y-4 px-6 pb-6 pt-5">
+        {leaving ? <div role="status" className="flex flex-col items-center gap-3 px-6 pb-8 pt-7 text-center">
+          {/* Signed in: a short confirmation while the page moves on, never a flash of the phone step. */}
+          <span className="grid size-14 place-items-center rounded-full motion-safe:animate-[guest-done_320ms_cubic-bezier(.2,.9,.3,1.3)_both]" style={accentStyle}>
+            <Check className="size-7" strokeWidth={3} aria-hidden="true" />
+          </span>
+          <p className="text-[16px] font-semibold text-zinc-900">{copy.loginDone}</p>
+          <style>{'@keyframes guest-done{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}'}</style>
+        </div> : <div className="space-y-4 px-6 pb-6 pt-5">
           {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-medium leading-snug text-red-800">{error}</p> : null}
           {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] font-medium leading-snug text-emerald-800">{message}</p> : null}
           <form className="space-y-4" onSubmit={event => { event.preventDefault(); submit() }}>
@@ -269,7 +278,7 @@ export default function IdentityPilot({ config, continueToApp = false, existingA
               {copy.loginGoogle}
             </button>
           </> : null}
-        </div>
+        </div>}
       </section>
     </main>
   }

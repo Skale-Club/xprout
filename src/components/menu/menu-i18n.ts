@@ -154,7 +154,7 @@ export interface MenuCopy {
   // Website pages
   pagesMore: string; pageName: string; pageEmail: string; pagePhone: string; pageMessage: string; pageSend: string; pageSending: string; pageSent: string; pageSendError: string; pageOpenMaps: string; pageViewMenu: string
   // Guest sign-in popup (phone code)
-  loginTitle: string; loginSubtitle: string; loginPhoneLabel: string; loginCountry: string; loginCountrySearch: string; loginSendCode: string; loginSending: string; loginVerifyTitle: string; loginCodeSent: string; loginCodeLabel: string; loginVerify: string; loginVerifying: string; loginChangePhone: string; loginInvalidPhone: string; loginUnavailable: string; loginGoogle: string; loginOr: string; loginExistingAccount: string; loginRecovery: string; loginContinueAccount: string; loginSignOut: string
+  loginTitle: string; loginSubtitle: string; loginPhoneLabel: string; loginCountry: string; loginCountrySearch: string; loginSendCode: string; loginSending: string; loginVerifyTitle: string; loginCodeSent: string; loginCodeLabel: string; loginVerify: string; loginVerifying: string; loginChangePhone: string; loginInvalidPhone: string; loginUnavailable: string; loginGoogle: string; loginOr: string; loginExistingAccount: string; loginRecovery: string; loginContinueAccount: string; loginSignOut: string; loginDone: string
 }
 
 const en: MenuCopy = {
@@ -222,6 +222,7 @@ const en: MenuCopy = {
   loginRecovery: "Can't access your previous sign-in? Contact the restaurant or support.",
   loginContinueAccount: "Go to my account",
   loginSignOut: "Sign out",
+  loginDone: "All set! Signing you in…",
 }
 
 const pt: MenuCopy = {
@@ -289,6 +290,7 @@ const pt: MenuCopy = {
   loginRecovery: "Não consegue acessar seu login anterior? Fale com o restaurante ou com o suporte.",
   loginContinueAccount: "Ir para minha conta",
   loginSignOut: "Sair",
+  loginDone: "Pronto! Entrando…",
 }
 
 const es: MenuCopy = {
@@ -356,6 +358,7 @@ const es: MenuCopy = {
   loginRecovery: "¿No puedes acceder a tu inicio de sesión anterior? Contacta al restaurante o al soporte.",
   loginContinueAccount: "Ir a mi cuenta",
   loginSignOut: "Cerrar sesión",
+  loginDone: "¡Listo! Entrando…",
 }
 
 const fr: MenuCopy = {
@@ -423,6 +426,7 @@ const fr: MenuCopy = {
   loginRecovery: "Plus accès à votre ancienne connexion ? Contactez le restaurant ou le support.",
   loginContinueAccount: "Aller à mon compte",
   loginSignOut: "Se déconnecter",
+  loginDone: "C’est fait ! Connexion…",
 }
 
 const de: MenuCopy = {
@@ -490,6 +494,7 @@ const de: MenuCopy = {
   loginRecovery: "Kein Zugriff mehr auf deine alte Anmeldung? Wende dich an das Restaurant oder den Support.",
   loginContinueAccount: "Zu meinem Konto",
   loginSignOut: "Abmelden",
+  loginDone: "Fertig! Anmeldung läuft…",
 }
 
 const it: MenuCopy = {
@@ -557,6 +562,7 @@ const it: MenuCopy = {
   loginRecovery: "Non riesci ad accedere al tuo accesso precedente? Contatta il ristorante o l'assistenza.",
   loginContinueAccount: "Vai al mio account",
   loginSignOut: "Esci",
+  loginDone: "Fatto! Accesso in corso…",
 }
 
 const nl: MenuCopy = {
@@ -624,6 +630,7 @@ const nl: MenuCopy = {
   loginRecovery: "Geen toegang meer tot je oude login? Neem contact op met het restaurant of de support.",
   loginContinueAccount: "Naar mijn account",
   loginSignOut: "Uitloggen",
+  loginDone: "Klaar! Je wordt ingelogd…",
 }
 
 const pl: MenuCopy = {
@@ -691,6 +698,7 @@ const pl: MenuCopy = {
   loginRecovery: "Nie masz dostępu do poprzedniego logowania? Skontaktuj się z restauracją lub wsparciem.",
   loginContinueAccount: "Przejdź do konta",
   loginSignOut: "Wyloguj się",
+  loginDone: "Gotowe! Logowanie…",
 }
 
 const tr: MenuCopy = {
@@ -758,6 +766,7 @@ const tr: MenuCopy = {
   loginRecovery: "Önceki girişine erişemiyor musun? Restoranla veya destekle iletişime geç.",
   loginContinueAccount: "Hesabıma git",
   loginSignOut: "Çıkış yap",
+  loginDone: "Tamam! Giriş yapılıyor…",
 }
 
 const ru: MenuCopy = {
@@ -825,6 +834,7 @@ const ru: MenuCopy = {
   loginRecovery: "Нет доступа к прежнему входу? Свяжитесь с рестораном или поддержкой.",
   loginContinueAccount: "Перейти в аккаунт",
   loginSignOut: "Выйти",
+  loginDone: "Готово! Выполняем вход…",
 }
 
 const hi: MenuCopy = {
@@ -892,6 +902,7 @@ const hi: MenuCopy = {
   loginRecovery: "पुराने साइन-इन तक पहुँच नहीं है? रेस्टोरेंट या सहायता से संपर्क करें।",
   loginContinueAccount: "मेरे खाते पर जाएँ",
   loginSignOut: "साइन आउट",
+  loginDone: "हो गया! साइन इन हो रहा है…",
 }
 
 const ja: MenuCopy = {
@@ -959,6 +970,7 @@ const ja: MenuCopy = {
   loginRecovery: "以前のログインにアクセスできない場合は、店舗またはサポートにご連絡ください。",
   loginContinueAccount: "マイアカウントへ",
   loginSignOut: "ログアウト",
+  loginDone: "完了しました。ログイン中…",
 }
 
 const ko: MenuCopy = {
@@ -1026,6 +1038,7 @@ const ko: MenuCopy = {
   loginRecovery: "이전 로그인에 접근할 수 없나요? 매장이나 고객지원에 문의하세요.",
   loginContinueAccount: "내 계정으로",
   loginSignOut: "로그아웃",
+  loginDone: "완료! 로그인 중…",
 }
 
 const zh: MenuCopy = {
@@ -1093,6 +1106,7 @@ const zh: MenuCopy = {
   loginRecovery: "无法使用之前的登录方式？请联系餐厅或客服。",
   loginContinueAccount: "前往我的账户",
   loginSignOut: "退出登录",
+  loginDone: "完成！正在登录…",
 }
 
 const zhTW: MenuCopy = {
@@ -1160,6 +1174,7 @@ const zhTW: MenuCopy = {
   loginRecovery: "無法使用先前的登入方式？請聯絡餐廳或客服。",
   loginContinueAccount: "前往我的帳戶",
   loginSignOut: "登出",
+  loginDone: "完成！正在登入…",
 }
 
 const COPY: Record<string, MenuCopy> = { en, pt, es, fr, de, it, nl, pl, tr, ru, hi, ja, ko, zh, 'zh-TW': zhTW }
@@ -1191,4 +1206,4 @@ export function translateTag(tag: string, lang: string): string {
 }
 
 /** The strings the guest sign-in popup uses (see LoginClient). */
-export type LoginCopy = Pick<MenuCopy, 'loginTitle' | 'loginSubtitle' | 'loginPhoneLabel' | 'loginCountry' | 'loginCountrySearch' | 'loginSendCode' | 'loginSending' | 'loginVerifyTitle' | 'loginCodeSent' | 'loginCodeLabel' | 'loginVerify' | 'loginVerifying' | 'loginChangePhone' | 'loginInvalidPhone' | 'loginUnavailable' | 'loginGoogle' | 'loginOr' | 'loginExistingAccount' | 'loginRecovery' | 'loginContinueAccount' | 'loginSignOut' | 'close'>
+export type LoginCopy = Pick<MenuCopy, 'loginTitle' | 'loginSubtitle' | 'loginPhoneLabel' | 'loginCountry' | 'loginCountrySearch' | 'loginSendCode' | 'loginSending' | 'loginVerifyTitle' | 'loginCodeSent' | 'loginCodeLabel' | 'loginVerify' | 'loginVerifying' | 'loginChangePhone' | 'loginInvalidPhone' | 'loginUnavailable' | 'loginGoogle' | 'loginOr' | 'loginExistingAccount' | 'loginRecovery' | 'loginContinueAccount' | 'loginSignOut' | 'loginDone' | 'close'>
