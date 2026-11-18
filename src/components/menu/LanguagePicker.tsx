@@ -15,11 +15,13 @@ function shortCode(code: string): string {
  * list of the menu's languages (flag, native name, a check on the current one).
  * Replaces a native <select>, whose system list looked out of place.
  */
-export default function LanguagePicker({ languages, value, onChange, label }: {
+export default function LanguagePicker({ languages, value, onChange, label, compact = false }: {
   languages: string[]
   value: string
   onChange: (lang: string) => void
   label: string
+  /** Flag-only trigger on narrow platform headers; menu callers keep the full pill. */
+  compact?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -74,11 +76,11 @@ export default function LanguagePicker({ languages, value, onChange, label }: {
         aria-controls={open ? listId : undefined}
         onClick={() => setOpen(o => !o)}
         onKeyDown={e => { if (e.key === 'ArrowDown' && !open) { e.preventDefault(); setOpen(true) } }}
-        className="flex h-10 items-center gap-1.5 rounded-full bg-white/95 pl-2.5 pr-2 text-[14px] font-semibold text-zinc-900 shadow-sm transition-[scale] active:scale-95"
+        className={`flex h-10 items-center rounded-full bg-white/95 text-[14px] font-semibold text-zinc-900 shadow-sm transition-[scale] active:scale-95 ${compact ? 'w-10 justify-center sm:w-auto sm:gap-1.5 sm:pl-2.5 sm:pr-2' : 'gap-1.5 pl-2.5 pr-2'}`}
       >
         <CountryFlag iso={menuLanguage(value).flag} className="size-6" />
-        <span>{shortCode(value)}</span>
-        <ChevronDown className={`size-4 text-zinc-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+        <span className={compact ? 'hidden sm:inline' : undefined}>{shortCode(value)}</span>
+        <ChevronDown className={`${compact ? 'hidden sm:block' : ''} size-4 text-zinc-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
 
       {open && (
