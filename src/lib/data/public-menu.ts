@@ -12,6 +12,7 @@ import { hasAnyChannel, resolveChatChannels } from '../chat-channels'
 import type { GroupWithOptions } from '@/app/(admin)/menu/products/[id]/page'
 import type { DeliveryZone, ProductIngredientWithIngredient, ProductMedia, PublicProductArModel } from '@/types/database'
 import { LOCAL_SEO_FIELDS } from '../seo'
+import { DESIGN_VARIANTS_READY_SQL } from '../design-variants'
 
 export type PublicMenuQuery = (text: string, values?: unknown[]) => Promise<{ rows: Array<{ row: unknown }> }>
 type Row = Record<string, unknown>
@@ -106,6 +107,11 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
       Object.assign(settings, linksReady
         ? one(await rows<Row>(query, `SELECT jsonb_build_object(${ACTION_LINK_COLUMNS.map(column => `'${column}', s.${column}`).join(', ')}) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2`, [tenantId], 1))
         : { hide_platform_brand: false, order_online_url: null, reservation_url: null })
+      // Per-client design variants (docs/product/design-variants.md) once the schema step ran; absent column = {}.
+      const variantsReady = one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${DESIGN_VARIANTS_READY_SQL}) r`, [], 1))?.ready === true
+      settings.design_variants = variantsReady
+        ? one(await rows<Row>(query, "SELECT jsonb_build_object('design_variants', s.design_variants) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2", [tenantId], 1))?.design_variants ?? {}
+        : {}
       // Sales tax rate (and, by its presence, the promo field) once the tax/promo schema step ran.
       const taxReady = one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${TAX_PROMO_READY_SQL}) r`, [], 1))?.ready === true
       if (taxReady) Object.assign(settings, one(await rows<Row>(query, "SELECT jsonb_build_object('tax_rate_bps', s.tax_rate_bps) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2", [tenantId], 1)))

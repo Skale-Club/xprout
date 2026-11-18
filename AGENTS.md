@@ -73,6 +73,8 @@ the Inter/menu font stack, role-based typography, control dimensions, icons,
 spacing and feedback coherent across equivalent views. Respect menu capabilities:
 read-only menus must not acquire cart actions. Review the related screens
 together; document rollout gaps instead of claiming global alignment is complete.
+
+A restaurant that wants its own look gets a registered per-client design variant, never a slug check or a forked component: see [design variants](docs/product/design-variants.md).
 <!-- /ui-consistency -->
 
 ## SEO consistency

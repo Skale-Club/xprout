@@ -7,6 +7,7 @@ import Link from 'next/link'
 import OwnedStaffManagement from '@/components/admin/OwnedStaffManagement'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import TenantAiCard from './TenantAiCard'
+import TenantDesignVariantsCard from './TenantDesignVariantsCard'
 import TenantSubdomainCard from './TenantSubdomainCard'
 import ServiceSwitchesCard, { type ServiceSwitchValues } from './ServiceSwitchesCard'
 import { planBadgeClass } from '@/lib/plan-badge'
@@ -1349,6 +1350,8 @@ export default function TenantDetailClient({
       </details>
 
       <TenantAiCard tenantId={tenant.id} />
+
+      <TenantDesignVariantsCard tenantId={tenant.id} />
 
       {/* CRM Sync section | OBS-01: surface Xphere sync state + manual re-sync */}
       {(hasXphereConnection || nativeEffects) && (
