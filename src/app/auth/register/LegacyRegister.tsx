@@ -226,6 +226,7 @@ function RegisterForm() {
 }
 
 export default function RegisterPage() {
+  const { href } = usePublicLocale()
   return (
     <div className="platform-dark min-h-screen flex items-center justify-center bg-zinc-950 px-4 selection:bg-primary/30 relative overflow-hidden">
       {/* Background Glows */}

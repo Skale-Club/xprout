@@ -11,11 +11,13 @@ import copy from '@/lib/marketing/public-copy.json'
 import shell from '@/lib/marketing/public-shell-copy.json'
 
 vi.mock('next/dynamic', () => ({ default: () => () => null }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), useSearchParams: () => new URLSearchParams() }))
 import Landing from '@/app/(marketing)/ClientPage'
 import Pricing from '@/app/(marketing)/pricing/PricingClient'
 import { BlogPostList } from '@/components/blog/post-list'
 import IdentityPilot from '@/app/identity/IdentityPilot'
 import NativeRegister from '@/app/auth/register/NativeRegister'
+import LegacyRegister from '@/app/auth/register/LegacyRegister'
 
 describe('public language selection and navigation', () => {
   it('prefers explicit language, then saved preference, with a stable English default', () => {
@@ -75,6 +77,11 @@ describe('localized public rendering', () => {
     expect(signin.includes(translatePublic(locale, 'Continue'))).toBe(true)
     expect(register.includes(translatePublic(locale, 'Create your business account'))).toBe(true)
     expect(register).toContain(`lang=${locale}`)
+  })
+  it.each(PUBLIC_LOCALES)('keeps the legacy registration footer in the same %s locale as its form', locale => {
+    const html = renderToStaticMarkup(createElement(PublicLocaleProvider, { locale }, createElement(LegacyRegister)))
+    expect(html.includes(translatePublic(locale, 'Create your account'))).toBe(true)
+    expect(html).toContain(`href="/?lang=${locale}"`)
   })
   it('has complete locale pairs and preserves interpolation tokens in every catalog entry', () => {
     for (const catalog of [copy, shell]) {
