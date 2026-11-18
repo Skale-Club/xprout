@@ -16,6 +16,8 @@ import { assertOwnedAiActor, writeOwnedAiTenantSettings } from '@/lib/data/ai-pa
 import { nativeAiTenantPayload } from '@/lib/ai/native-panel'
 import { chatControls } from '@/lib/data/ai-panel'
 import { readNativeAnalyticsBody } from '@/lib/data/public-analytics'
+import { parseChatModelSetting, resolveChatModel } from '@/lib/ai/chat-models'
+import { legacyChatModelColumnExists, SETTINGS_NOT_AVAILABLE_YET } from '@/lib/ai/chat-model-legacy'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +31,7 @@ export async function tenantAiPayload(tenantId: string) {
     usageByTenant(startOfMonthIso(), tenantId),
     unbilledChargeUsd(tenantId),
     supabase.from('tenant_subscriptions').select('stripe_customer_id, chat_addon_override, chat_addon_active, plans(chat_addon_available)').eq('tenant_id', tenantId).maybeSingle(),
-    supabase.from('chat_addon_settings').select('enabled, text_enabled, audio_enabled').eq('tenant_id', tenantId).maybeSingle(),
+    supabase.from('chat_addon_settings').select('enabled, text_enabled, audio_enabled, openrouter_model').eq('tenant_id', tenantId).maybeSingle(),
   ])
   const plan = (sub as { plans?: { chat_addon_available?: boolean } | null } | null)?.plans
   return {
@@ -49,6 +51,7 @@ export async function tenantAiPayload(tenantId: string) {
     is_demo: tenant.isDemo,
     chat: chatControls({ ...(chatRow ?? {}), has_subscription: !!sub, chat_addon_override: sub?.chat_addon_override,
       chat_addon_active: sub?.chat_addon_active, chat_addon_available: plan?.chat_addon_available }),
+    platform_chat_model: resolveChatModel(null, platform.chatModel),
   }
 }
 
@@ -59,6 +62,13 @@ async function writeLegacyChat(tenantId: string, input: unknown): Promise<string
   if (chat.text !== undefined) { if (typeof chat.text !== 'boolean') return 'Invalid chat channel'; patch.text_enabled = chat.text }
   if (chat.voice !== undefined) { if (typeof chat.voice !== 'boolean') return 'Invalid chat channel'; patch.audio_enabled = chat.voice }
   if (chat.on !== undefined && typeof chat.on !== 'boolean') return 'Invalid chat switch'
+  if (chat.model !== undefined) {
+    const model = parseChatModelSetting(chat.model)
+    if (model === undefined) return 'Unsupported model'
+    // The column is nullable only after the schema step; until then "follow the default" cannot be stored.
+    if (!(await legacyChatModelColumnExists())) return SETTINGS_NOT_AVAILABLE_YET
+    patch.openrouter_model = model
+  }
   const supabase = createServiceClient()
   const { data: current } = await supabase.from('chat_addon_settings').select('text_enabled, audio_enabled').eq('tenant_id', tenantId).maybeSingle()
   const text = patch.text_enabled ?? current?.text_enabled ?? true, voice = patch.audio_enabled ?? current?.audio_enabled ?? false
@@ -101,7 +111,7 @@ async function handlePUT(request: Request, { params }: Ctx) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
   if (body.chat !== undefined) {
     const problem = await writeLegacyChat(id, body.chat)
-    if (problem) return NextResponse.json({ error: problem }, { status: problem === 'Could not save' ? 500 : problem.startsWith('This client') ? 409 : 400 })
+    if (problem) return NextResponse.json({ error: problem }, { status: problem === 'Could not save' ? 500 : problem.startsWith('This client') || problem === SETTINGS_NOT_AVAILABLE_YET ? 409 : 400 })
     // A chat-only change leaves the AI billing row alone.
     if (Object.keys(body).length === 1) return NextResponse.json(await tenantAiPayload(id))
   }

@@ -3,6 +3,8 @@ import { authorizeAdminActor, type AdminActorContext } from './admin-actor'
 import { clampMarkup, parseBillingMode } from '../ai/billing-rules'
 import { nextStoredKey } from '../ai/settings-key'
 import type { UsageSummary } from '../ai/settings-service'
+import { isChatModel, parseChatModelSetting } from '../ai/chat-models'
+import { platformChatModelColumnExists, SETTINGS_NOT_AVAILABLE_YET } from './platform-chat-model'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 function object(input: unknown) { if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AdminMenuError(400, 'Invalid request'); return input as Record<string, unknown> }
@@ -45,12 +47,13 @@ export async function readAiBillingAvailability(query: AdminMenuQuery, context: 
   return result.rows[0]?.can_bill === true
 }
 /** The chat on a client's menu as the superadmin sees it: on/off and its channels. */
-export interface TenantChatControls { on: boolean; text: boolean; voice: boolean; has_subscription: boolean }
+/** `model` is this client's own chat model (null = follows the platform default). */
+export interface TenantChatControls { on: boolean; text: boolean; voice: boolean; model: string | null; has_subscription: boolean }
 
 export async function readTenantChatControls(query: AdminMenuQuery, tenantId: string): Promise<TenantChatControls> {
   if (!UUID.test(tenantId)) throw new AdminMenuError(404, 'Tenant not found')
   const rows = (await query(`SELECT s.tenant_id IS NOT NULL AS has_subscription,s.chat_addon_override,s.chat_addon_active,p.chat_addon_available,
-    c.enabled,c.text_enabled,c.audio_enabled FROM public.tenants t LEFT JOIN public.tenant_subscriptions s ON s.tenant_id=t.id
+    c.enabled,c.text_enabled,c.audio_enabled,c.openrouter_model FROM public.tenants t LEFT JOIN public.tenant_subscriptions s ON s.tenant_id=t.id
     LEFT JOIN public.plans p ON p.id=s.plan_id LEFT JOIN public.chat_addon_settings c ON c.tenant_id=t.id WHERE t.id=$1 LIMIT 2`, [tenantId])).rows
   if (rows.length === 0) throw new AdminMenuError(404, 'Tenant not found')
   if (rows.length > 1) throw new AdminMenuError(503, 'Chat information is unavailable')
@@ -61,12 +64,13 @@ export async function readTenantChatControls(query: AdminMenuQuery, tenantId: st
 export function chatControls(row: Record<string, unknown>): TenantChatControls {
   const override = row.chat_addon_override
   const active = override === true || (override !== false && row.chat_addon_available === true && row.chat_addon_active === true)
-  return { on: active && row.enabled === true, text: row.text_enabled !== false, voice: row.audio_enabled === true, has_subscription: row.has_subscription === true }
+  return { on: active && row.enabled === true, text: row.text_enabled !== false, voice: row.audio_enabled === true, model: isChatModel(row.openrouter_model) ? row.openrouter_model : null, has_subscription: row.has_subscription === true }
 }
 
 /**
  * Superadmin > client > AI > Chat. On forces the add-on on for this client (whatever the plan) and switches
- * the chat on; off forces it off. Channels are the menu's text and voice chat; at least one stays on.
+ * the chat on; off forces it off. Channels are the menu's text and voice chat; at least one stays on. `model` is the
+ * client's own chat model (null = the platform default).
  */
 async function writeTenantChatControls(query: AdminMenuQuery, tenantId: string, input: unknown) {
   const chat = object(input), patch: Record<string, unknown> = {}
@@ -74,6 +78,13 @@ async function writeTenantChatControls(query: AdminMenuQuery, tenantId: string, 
     if (chat[field] === undefined) continue
     if (typeof chat[field] !== 'boolean') throw new AdminMenuError(400, 'Invalid chat channel')
     patch[column] = chat[field]
+  }
+  if (chat.model !== undefined) {
+    const model = parseChatModelSetting(chat.model)
+    if (model === undefined) throw new AdminMenuError(400, 'Unsupported model')
+    // The column is nullable only after the schema step; until then "follow the default" cannot be stored.
+    if (!(await platformChatModelColumnExists(query))) throw new AdminMenuError(409, SETTINGS_NOT_AVAILABLE_YET)
+    patch.openrouter_model = model
   }
   if (chat.on !== undefined) {
     if (typeof chat.on !== 'boolean') throw new AdminMenuError(400, 'Invalid chat switch')
@@ -138,6 +149,13 @@ export async function writeAiPlatformSettings(query: AdminMenuQuery, context: Ad
   if (body.default_billing_mode !== undefined) { const mode = parseBillingMode(body.default_billing_mode); if (!mode) throw new AdminMenuError(400, 'Invalid billing mode'); row.default_billing_mode = mode }
   if (body.default_markup_pct !== undefined) { const markup = Number(body.default_markup_pct); if (!Number.isFinite(markup) || markup < 0 || markup > 1000) throw new AdminMenuError(400, 'Margin must be between 0 and 1000%'); row.default_markup_pct = clampMarkup(markup) }
   if (body.usd_to_brl !== undefined) { const rate = Number(body.usd_to_brl); if (!Number.isFinite(rate) || rate <= 0 || rate > 100) throw new AdminMenuError(400, 'Invalid USD→BRL rate'); row.usd_to_brl = rate }
+  if (body.chat_model !== undefined) {
+    const model = parseChatModelSetting(body.chat_model)
+    if (model === undefined) throw new AdminMenuError(400, 'Unsupported model')
+    // Saved before the schema step ran: say so instead of failing with a 500.
+    if (!(await platformChatModelColumnExists(query))) throw new AdminMenuError(409, SETTINGS_NOT_AVAILABLE_YET)
+    row.chat_model = model
+  }
   const columns = Object.keys(row)
   await query(`INSERT INTO public.platform_ai_settings(id,${columns.join(',')}) VALUES(1,${columns.map((_, index) => `$${index + 1}`).join(',')})
     ON CONFLICT(id) DO UPDATE SET ${columns.map(column => `${column}=EXCLUDED.${column}`).join(',')}`, Object.values(row))

@@ -20,7 +20,7 @@ it('loads and decrypts native settings with the existing defaults/numeric semant
   const platformValue = randomUUID(), tenantValue = randomUUID()
   state.platform.mockResolvedValue({ openrouter_api_key: encryptApiKey(platformValue), default_billing_mode: 'included', default_markup_pct: '35.50', usd_to_brl: '5.75' })
   state.tenant.mockResolvedValue({ openrouter_api_key: encryptApiKey(tenantValue), billing_mode: 'own_key', markup_pct: '12.50', last_key_error: null, last_key_error_at: null })
-  expect(await loadPlatformAiSettings()).toEqual({ platformKey: platformValue, platformKeySource: 'panel', defaultMode: 'included', defaultMarkupPct: 35.5, usdToBrl: 5.75 })
+  expect(await loadPlatformAiSettings()).toEqual({ platformKey: platformValue, platformKeySource: 'panel', defaultMode: 'included', defaultMarkupPct: 35.5, usdToBrl: 5.75, chatModel: null })
   expect(await loadTenantAiSettings(tenantId)).toMatchObject({ key: tenantValue, mode: 'own_key', markupPct: 12.5 })
   expect(state.tenant).toHaveBeenCalledWith(tenantId); expect(state.source).not.toHaveBeenCalled()
 })
@@ -30,7 +30,7 @@ it('missing native configuration retains explicit environment defaults, while a 
   state.platform.mockRejectedValue(new AdminMenuError(503, 'Unavailable'))
   await expect(loadPlatformAiSettings()).rejects.toMatchObject({ status: 503 }); expect(state.source).not.toHaveBeenCalled()
 })
-const access = (): ResolvedAiAccess => ({ tenantId, feature: 'chat', primary: { ...choice(), keySource: 'tenant', billable: false, markupPct: 0 }, fallback: choice(), fetchFor: () => fetch, settle: async () => {} })
+const access = (): ResolvedAiAccess => ({ tenantId, feature: 'chat', primary: { ...choice(), keySource: 'tenant', billable: false, markupPct: 0 }, fallback: choice(), platformChatModel: null, fetchFor: () => fetch, settle: async () => {} })
 it('records a native rejected-key warning before the existing billable provider-key fallback', async () => {
   const order: string[] = [], resolved = access()
   state.error.mockImplementation(async () => { order.push('record') })

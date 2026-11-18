@@ -7,7 +7,6 @@
 import { NextResponse } from 'next/server'
 import { getEffectiveTenant } from '@/lib/get-effective-tenant'
 import { createServiceClient } from '@/lib/supabase/server'
-import { isChatModel } from '@/lib/ai/chat-models'
 import { getChatAddonStatus } from '@/lib/chat-addon'
 import { withApi } from '@/lib/observability/with-api'
 import { log } from '@/lib/observability/log'
@@ -59,7 +58,6 @@ async function handlePUT(request: Request) {
   const body = await request.json()
   const {
     enabled,
-    openrouter_model,
     audio_enabled,
     text_enabled,
     ordering_help_enabled,
@@ -73,10 +71,7 @@ async function handlePUT(request: Request) {
   const supabase = createServiceClient()
   const payload: Record<string, unknown> = { tenant_id: effective.tenantId, updated_at: new Date().toISOString() }
   if (typeof enabled === 'boolean') payload.enabled = enabled
-  if (typeof openrouter_model === 'string') {
-    if (!isChatModel(openrouter_model)) return NextResponse.json({ error: 'Unsupported model' }, { status: 400 })
-    payload.openrouter_model = openrouter_model
-  }
+  // openrouter_model is set by the platform team (superadmin), never by the restaurant: ignored here.
   if (typeof audio_enabled === 'boolean') payload.audio_enabled = audio_enabled
   if (typeof text_enabled === 'boolean') payload.text_enabled = text_enabled
   if (typeof ordering_help_enabled === 'boolean') payload.ordering_help_enabled = ordering_help_enabled

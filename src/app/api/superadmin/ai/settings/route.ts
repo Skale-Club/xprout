@@ -15,6 +15,8 @@ import { adminChatError } from '@/lib/admin/chat-context'
 import { assertOwnedAiActor, writeOwnedAiPlatformSettings } from '@/lib/data/ai-panel-runtime'
 import { nativeAiGlobalPayload } from '@/lib/ai/native-panel'
 import { readNativeAnalyticsBody } from '@/lib/data/public-analytics'
+import { parseChatModelSetting } from '@/lib/ai/chat-models'
+import { legacyChatModelColumnExists, SETTINGS_NOT_AVAILABLE_YET } from '@/lib/ai/chat-model-legacy'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +42,7 @@ async function handleGET() {
       default_billing_mode: platform.defaultMode,
       default_markup_pct: platform.defaultMarkupPct,
       usd_to_brl: platform.usdToBrl,
+      chat_model: platform.chatModel,
     },
     platform_usage: usage.get(null) ?? null,
     tenants: (tenants ?? []).map(t => {
@@ -91,6 +94,13 @@ async function handlePUT(request: Request) {
     const rate = Number(body.usd_to_brl)
     if (!Number.isFinite(rate) || rate <= 0 || rate > 100) return NextResponse.json({ error: 'Invalid USD→BRL rate' }, { status: 400 })
     update.usd_to_brl = rate
+  }
+  if (body.chat_model !== undefined) {
+    const model = parseChatModelSetting(body.chat_model)
+    if (model === undefined) return NextResponse.json({ error: 'Unsupported model' }, { status: 400 })
+    // Saved before the schema step ran: say so instead of failing with a 500.
+    if (!(await legacyChatModelColumnExists())) return NextResponse.json({ error: SETTINGS_NOT_AVAILABLE_YET }, { status: 409 })
+    update.chat_model = model
   }
 
   const { error } = await createServiceClient().from('platform_ai_settings').upsert({ id: 1, ...update }, { onConflict: 'id' })

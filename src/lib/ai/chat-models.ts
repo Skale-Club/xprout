@@ -1,6 +1,6 @@
 /**
- * The models a restaurant can pick for the guest AI chat (OpenRouter ids).
- * One source of truth for the admin picker, the settings writers and the chat
+ * The models the guest AI chat can run on (OpenRouter ids). The platform team sets a global default and may
+ * override it per restaurant. One source of truth for the superadmin pickers, the settings writers and the chat
  * routes. Pure module: safe to import from client components.
  */
 export const DEFAULT_CHAT_MODEL = 'anthropic/claude-haiku-5.5'
@@ -16,7 +16,24 @@ export function isChatModel(value: unknown): value is string {
   return typeof value === 'string' && CHAT_MODELS.some(model => model.value === value)
 }
 
-/** The stored id when it is still offered, otherwise the default (retired ids move over without a data migration). */
-export function resolveChatModel(stored: string | null | undefined): string {
-  return isChatModel(stored) ? stored : DEFAULT_CHAT_MODEL
+/** The label shown for a model id (the id itself for one that is no longer offered). */
+export function chatModelLabel(id: string): string {
+  return CHAT_MODELS.find(model => model.value === id)?.label ?? id
+}
+
+/**
+ * The model that answers a restaurant's guests: the restaurant's own (set by the platform team) when it is still
+ * offered, else the platform's default model when it is still offered, else the code default. Retired ids fall
+ * through without a data migration.
+ */
+export function resolveChatModel(tenantModel: string | null | undefined, globalModel?: string | null): string {
+  if (isChatModel(tenantModel)) return tenantModel
+  if (isChatModel(globalModel)) return globalModel
+  return DEFAULT_CHAT_MODEL
+}
+
+/** A model setting from a panel: null/empty = follow the default; anything else must be offered. Returns undefined when invalid. */
+export function parseChatModelSetting(value: unknown): string | null | undefined {
+  if (value === null || value === '') return null
+  return isChatModel(value) ? value : undefined
 }

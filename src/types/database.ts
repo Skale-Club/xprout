@@ -493,7 +493,7 @@ export interface ChatAddonSettings {
   tenant_id: string
   enabled: boolean
   openrouter_api_key: string | null         // encrypted ciphertext at rest
-  openrouter_model: string
+  openrouter_model: string | null
   audio_enabled: boolean
   /** Typed messages in the chat box (default true); audio_enabled is voice notes. */
   text_enabled: boolean

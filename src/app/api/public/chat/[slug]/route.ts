@@ -218,7 +218,7 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ slug
   const systemPrompt = buildPublicChatPrompt({ tenantName: tenant.name, settingsRow, capabilities, catalog,
     locations: locations ?? [], zones: zones ?? [], onlinePayment, canAddToCart, body, abilities })
 
-  const modelId = resolveChatModel(settings.openrouter_model)
+  const modelId = resolveChatModel(settings.openrouter_model, access.platformChatModel)
   const agentParams = (choice: KeyChoice): ChatAgentParams => ({
     model: openRouterModel(choice.apiKey, modelId, access.fetchFor(choice, modelId)),
     system: systemPrompt,

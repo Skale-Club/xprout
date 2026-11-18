@@ -1,5 +1,6 @@
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import type { AiFeature, AiBillingMode } from '../ai/billing-rules'
+import { platformAiSelectSql, platformChatModelColumnExists } from './platform-chat-model'
 
 const text = (value: unknown) => typeof value === 'string' ? value : null
 function unique(rows: Record<string, unknown>[]) {
@@ -9,9 +10,10 @@ function unique(rows: Record<string, unknown>[]) {
 
 /** Ciphertext remains encrypted here; existing server access code decrypts it. */
 export async function readPlatformAiRecord(query: AdminMenuQuery) {
-  const row = unique((await query(`SELECT openrouter_api_key,default_billing_mode,default_markup_pct,usd_to_brl FROM public.platform_ai_settings WHERE id=1 LIMIT 2`)).rows)
+  // chat_model is named only once the schema step created it (missing = no platform default chosen).
+  const row = unique((await query(platformAiSelectSql(await platformChatModelColumnExists(query)))).rows)
   return row ? { openrouter_api_key: text(row.openrouter_api_key), default_billing_mode: row.default_billing_mode,
-    default_markup_pct: row.default_markup_pct, usd_to_brl: row.usd_to_brl } : null
+    default_markup_pct: row.default_markup_pct, usd_to_brl: row.usd_to_brl, chat_model: text(row.chat_model) } : null
 }
 export async function readTenantAiRecord(query: AdminMenuQuery, tenantId: string) {
   // client_key_allowed / is_demo read through to_jsonb so this works whether or not those columns exist (absent = false).

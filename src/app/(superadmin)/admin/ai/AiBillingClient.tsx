@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { AlertTriangle, CheckCircle2, KeyRound, Loader2, Save, Sparkles } from 'lucide-react'
 import OpenRouterKeyField from '@/components/ai/OpenRouterKeyField'
 import type { AiBillingMode } from '@/lib/ai/billing-rules'
+import { CHAT_MODELS, DEFAULT_CHAT_MODEL, chatModelLabel } from '@/lib/ai/chat-models'
 import { BILLING_MODE_HELP, BILLING_MODE_LABELS, BILLING_MODES, formatBrl, formatUsd, type UsageMonth } from '@/lib/ai/labels'
 
 interface TenantRow {
@@ -27,6 +28,8 @@ interface Payload {
     default_billing_mode: AiBillingMode
     default_markup_pct: number
     usd_to_brl: number
+    /** The default chat model as stored; null = the code default. */
+    chat_model?: string | null
   }
   platform_usage: UsageMonth | null
   tenants: TenantRow[]
@@ -47,6 +50,7 @@ export default function AiBillingClient() {
   const [mode, setMode] = useState<AiBillingMode>('platform')
   const [markup, setMarkup] = useState('30')
   const [rate, setRate] = useState('5.50')
+  const [chatModel, setChatModel] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -56,6 +60,7 @@ export default function AiBillingClient() {
     setMode(next.settings.default_billing_mode)
     setMarkup(String(next.settings.default_markup_pct))
     setRate(String(next.settings.usd_to_brl))
+    setChatModel(next.settings.chat_model ?? '')
   }
 
   useEffect(() => {
@@ -146,10 +151,18 @@ export default function AiBillingClient() {
                       <input id="ai-usd-brl" type="number" min={0.01} step={0.01} value={rate} onChange={e => setRate(e.target.value)} className={input} />
                     </div>
                   </div>
+                  <div>
+                    <label htmlFor="ai-chat-model" className="mb-1.5 block text-xs font-bold text-zinc-600">Default chat model</label>
+                    <select id="ai-chat-model" value={chatModel} onChange={e => setChatModel(e.target.value)} className={input}>
+                      <option value="">Default ({chatModelLabel(DEFAULT_CHAT_MODEL)})</option>
+                      {CHAT_MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                    <p className="mt-1.5 text-xs text-zinc-500">The guest chat runs on this model unless a client has its own (set in the client&apos;s AI card).</p>
+                  </div>
                   <p className="text-xs text-zinc-500">Example: US$ 1.00 of OpenRouter cost is billed as {formatBrl(1 + (Number(markup) || 0) / 100, Number(rate) || 0)}.</p>
                   <button
                     type="button"
-                    onClick={() => void save({ default_billing_mode: mode, default_markup_pct: Number(markup), usd_to_brl: Number(rate) })}
+                    onClick={() => void save({ default_billing_mode: mode, default_markup_pct: Number(markup), usd_to_brl: Number(rate), chat_model: chatModel || null })}
                     disabled={saving}
                     className="flex min-h-11 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-sm font-bold text-white transition-[background-color,scale] duration-150 hover:bg-zinc-800 active:scale-96 disabled:opacity-50"
                   >

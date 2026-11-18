@@ -35,6 +35,8 @@ export interface PlatformAiSettings {
   defaultMode: AiBillingMode
   defaultMarkupPct: number
   usdToBrl: number
+  /** The platform's default chat model as stored (null = the code default); resolve with resolveChatModel. */
+  chatModel: string | null
 }
 
 export interface TenantAiSettings {
@@ -61,7 +63,8 @@ function decryptOrNull(value: string | null | undefined): string | null {
 export async function loadPlatformAiSettings(): Promise<PlatformAiSettings> {
   const { data } = adminMenusOwned() ? { data: await readOwnedPlatformAiRecord() } : await createServiceClient()
     .from('platform_ai_settings')
-    .select('openrouter_api_key, default_billing_mode, default_markup_pct, usd_to_brl')
+    // '*' so the optional chat_model column is read when present (absent = no default chosen).
+    .select('*')
     .eq('id', 1)
     .maybeSingle()
   const panelKey = decryptOrNull(data?.openrouter_api_key)
@@ -72,6 +75,7 @@ export async function loadPlatformAiSettings(): Promise<PlatformAiSettings> {
     defaultMode: parseBillingMode(data?.default_billing_mode) ?? 'platform',
     defaultMarkupPct: clampMarkup(Number(data?.default_markup_pct ?? 30)),
     usdToBrl: Number(data?.usd_to_brl ?? 5.5) || 5.5,
+    chatModel: typeof data?.chat_model === 'string' ? data.chat_model : null,
   }
 }
 
@@ -109,6 +113,8 @@ export interface ResolvedAiAccess {
   feature: AiFeature
   primary: KeyChoice
   fallback: KeyChoice | null
+  /** The platform's default chat model, for resolveChatModel(tenantModel, access.platformChatModel). */
+  platformChatModel: string | null
   /** A fetch that records the call's real cost under this key choice. */
   fetchFor: (choice: KeyChoice, model?: string) => typeof fetch
   /** Resolves once this access's streamed calls have written their cost to the ledger. */
@@ -138,6 +144,7 @@ export async function resolveAiAccess(tenantId: string | null, feature: AiFeatur
     tenantId,
     feature,
     ...plan,
+    platformChatModel: platform.chatModel,
     fetchFor: (choice, model) => meteredFetch({ tenantId, feature, choice, model }, pending),
     settle: async () => { await Promise.allSettled([...pending]) },
   }

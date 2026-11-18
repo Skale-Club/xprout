@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHAT_MODELS, DEFAULT_CHAT_MODEL, isChatModel, resolveChatModel } from '@/lib/ai/chat-models'
+import { CHAT_MODELS, DEFAULT_CHAT_MODEL, chatModelLabel, isChatModel, parseChatModelSetting, resolveChatModel } from '@/lib/ai/chat-models'
 import { assistantTurnForHistory, historyForDisplay, type ResolvedCartItem } from '@/lib/chat-agent'
 
 describe('resolveChatModel', () => {
@@ -9,6 +9,39 @@ describe('resolveChatModel', () => {
   it('moves retired, empty and missing ids to the default', () => {
     for (const stored of ['openai/gpt-4o-mini', '', null, undefined]) expect(resolveChatModel(stored)).toBe(DEFAULT_CHAT_MODEL)
     expect(isChatModel('openai/gpt-4o-mini')).toBe(false)
+  })
+})
+
+describe('resolveChatModel with a platform default', () => {
+  const [first, second, third] = CHAT_MODELS.map(model => model.value)
+  it('prefers the restaurant model, then the platform default, then the code default', () => {
+    expect(resolveChatModel(second, third)).toBe(second)
+    expect(resolveChatModel(null, third)).toBe(third)
+    expect(resolveChatModel(undefined, third)).toBe(third)
+    expect(resolveChatModel(null, null)).toBe(DEFAULT_CHAT_MODEL)
+    expect(resolveChatModel(undefined)).toBe(DEFAULT_CHAT_MODEL)
+    expect(first).toBe(DEFAULT_CHAT_MODEL)
+  })
+  it('falls through retired ids on either level', () => {
+    expect(resolveChatModel('openai/gpt-4o-mini', third)).toBe(third)
+    expect(resolveChatModel(second, 'openai/gpt-4o-mini')).toBe(second)
+    expect(resolveChatModel('openai/gpt-4o-mini', 'old/model')).toBe(DEFAULT_CHAT_MODEL)
+  })
+})
+
+describe('parseChatModelSetting', () => {
+  it('maps null and empty to the default, keeps offered ids and rejects the rest', () => {
+    expect(parseChatModelSetting(null)).toBeNull()
+    expect(parseChatModelSetting('')).toBeNull()
+    expect(parseChatModelSetting(CHAT_MODELS[1].value)).toBe(CHAT_MODELS[1].value)
+    for (const bad of ['openai/gpt-4o-mini', 5, undefined, {}]) expect(parseChatModelSetting(bad)).toBeUndefined()
+  })
+})
+
+describe('chatModelLabel', () => {
+  it('labels offered models and echoes unknown ids', () => {
+    expect(chatModelLabel(CHAT_MODELS[0].value)).toBe(CHAT_MODELS[0].label)
+    expect(chatModelLabel('x/y')).toBe('x/y')
   })
 })
 

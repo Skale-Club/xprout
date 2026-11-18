@@ -1,7 +1,6 @@
 import { authorizeAdminActor, type AdminActorContext } from './admin-actor'
 import { AdminMenuError, type AdminMenuQuery } from './admin-menus'
 import { readPublicChatAddon } from './public-chat-session'
-import { isChatModel } from '../ai/chat-models'
 import { CHAT_SWITCH_COLUMNS, chatSelectColumns, presentChatSwitchColumnsFor } from './chat-switch-columns'
 
 export interface AdminChatContext extends AdminActorContext { tenantId: string }
@@ -43,10 +42,7 @@ export async function writeAdminChatSettings(query: AdminMenuQuery, context: Adm
     if (wanted.some(field => !present.has(field))) throw new AdminMenuError(409, 'Settings not available yet, try again in a few minutes')
     for (const field of wanted) patch[field] = body[field]
   }
-  if (typeof body.openrouter_model === 'string') {
-    if (!isChatModel(body.openrouter_model)) throw new AdminMenuError(400, 'Unsupported model')
-    patch.openrouter_model = body.openrouter_model
-  }
+  // openrouter_model is set by the platform team (superadmin), never by the restaurant: ignored here.
   if (body.audio_provider === null || body.audio_provider === 'whisper' || body.audio_provider === 'deepgram') patch.audio_provider = body.audio_provider
   if (typeof body.rate_limit_per_phone_per_day === 'number') {
     if (!Number.isFinite(body.rate_limit_per_phone_per_day)) throw new AdminMenuError(400, 'Invalid rate limit')

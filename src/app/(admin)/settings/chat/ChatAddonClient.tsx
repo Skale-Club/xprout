@@ -4,9 +4,6 @@ import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { Bot, Sparkles, Mic, MessageSquare, ShoppingCart, BellRing, Lightbulb, History, AlertCircle, CheckCircle2, Save, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { CHAT_MODELS, resolveChatModel } from '@/lib/ai/chat-models'
-
-const MODELS = CHAT_MODELS
 
 interface Status {
   available: boolean
@@ -17,7 +14,6 @@ interface Status {
 
 interface Settings {
   enabled: boolean
-  openrouter_model: string
   audio_enabled: boolean
   text_enabled: boolean
   ordering_help_enabled: boolean
@@ -34,10 +30,9 @@ interface AbilityAccess {
   waiterCalls: boolean
 }
 
-export default function ChatAddonClient({ initialSettings, status, abilityAccess }: { initialSettings: any; status: Status; abilityAccess: AbilityAccess }) {
+export default function ChatAddonClient({ initialSettings, status, abilityAccess, modelLabel }: { initialSettings: any; status: Status; abilityAccess: AbilityAccess; modelLabel: string }) {
   const [form, setForm] = useState<Settings>({
     enabled: initialSettings?.enabled ?? false,
-    openrouter_model: resolveChatModel(initialSettings?.openrouter_model),
     audio_enabled: initialSettings?.audio_enabled ?? false,
     text_enabled: initialSettings?.text_enabled ?? true,
     ordering_help_enabled: initialSettings?.ordering_help_enabled ?? true,
@@ -162,14 +157,7 @@ export default function ChatAddonClient({ initialSettings, status, abilityAccess
           </Link>
 
           <div>
-            <label className="block text-[14px] font-semibold text-zinc-700 mb-2 ml-1">Model</label>
-            <select
-              value={form.openrouter_model}
-              onChange={e => setForm(f => ({ ...f, openrouter_model: e.target.value }))}
-              className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
+            <p className="text-[14px] font-semibold text-zinc-700 ml-1">AI model: <span className="font-black text-zinc-950">{modelLabel}</span> <span className="font-normal text-zinc-600">— set by Xprout; contact us to change it</span></p>
           </div>
 
           <div>

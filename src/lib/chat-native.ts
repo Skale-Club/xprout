@@ -47,7 +47,7 @@ export async function handleOwnedChatMessage(slug: string, conversationId: strin
         assistant: assistantTurnForHistory(result.text, result.cartItems, result.cartChanges ?? [], result.staffCalled ?? null), tokens: result.totalTokens, voiceVerified })
       return { text: result.text, cart_items: result.cartItems, cart_changes: (result.cartChanges ?? []).map(({ line_id, quantity }) => ({ line_id, quantity })), staff_called: result.staffCalled != null, remaining_today: persisted.remaining_today }
     }
-    const modelId = resolveChatModel(context.configuration.openrouter_model)
+    const modelId = resolveChatModel(context.configuration.openrouter_model, access.platformChatModel)
     if (stream) {
       let started
       try { started = await runAi(access, choice => startChatAgentStream(agentParams(choice, modelId))) }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, CheckCircle2, Loader2, MessageCircle, Receipt, Save, Sparkles } from 'lucide-react'
 import OpenRouterKeyField from '@/components/ai/OpenRouterKeyField'
+import { CHAT_MODELS, chatModelLabel } from '@/lib/ai/chat-models'
 import type { AiBillingMode } from '@/lib/ai/billing-rules'
 import { BILLING_MODE_HELP, BILLING_MODE_LABELS, BILLING_MODES, formatBrl, formatUsd, type UsageMonth } from '@/lib/ai/labels'
 
@@ -23,7 +24,9 @@ interface Payload {
   /** Whether the client may paste or remove its own key in its panel (off by default). */
   client_key_allowed: boolean
   /** The chat on this client's menu: on/off (whatever the plan) and its channels. */
-  chat: { on: boolean; text: boolean; voice: boolean; has_subscription: boolean }
+  chat: { on: boolean; text: boolean; voice: boolean; model?: string | null; has_subscription: boolean }
+  /** The platform's default chat model (already resolved), for the "Platform default" option. */
+  platform_chat_model?: string
   /** A demo company (tenants.is_demo): same features as any client, AI never billed. */
   is_demo: boolean
 }
@@ -134,6 +137,15 @@ export default function TenantAiCard({ tenantId }: { tenantId: string }) {
               ) : (
                 <p className="text-xs text-zinc-500">Guests see an AI assistant on the menu. It runs on the billing mode below.</p>
               )}
+              <div className="mt-2">
+                <label htmlFor="tenant-chat-model" className="mb-1.5 block text-xs font-bold text-zinc-600">Chat model</label>
+                <select id="tenant-chat-model" value={data.chat.model ?? ''} disabled={busy !== null}
+                  onChange={e => void save({ chat: { model: e.target.value || null } })} className={input}>
+                  <option value="">Platform default{data.platform_chat_model ? ` (${chatModelLabel(data.platform_chat_model)})` : ''}</option>
+                  {CHAT_MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+                <p className="mt-1.5 text-xs text-zinc-500">Only the platform sets this; the client cannot change it. A cheaper model saves money.</p>
+              </div>
               {data.chat.on && !data.global_key_configured && data.effective_mode !== 'own_key' && (
                 <p className="mt-1 text-xs font-semibold text-amber-800">No OpenRouter key yet: the chat cannot answer until a global key is set in AI.</p>
               )}
