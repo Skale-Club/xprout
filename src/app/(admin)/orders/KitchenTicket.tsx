@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import type { Order, OrderItem } from '@/types/database'
 import { summarizeIngredientMods, summarizeOptions } from '@/components/menu/menu-utils'
+import { customerDisplayName } from '@/lib/orders/checkout-fields'
 
 type TicketOrder = Order & { order_items: OrderItem[] }
 type Extra = {
@@ -35,7 +36,7 @@ export function KitchenTicket({ order, restaurantName, timeZone, formatMoney }: 
       {restaurantName && <p className="kds-ticket-name">{restaurantName}</p>}
       <p className="kds-ticket-number">#{o.id.slice(0, 8).toUpperCase()}</p>
       <p className="kds-ticket-big">{TYPE_LABEL[o.order_type ?? ''] ?? 'ORDER'}{o.table_name ? ` · ${o.table_name}` : ''}</p>
-      <p className="kds-ticket-big">{o.customer_name}</p>
+      <p className="kds-ticket-big">{customerDisplayName(o.customer_name, o.customer_phone)}</p>
       <p className={Number.isFinite(scheduledMs) ? 'kds-ticket-badge' : 'kds-ticket-big'}>{when}</p>
       <p>Placed {placed}</p>
       {address.length > 0 && <div className="kds-ticket-block">{address.map(line => <p key={line as string}>{line}</p>)}{o.delivery_notes && <p>{o.delivery_notes}</p>}</div>}

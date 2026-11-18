@@ -31,8 +31,9 @@ describe('createOrderSchema', () => {
     expect(errorOf({ ...valid(), items: [] })).toBe('At least one item is required')
   })
 
-  it('rejects blank names, absurd strings, bad order types and tips', () => {
-    expect(errorOf({ ...valid(), customer_name: '   ' })).toBe('Customer name is required')
+  it('leaves the name to the restaurant, rejects absurd strings, bad order types and tips', () => {
+    // Whether a name is required is the restaurant's setting, checked by POST /api/orders (checkout-fields.ts).
+    expect(errorOf({ ...valid(), customer_name: '   ' })).toBeNull()
     expect(errorOf({ ...valid(), customer_name: 'x'.repeat(500) })).not.toBeNull()
     expect(errorOf({ ...valid(), order_type: 'takeaway' })).toBe('Invalid order type')
     expect(errorOf({ ...valid(), tip_cents: -5 })).not.toBeNull()

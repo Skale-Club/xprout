@@ -2,7 +2,7 @@
 
 import { DeliveryImage } from '@/components/delivery-image'
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
-import { X, ChevronLeft, Check, UtensilsCrossed, Package, Truck, MapPin } from 'lucide-react'
+import { X, ChevronLeft, Check, UtensilsCrossed, Package, Truck, MapPin, Tag } from 'lucide-react'
 import type { CartItem } from './menu-utils'
 import { getProductImages, summarizeOptions, summarizeIngredientMods } from './menu-utils'
 import { fill, formatMoney, getMenuCopy } from './menu-i18n'
@@ -18,6 +18,7 @@ import { formatSlotDay, formatSlotTime } from './schedule-format'
 import { deliveryRuleViolation } from '@/lib/orders/delivery-rules'
 import { rewardDiscountCents } from '@/lib/orders/loyalty'
 import { discountCents as promoDiscountCents, taxCents as salesTaxCents, type PromoKind } from '@/lib/orders/tax-promo'
+import { DEFAULT_CHECKOUT_FIELDS, isPlausibleEmail, type CheckoutFields } from '@/lib/orders/checkout-fields'
 
 /** What checkout needs to offer Schedule for later: the hours, the zone and the cart's notice. */
 export type CheckoutScheduling = { hours: Hours; timeZone: string; prepMinutes: number; maxNoticeMinutes: number }
@@ -43,7 +44,7 @@ function findMatchingZone(zipcode: string | undefined, zones: DeliveryZone[] | u
  * above the keys; Enter moves to the next field and, in the last one, places
  * the order.
  */
-export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, deliveryZonesOnly = false, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, loyalty, useReward, onUseRewardChange, signInHref, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', restaurantName = '', contact = { email: '', smsOptIn: false, emailOptIn: false }, onContactChange, onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
+export default function CheckoutModal({ cart, confirmedCart, currency, lang, customerName, customerPhone, submittingOrder, orderSuccess, orderError, orderId, primaryColor, orderTypeConfig, tableName = null, orderType, deliveryStreet, deliveryComplement, deliveryZipcode, deliveryCity, deliveryNotes, deliveryZones, deliveryZonesOnly = false, tipsEnabled, tipPercentages, tipCents, onTipChange, tenantId, taxBps = 0, promoEnabled = false, promo = null, onPromoChange, loyalty, useReward, onUseRewardChange, signInHref, scheduling = null, scheduledFor = null, onScheduledForChange, confirmedScheduledFor = null, phoneContext = null, locale = 'en', restaurantName = '', contact = { email: '', smsOptIn: false, emailOptIn: false }, checkoutFields = DEFAULT_CHECKOUT_FIELDS, onContactChange, onOrderTypeChange, onDeliveryFieldChange, onClose, onBack, onCustomerNameChange, onCustomerPhoneChange, onSubmit }: {
   cart: CartItem[]
   confirmedCart: CartItem[]
   currency: string
@@ -97,6 +98,8 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   restaurantName?: string
   /** Optional receipt email and the two marketing opt-ins (never pre-ticked). */
   contact?: { email: string; smsOptIn: boolean; emailOptIn: boolean }
+  /** What checkout asks besides the phone (always required): the name and the receipt email, per restaurant. */
+  checkoutFields?: CheckoutFields
   onContactChange?: (patch: Partial<{ email: string; smsOptIn: boolean; emailOptIn: boolean }>) => void
   onOrderTypeChange?: (t: string) => void
   onDeliveryFieldChange?: (field: 'street' | 'complement' | 'zipcode' | 'city' | 'notes', value: string) => void
@@ -110,10 +113,15 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   const [customTipValue, setCustomTipValue] = useState('')
   const [promoInput, setPromoInput] = useState('')
   const [promoState, setPromoState] = useState<'idle' | 'checking' | 'invalid'>('idle')
+  // The promo field stays folded behind a link until the guest asks for it.
+  const [promoOpen, setPromoOpen] = useState(false)
+  // Long orders fold to the first items; the summary below always shows the full total.
+  const [showAllItems, setShowAllItems] = useState(false)
   const copy = getMenuCopy(lang)
   // A marketing channel can be ticked only once the guest gave it.
   const hasPhone = customerPhone.replace(/\D/g, '').length >= 7
-  const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email.trim())
+  const askEmail = checkoutFields.email !== 'hidden'
+  const hasEmail = askEmail && isPlausibleEmail(contact.email)
   const money = (value: number) => formatMoney(value, currency, lang)
   const primary = primaryColor ?? '#18181b'
   const onPrimary = computePrimaryForeground(primary)
@@ -200,6 +208,9 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
   if (orderTypeConfig?.delivery) activeTypes.push({ key: 'delivery', label: copy.delivery, Icon: Truck })
 
   const showForm = !orderSuccess && cart.length > 0
+  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const visibleItems = showAllItems || cart.length <= ITEMS_FOLDED + 1 ? cart : cart.slice(0, ITEMS_FOLDED)
+  const hiddenItemCount = cart.length - visibleItems.length
   const box = useVisibleBox()
 
   // Bookable slots and whether ASAP is possible, from the hours and the cart's longest notice.
@@ -274,8 +285,17 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
                 {/* What you're ordering */}
                 <Card>
+                  <div className="flex items-center justify-between gap-3 px-4 pt-3">
+                    <h3 className="text-[15px] font-semibold text-zinc-900">
+                      {copy.yourOrder}
+                      <span className="font-normal text-zinc-500"> · {fill(itemCount === 1 ? copy.itemsOne : copy.itemsMany, { count: String(itemCount) })}</span>
+                    </h3>
+                    <button type="button" onClick={onBack} className="-mr-2 flex h-11 items-center rounded-full px-3 text-[14px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900">
+                      {copy.edit}
+                    </button>
+                  </div>
                   <div className="divide-y divide-zinc-100">
-                    {cart.map(item => {
+                    {visibleItems.map(item => {
                       const img = getProductImages(item.product)[0]
                       const optionsText = summarizeOptions(item.selectedOptions)
                       const ingredientLabels = summarizeIngredientMods(item.ingredientModifications, copy)
@@ -301,6 +321,11 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                       )
                     })}
                   </div>
+                  {hiddenItemCount > 0 && (
+                    <button type="button" onClick={() => setShowAllItems(true)} className="flex h-11 w-full items-center justify-center border-t border-zinc-100 text-[14px] font-medium text-zinc-700 transition-colors hover:bg-zinc-50">
+                      {fill(copy.showAllItems, { count: String(cart.length) })}
+                    </button>
+                  )}
                 </Card>
 
                 {showForm && tableName && (
@@ -467,38 +492,12 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                   </Card>
                 )}
 
-                {showForm && promoEnabled && !rewardActive && (
-                  <Card title={copy.promoCode}>
-                    <div className="space-y-2 px-4 pb-4">
-                      {promo ? (
-                        <div className="flex items-center justify-between text-[15px]">
-                          <span className="font-semibold tabular-nums text-zinc-900">{promo.code}</span>
-                          <button type="button" onClick={() => onPromoChange?.(null)} aria-label={copy.close} className="flex size-9 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100"><X className="size-4" aria-hidden="true" /></button>
-                        </div>
-                      ) : (
-                        <div className="flex items-end gap-2">
-                          <div className="min-w-0 flex-1">
-                            <Field label={copy.promoCode} value={promoInput} onChange={value => { setPromoInput(value); setPromoState('idle') }} autoComplete="off" />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={applyPromo}
-                            disabled={!promoInput.trim() || promoState === 'checking'}
-                            className="h-11 rounded-xl border border-zinc-200 bg-white px-4 text-[14px] font-medium text-zinc-800 hover:border-zinc-300 disabled:opacity-50"
-                          >
-                            {copy.apply}
-                          </button>
-                        </div>
-                      )}
-                      {promoState === 'invalid' && <p role="alert" className="text-[14px] font-medium text-red-700">{copy.promoInvalid}</p>}
-                    </div>
-                  </Card>
-                )}
-
                 {showForm && (
                   <Card title={copy.yourDetails}>
                     <div className="space-y-3 px-4 pb-4">
-                      <Field label={copy.yourName} value={customerName} onChange={onCustomerNameChange} autoComplete="name" required />
+                      {checkoutFields.name !== 'hidden' && (
+                        <Field label={checkoutFields.name === 'required' ? copy.yourName : copy.nameOptional} value={customerName} onChange={onCustomerNameChange} autoComplete="name" required={checkoutFields.name === 'required'} />
+                      )}
                       <div>
                         <FieldLabel htmlFor="checkout-phone" label={copy.phone} required />
                         <PhoneField
@@ -516,7 +515,9 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
                           className={FIELD_CLASS}
                         />
                       </div>
-                      <Field label={copy.emailReceipt} value={contact.email} onChange={v => onContactChange?.({ email: v })} inputMode="email" autoComplete="email" />
+                      {askEmail && (
+                        <Field label={checkoutFields.email === 'required' ? copy.emailRequired : copy.emailReceipt} value={contact.email} onChange={v => onContactChange?.({ email: v })} inputMode="email" autoComplete="email" required={checkoutFields.email === 'required'} />
+                      )}
                       {(hasPhone || hasEmail) && (
                         <div className="space-y-2">
                           {hasPhone && <OptIn label={fill(copy.optInSms, { name: restaurantName })} checked={contact.smsOptIn} onChange={v => onContactChange?.({ smsOptIn: v })} />}
@@ -530,13 +531,46 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
 
                 {showForm && (
                   <Card title={copy.paymentSummary}>
+                    {promoEnabled && !rewardActive && !promo && (
+                      <div className="px-4 pb-3">
+                        {!promoOpen ? (
+                          <button type="button" onClick={() => setPromoOpen(true)} className="-ml-1 flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-[14px] font-medium text-zinc-700 underline underline-offset-2 hover:text-zinc-900">
+                            <Tag className="size-4 shrink-0" aria-hidden="true" />
+                            {copy.promoAsk}
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-end gap-2">
+                              <div className="min-w-0 flex-1">
+                                <Field label={copy.promoCode} value={promoInput} onChange={value => { setPromoInput(value); setPromoState('idle') }} autoComplete="off" />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={applyPromo}
+                                disabled={!promoInput.trim() || promoState === 'checking'}
+                                className="h-12 rounded-xl border border-zinc-300 bg-white px-4 text-[14px] font-medium text-zinc-800 hover:border-zinc-400 disabled:opacity-50"
+                              >
+                                {copy.apply}
+                              </button>
+                            </div>
+                            {promoState === 'invalid' && <p role="alert" className="text-[14px] font-medium text-red-700">{copy.promoInvalid}</p>}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <dl className="space-y-1.5 px-4 pb-4 text-[15px]">
                       <div className="flex justify-between"><dt className="text-zinc-600">{copy.subtotal}</dt><dd className="tabular-nums text-zinc-800">{money(total)}</dd></div>
                       {rewardDiscount > 0 && (
                         <div className="flex justify-between"><dt className="text-zinc-600">{copy.loyaltyReward} ({loyalty!.rewardPoints})</dt><dd className="tabular-nums text-zinc-800">-{money(rewardDiscount / 100)}</dd></div>
                       )}
                       {discountCents > 0 && promo && !rewardActive && (
-                        <div className="flex justify-between"><dt className="text-zinc-600">{copy.discount} ({promo.code})</dt><dd className="tabular-nums text-zinc-800">-{money(discountCents / 100)}</dd></div>
+                        <div className="flex items-center justify-between gap-2">
+                          <dt className="flex min-w-0 items-center gap-1 text-zinc-600">
+                            <span className="truncate">{copy.discount} ({promo.code})</span>
+                            <button type="button" onClick={() => { onPromoChange?.(null); setPromoOpen(false) }} aria-label={copy.close} className="-my-2 flex size-9 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"><X className="size-4" aria-hidden="true" /></button>
+                          </dt>
+                          <dd className="tabular-nums text-zinc-800">-{money(discountCents / 100)}</dd>
+                        </div>
                       )}
                       {taxAmountCents > 0 && (
                         <div className="flex justify-between"><dt className="text-zinc-600">{copy.tax}</dt><dd className="tabular-nums text-zinc-800">{money(taxAmountCents / 100)}</dd></div>
@@ -579,6 +613,9 @@ export default function CheckoutModal({ cart, confirmedCart, currency, lang, cus
     </BottomSheet>
   )
 }
+
+/** Orders with more lines than this + 1 show the first ones and a "Show all" button. */
+const ITEMS_FOLDED = 3
 
 function Card({ title, className = '', children }: { title?: string; className?: string; children: ReactNode }) {
   return (

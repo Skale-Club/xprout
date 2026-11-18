@@ -6,6 +6,7 @@ import { ACTION_LINK_COLUMNS, normalizeActionUrl } from '../menu-action-links'
 import { TAX_PROMO_READY_SQL, TAX_RATE_BPS_MAX } from '../orders/tax-promo'
 import { LOYALTY_READY_SQL, loyaltySettingsValid } from '../orders/loyalty'
 import { DELIVERY_RULES_READY_SQL } from '../orders/delivery-rules'
+import { CHECKOUT_FIELDS_READY_SQL, CHECKOUT_FIELD_COLUMNS, isCheckoutFieldMode } from '../orders/checkout-fields'
 import { SCHEDULING_READY_SQL } from '../orders/scheduled-orders'
 
 export type AdminStoreContext = { tenantId: string; role: UserRole }
@@ -44,9 +45,13 @@ export async function deliveryRulesSchemaReady(query: AdminMenuQuery): Promise<b
 export async function loyaltySchemaReady(query: AdminMenuQuery): Promise<boolean> {
   return (await query(LOYALTY_READY_SQL)).rows[0]?.ready === true
 }
+/** Whether the checkout fields schema step ran (docs/owned-schema/20261118120000_checkout_customer_fields.sql). */
+export async function checkoutFieldsSchemaReady(query: AdminMenuQuery): Promise<boolean> {
+  return (await query(CHECKOUT_FIELDS_READY_SQL)).rows[0]?.ready === true
+}
 const LOYALTY_KEYS = ['loyalty_enabled', 'loyalty_cents_per_point', 'loyalty_reward_points', 'loyalty_reward_cents'] as const
-const storeColumns = (linksReady: boolean, taxReady: boolean, schedulingReady = false, deliveryRulesReady = false, loyaltyReady = false) =>
-  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}${schedulingReady ? ', scheduled_orders_enabled' : ''}${deliveryRulesReady ? ', delivery_zones_only' : ''}${loyaltyReady ? `, ${LOYALTY_KEYS.join(', ')}` : ''}`
+const storeColumns = (linksReady: boolean, taxReady: boolean, schedulingReady = false, deliveryRulesReady = false, loyaltyReady = false, checkoutFieldsReady = false) =>
+  `${linksReady ? STORE_COLUMNS_WITH_LINKS : STORE_COLUMNS}${taxReady ? ', tax_rate_bps' : ''}${schedulingReady ? ', scheduled_orders_enabled' : ''}${deliveryRulesReady ? ', delivery_zones_only' : ''}${loyaltyReady ? `, ${LOYALTY_KEYS.join(', ')}` : ''}${checkoutFieldsReady ? `, ${CHECKOUT_FIELD_COLUMNS.join(', ')}` : ''}`
 
 function assertContext(context: AdminStoreContext, write = false) {
   if (!UUID.test(context.tenantId) || !['superadmin', 'store-admin', 'store-staff'].includes(context.role)) throw new AdminMenuError(403, 'Forbidden')
@@ -75,8 +80,9 @@ export async function readAdminStorePage(query: AdminMenuQuery, context: AdminSt
   const schedulingReady = await schedulingSchemaReady(query)
   const deliveryRulesReady = await deliveryRulesSchemaReady(query)
   const loyaltyReady = await loyaltySchemaReady(query)
+  const checkoutFieldsReady = await checkoutFieldsSchemaReady(query)
   const [settingsResult, tenantResult, stripeResult, features] = await Promise.all([
-    query(`SELECT ${storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady, loyaltyReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
+    query(`SELECT ${storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady, loyaltyReady, checkoutFieldsReady)} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1`, [context.tenantId]),
     query('SELECT custom_domain,custom_domain_verified FROM public.tenants WHERE id=$1 LIMIT 1', [context.tenantId]),
     query(`SELECT id,tenant_id,stripe_account_id,scope,connected_at,is_active,disconnected_at,created_at,updated_at
       FROM public.stripe_connections WHERE tenant_id=$1 AND is_active=true ORDER BY connected_at DESC LIMIT 2`, [context.tenantId]),
@@ -99,10 +105,10 @@ const REGIONAL_COLUMNS = [
   'price_range', 'tip_percentage_1', 'tip_percentage_2', 'tip_percentage_3', 'business_hours',
 ] as const
 
-function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, scheduling: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, deliveryRules: { ready: boolean; delivery: boolean } = { ready: true, delivery: true }, loyalty: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }) {
+function validateRegionalPatch(input: unknown, payments: boolean, current: Record<string, unknown> | null, linksReady = true, tax: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, scheduling: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, deliveryRules: { ready: boolean; delivery: boolean } = { ready: true, delivery: true }, loyalty: { ready: boolean; guestOrdering: boolean } = { ready: true, guestOrdering: true }, checkoutFieldsReady = true) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new AdminMenuError(400, 'Invalid settings')
   const body = input as Record<string, unknown>
-  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps', 'scheduled_orders_enabled', 'delivery_zones_only', ...LOYALTY_KEYS])
+  const allowed = new Set<string>([...REGIONAL_COLUMNS, ...ACTION_LINK_COLUMNS, 'tax_rate_bps', 'scheduled_orders_enabled', 'delivery_zones_only', ...LOYALTY_KEYS, ...CHECKOUT_FIELD_COLUMNS])
   if (Object.keys(body).length === 0 || Object.keys(body).some(key => !allowed.has(key))) throw new AdminMenuError(400, 'Invalid settings')
   const patch: Record<string, unknown> = {}
   // Menu links and the "Powered by" switch: https URLs or empty, and a boolean.
@@ -177,6 +183,18 @@ function validateRegionalPatch(input: unknown, payments: boolean, current: Recor
       for (const key of LOYALTY_KEYS) if (key in body) patch[key] = body[key]
     }
   }
+  // Name and receipt email at checkout: 'required', 'optional' or 'hidden' each (the phone is always required).
+  for (const key of CHECKOUT_FIELD_COLUMNS) {
+    if (!(key in body)) continue
+    const mode = body[key]
+    if (!isCheckoutFieldMode(mode)) throw new AdminMenuError(400, `Invalid ${key}`)
+    if (!checkoutFieldsReady) {
+      // The schema step may not have run yet: the untouched default is ignored, a change is refused.
+      if (mode !== (key === 'checkout_name_mode' ? 'required' : 'optional')) throw new AdminMenuError(503, 'Checkout field settings are not available yet')
+      continue
+    }
+    patch[key] = mode
+  }
   for (const key of REGIONAL_COLUMNS) {
     if (!(key in body)) continue
     const value = body[key]
@@ -220,14 +238,16 @@ export async function mutateAdminStoreSettings(query: AdminMenuQuery, context: A
   const schedulingReady = await schedulingSchemaReady(query)
   const deliveryRulesReady = await deliveryRulesSchemaReady(query)
   const loyaltyReady = await loyaltySchemaReady(query)
-  const columns = storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady, loyaltyReady)
+  const checkoutFieldsReady = await checkoutFieldsSchemaReady(query)
+  const columns = storeColumns(linksReady, taxReady, schedulingReady, deliveryRulesReady, loyaltyReady, checkoutFieldsReady)
   const currentResult = await query(`SELECT ${columns} FROM public.tenant_settings WHERE tenant_id=$1 LIMIT 1 FOR UPDATE`, [context.tenantId])
   const current = currentResult.rows[0] ?? null
   const patch = validateRegionalPatch(input, planCeiling(features).payments, current, linksReady,
     { ready: taxReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering },
     { ready: schedulingReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering },
     { ready: deliveryRulesReady, delivery: resolveTenantCapabilities(features, current as ServiceSettings | null).delivery },
-    { ready: loyaltyReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering })
+    { ready: loyaltyReady, guestOrdering: resolveTenantCapabilities(features, current as ServiceSettings | null).guestOrdering },
+    checkoutFieldsReady)
   const fields = Object.keys(patch)
   if (!fields.length) return { settings: current as unknown as TenantSettings, capabilities: resolveTenantCapabilities(features, current as ServiceSettings | null) }
   const result = await query(`INSERT INTO public.tenant_settings AS s (tenant_id,${fields.join(',')},updated_at)

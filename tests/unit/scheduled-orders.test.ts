@@ -164,7 +164,7 @@ const tenantId = randomUUID(), productId = randomUUID(), menuId = randomUUID(), 
 const caps = { kds: true, waiterOrdering: true, guestOrdering: true, dineIn: true, tips: true, itemNotes: true, ingredientCustomization: true }
 const result = <T>(data: T) => ({ data, error: null })
 const repository = {
-  tenantSettings: vi.fn(), capabilities: vi.fn(), stripeEnabled: vi.fn(), products: vi.fn(), optionGroups: vi.fn(), ingredients: vi.fn(),
+  tenantSettings: vi.fn(), checkoutFields: vi.fn(), capabilities: vi.fn(), stripeEnabled: vi.fn(), products: vi.fn(), optionGroups: vi.fn(), ingredients: vi.fn(),
   deliveryZones: vi.fn(), create: vi.fn(), recordAnalytics: vi.fn(), taxPromo: vi.fn(), recordTaxPromo: vi.fn(), scheduling: vi.fn(), recordScheduledFor: vi.fn(),
 }
 const order = (extra: Record<string, unknown> = {}) => ({
@@ -182,6 +182,7 @@ describe('POST /api/orders with a scheduled time', () => {
     mocks.rate.mockResolvedValue({ ok: true }); mocks.effective.mockResolvedValue(null)
     mocks.cookie.mockResolvedValue({ auth: { getUser: async () => ({ data: { user: null } }) } })
     mocks.transaction.mockImplementation(async (_t: string, _w: boolean, operation: (repo: unknown) => unknown) => operation(repository))
+    repository.checkoutFields.mockResolvedValue({ name: 'required', email: 'optional' })
     repository.tenantSettings.mockResolvedValue(result({ id: tenantId, is_active: true, tenant_settings: { orders_enabled: true, currency: 'USD', country: 'US' } }))
     repository.capabilities.mockResolvedValue(caps); repository.stripeEnabled.mockResolvedValue(false)
     repository.products.mockResolvedValue(result([{ id: productId, tenant_id: tenantId, name: 'Dish', price: 10, is_available: true, menu_id: menuId,

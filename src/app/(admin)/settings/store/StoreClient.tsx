@@ -6,7 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import type { TenantSettings } from '@/types/database'
 import type { Tenant } from '@/types/database'
 import type { StripeConnection } from '@/lib/stripe'
-import { Store, Globe, Phone, Clock, ShoppingCart, Activity, CreditCard, CheckCircle2, AlertCircle, Save, Info, MapPin, Link2, XCircle, UtensilsCrossed, Percent, Gift, LayoutGrid, MessageCircle } from 'lucide-react'
+import { Store, Globe, Phone, Clock, ShoppingCart, Activity, CreditCard, CheckCircle2, AlertCircle, Save, Info, MapPin, Link2, XCircle, UtensilsCrossed, Percent, Gift, LayoutGrid, MessageCircle, UserRound } from 'lucide-react'
+import type { CheckoutFieldMode } from '@/lib/orders/checkout-fields'
+
 import { cn } from '@/lib/utils'
 import DeliveryZonesSection from './DeliveryZonesSection'
 import TablesSection from './TablesSection'
@@ -17,6 +19,12 @@ import type { ServiceNumberKey, ServiceSettingsPatch } from '@/lib/service-setti
 import { notifyPublicMenuChanged } from '@/lib/menu/revalidate-client'
 import { bpsToPercent, percentToBps } from '@/lib/orders/tax-promo'
 import { amountToCents, centsToAmount, loyaltySettingsValid } from '@/lib/orders/loyalty'
+
+const CHECKOUT_MODE_OPTIONS: { value: CheckoutFieldMode; label: string }[] = [
+  { value: 'required', label: 'Required' },
+  { value: 'optional', label: 'Optional' },
+  { value: 'hidden', label: "Don't ask" },
+]
 
 interface Props {
   settings: TenantSettings | null
@@ -178,6 +186,8 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     tax_rate_pct: bpsToPercent(settings?.tax_rate_bps ?? 0),
     scheduled_orders_enabled: settings?.scheduled_orders_enabled === true,
     delivery_zones_only: settings?.delivery_zones_only === true,
+    checkout_name_mode: (settings?.checkout_name_mode ?? 'required') as CheckoutFieldMode,
+    checkout_email_mode: (settings?.checkout_email_mode ?? 'optional') as CheckoutFieldMode,
     loyalty_enabled: settings?.loyalty_enabled === true,
     loyalty_spend: centsToAmount(settings?.loyalty_cents_per_point ?? 500),
     loyalty_reward_points: String(settings?.loyalty_reward_points ?? 20),
@@ -376,6 +386,8 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
   const schedulingAvailable = typeof settings?.scheduled_orders_enabled === 'boolean' && caps.guestOrdering
   // Loyalty exists once the schema step ran (the switch is then a boolean), on the owned database, and guests can order.
   const loyaltyAvailable = typeof settings?.loyalty_enabled === 'boolean' && caps.guestOrdering
+  // Checkout name/email modes exist once the schema step ran (the modes are then strings) and guests can order.
+  const checkoutFieldsAvailable = typeof settings?.checkout_name_mode === 'string' && caps.guestOrdering
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -394,7 +406,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
     }
 
     // Tip presets only exist on the plan that sells guest ordering.
-    const { tip_percentage_1, tip_percentage_2, tip_percentage_3, tax_rate_pct, scheduled_orders_enabled, delivery_zones_only, loyalty_enabled, loyalty_spend, loyalty_reward_points, loyalty_reward_value, ...regionalAndContact } = form
+    const { tip_percentage_1, tip_percentage_2, tip_percentage_3, tax_rate_pct, scheduled_orders_enabled, delivery_zones_only, checkout_name_mode, checkout_email_mode, loyalty_enabled, loyalty_spend, loyalty_reward_points, loyalty_reward_value, ...regionalAndContact } = form
     const tipPresets = caps.plan.payments ? { tip_percentage_1, tip_percentage_2, tip_percentage_3 } : {}
 
     // Sales tax exists once the schema step ran and the restaurant takes orders from the menu.
@@ -419,6 +431,7 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
         ...(taxBps !== null ? { tax_rate_bps: taxBps } : {}),
         ...(schedulingAvailable ? { scheduled_orders_enabled } : {}),
         ...(deliveryRulesAvailable ? { delivery_zones_only } : {}),
+        ...(checkoutFieldsAvailable ? { checkout_name_mode, checkout_email_mode } : {}),
         ...(loyaltyAvailable ? { loyalty_enabled, loyalty_cents_per_point: loyaltyNumbers.centsPerPoint, loyalty_reward_points: loyaltyNumbers.rewardPoints, loyalty_reward_cents: loyaltyNumbers.rewardCents } : {}),
         // Coerce local-SEO fields: empty strings → null, coordinates → number.
         city: form.city.trim() || null,
@@ -971,6 +984,57 @@ export default function StoreClient({ settings, tenantId, tenantSlug, stripeConn
                   <p className="text-[13px] font-medium text-zinc-600 ml-1">Presets are saved with Apply Settings. A &quot;Custom&quot; option is always available to customers</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Customer details — what checkout asks besides the phone */}
+          {checkoutFieldsAvailable && (
+            <div className="bg-white border border-zinc-100 rounded-[1.25rem] p-10 space-y-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <UserRound className="w-4 h-4 text-primary" />
+                </div>
+                <h2 className="text-xl font-black text-zinc-950 tracking-tight">Customer details</h2>
+              </div>
+              <p className="text-[14px] font-medium text-zinc-600">What guests fill in when they place an order. The phone number is always required, so you can reach every customer.</p>
+              <div className="divide-y divide-zinc-100">
+                <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-[15px] font-bold text-zinc-950">Phone number</p>
+                    <p className="text-[13px] font-medium text-zinc-500">Always required</p>
+                  </div>
+                  <span className="self-start rounded-lg bg-zinc-100 px-3 py-2 text-[13px] font-bold text-zinc-600 sm:self-auto">Required</span>
+                </div>
+                {([
+                  { key: 'checkout_name_mode', title: 'Name', description: 'Hide it for quick counters that call orders by number.' },
+                  { key: 'checkout_email_mode', title: 'Email for the receipt', description: 'Guests who give one get the receipt and order updates by email.' },
+                ] as const).map(({ key, title, description }) => (
+                  <div key={key} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[15px] font-bold text-zinc-950">{title}</p>
+                      <p className="text-[13px] font-medium text-zinc-500">{description}</p>
+                    </div>
+                    <div role="radiogroup" aria-label={title} className="grid shrink-0 grid-cols-3 gap-1 rounded-xl bg-zinc-100 p-1">
+                      {CHECKOUT_MODE_OPTIONS.map(option => {
+                        const active = form[key] === option.value
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            onClick={() => setForm(f => ({ ...f, [key]: option.value }))}
+                            className={cn('h-9 rounded-lg px-3 text-[13px] font-bold transition-colors', active ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-600 hover:text-zinc-950')}
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[13px] font-medium text-zinc-600">Saved with Apply Settings. Orders without a name show as &quot;Guest&quot; with the last digits of the phone.</p>
             </div>
           )}
 

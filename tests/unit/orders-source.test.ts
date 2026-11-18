@@ -24,7 +24,7 @@ const caps = { kds: true, waiterOrdering: true, guestOrdering: true, dineIn: tru
 const result = <T>(data: T) => ({ data, error: null })
 const repository = {
   tenantSettings: vi.fn(), capabilities: vi.fn(), stripeEnabled: vi.fn(), products: vi.fn(), optionGroups: vi.fn(),
-  ingredients: vi.fn(), deliveryZones: vi.fn(), create: vi.fn(), list: vi.fn(), move: vi.fn(), recordAnalytics: vi.fn(), taxPromo: vi.fn(), deliveryRules: vi.fn(), recordTaxPromo: vi.fn(), scheduling: vi.fn(), recordScheduledFor: vi.fn(),
+  ingredients: vi.fn(), deliveryZones: vi.fn(), create: vi.fn(), list: vi.fn(), move: vi.fn(), recordAnalytics: vi.fn(), taxPromo: vi.fn(), deliveryRules: vi.fn(), checkoutFields: vi.fn(), contactReady: vi.fn(), recordContact: vi.fn(), recordTaxPromo: vi.fn(), scheduling: vi.fn(), recordScheduledFor: vi.fn(),
 }
 const input = { tenant_id: tenantId, customer_name: 'Guest', customer_phone: '5550100200', items: [{ product_id: productId, quantity: 2, unit_price: 0.01, product_name: 'Forged label' }] }
 const request = (body: unknown, path = '/api/orders', method = 'POST') => new Request(`http://localhost${path}`, { method, body: JSON.stringify(body), headers: { 'Content-Type': 'application/json','Idempotency-Key': 'offline-checkout-key' } })
@@ -49,6 +49,8 @@ beforeEach(() => {
   repository.list.mockResolvedValue(result([{ id, tenant_id: tenantId, total: 25, currency: null, order_items: [] }]))
   repository.move.mockResolvedValue({ id, status: 'preparing' })
   repository.deliveryRules.mockResolvedValue({ ready: false, zonesOnly: false, minByZone: {} })
+  repository.checkoutFields.mockResolvedValue({ name: 'required', email: 'optional' })
+  repository.contactReady.mockResolvedValue(false)
   repository.taxPromo.mockResolvedValue({ ready: false, taxBps: 0, promo: null })
   repository.scheduling.mockResolvedValue({ ready: false, enabled: false, hours: null, timeZone: null, prepMinutes: 0, maxNoticeMinutes: 0 })
 })
@@ -93,6 +95,23 @@ describe('owned orders route source selection', () => {
     repository.stripeEnabled.mockResolvedValue(true)
     expect((await POST(input)).status).toBe(503)
     expect(repository.create).not.toHaveBeenCalled();expect(mocks.legacy).not.toHaveBeenCalled()
+  })
+  it('asks for the name and email as the restaurant set them, and never stores a field it does not ask for', async () => {
+    repository.capabilities.mockResolvedValue({ ...caps, guestOrdering: true })
+    repository.checkoutFields.mockResolvedValue({ name: 'optional', email: 'required' })
+    const noEmail = await POST({ ...input, customer_name: '' })
+    expect(noEmail.status).toBe(400)
+    expect(await noEmail.json()).toMatchObject({ code: 'email_required' })
+    expect(repository.create).not.toHaveBeenCalled()
+    expect((await POST({ ...input, customer_name: '', customer_email: 'ana@example.com' })).status).toBe(200)
+    expect(repository.create.mock.calls[0][0].customer_name).toBe('')
+    repository.checkoutFields.mockResolvedValue({ name: 'hidden', email: 'optional' })
+    expect((await POST({ ...input, customer_name: 'Typed anyway' })).status).toBe(200)
+    expect(repository.create.mock.calls[1][0].customer_name).toBe('')
+    repository.checkoutFields.mockResolvedValue({ name: 'required', email: 'optional' })
+    const noName = await POST({ ...input, customer_name: ' ' })
+    expect(noName.status).toBe(400)
+    expect(await noName.json()).toMatchObject({ code: 'name_required' })
   })
   it('refuses ambiguous overlapping delivery fees instead of depending on restore row ordering', async () => {
     repository.capabilities.mockResolvedValue({ ...caps,delivery: true })

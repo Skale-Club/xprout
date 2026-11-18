@@ -1,5 +1,6 @@
 import { OPTION_IMAGE_READY_SQL, optionColumns } from '../menu/option-images'
 import { DELIVERY_RULES_READY_SQL } from '../orders/delivery-rules'
+import { CHECKOUT_FIELDS_READY_SQL, CHECKOUT_FIELDS_SQL } from '../orders/checkout-fields'
 import { BRAND_NAME } from '@/lib/brand'
 import { ACTION_LINK_COLUMNS } from '../menu-action-links'
 import { LOYALTY_READY_SQL } from '../orders/loyalty'
@@ -134,6 +135,9 @@ export async function readOwnedPublicMenu(query: PublicMenuQuery, slug: string, 
     // Loyalty switch (the program's numbers and the customer's balance come from GET /api/loyalty) once the schema step ran.
     const loyaltyReady = settings ? one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${LOYALTY_READY_SQL}) r`, [], 1))?.ready === true : false
     if (settings && loyaltyReady) Object.assign(settings, one(await rows<Row>(query, "SELECT jsonb_build_object('loyalty_enabled', s.loyalty_enabled) AS row FROM public.tenant_settings s WHERE s.tenant_id=$1 LIMIT 2", [tenantId], 1)))
+    // Name and receipt email modes at checkout once the schema step ran; absent = the defaults (src/lib/orders/checkout-fields.ts).
+    const checkoutFieldsReady = settings ? one(await rows<Row>(query, `SELECT jsonb_build_object('ready', ready) AS row FROM (${CHECKOUT_FIELDS_READY_SQL}) r`, [], 1))?.ready === true : false
+    if (settings && checkoutFieldsReady) Object.assign(settings, one(await rows<Row>(query, CHECKOUT_FIELDS_SQL, [tenantId], 1)))
     const footer = one(await rows<Row>(query, 'SELECT jsonb_build_object(\'menu_footer_brand\', menu_footer_brand) AS row FROM public.platform_settings LIMIT 2', [], 1))
     const footerBrand = typeof footer?.menu_footer_brand === 'string' ? footer.menu_footer_brand : BRAND_NAME
     // A preview reads exactly one hidden staging menu, the token matched within

@@ -82,7 +82,7 @@ export function buildOptedInContacts(rows: OptInOrderRow[], tenantId: string): O
     if (!existing) { byKey.set(key, { name: row.customer_name, phone, email, lastOrderAt: row.created_at }); continue }
     existing.phone = existing.phone ?? phone
     existing.email = existing.email ?? email
-    if (Date.parse(row.created_at) > Date.parse(existing.lastOrderAt)) { existing.lastOrderAt = row.created_at; existing.name = row.customer_name }
+    if (Date.parse(row.created_at) > Date.parse(existing.lastOrderAt)) { existing.lastOrderAt = row.created_at; existing.name = row.customer_name || existing.name }
   }
   return [...byKey.values()].sort((a, b) => Date.parse(b.lastOrderAt) - Date.parse(a.lastOrderAt))
 }

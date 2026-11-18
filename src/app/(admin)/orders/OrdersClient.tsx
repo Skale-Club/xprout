@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import ModalPortal from '@/components/ui/ModalPortal'
 import { formatScheduled } from '@/components/menu/schedule-format'
 import { PrintTicket } from './KitchenTicket'
+import { customerDisplayName } from '@/lib/orders/checkout-fields'
 
 /** "Scheduled · Tue 9:00 AM" for an order a guest booked for later, in the restaurant's time zone (the device's when unknown). */
 function scheduledBadge(order: { scheduled_for?: string | null }, timeZone: string | null | undefined): string | null {
@@ -200,7 +201,7 @@ function OrderCard({
 
       {/* Customer */}
       <div onClick={onClick} className="cursor-pointer space-y-1">
-        <h3 className="text-xl font-black text-zinc-950 tracking-tight leading-tight group-hover:text-primary transition-colors">{order.customer_name}</h3>
+        <h3 className="text-xl font-black text-zinc-950 tracking-tight leading-tight group-hover:text-primary transition-colors">{customerDisplayName(order.customer_name, order.customer_phone)}</h3>
         <p className="text-xs font-bold text-zinc-500">{order.customer_phone}</p>
       </div>
 
@@ -610,7 +611,7 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
                         <span className="font-mono text-xs font-black text-zinc-400 group-hover:text-primary transition-colors">#{order.id.slice(0, 8)}</span>
                       </td>
                       <td className="px-8 py-6">
-                        <p className="text-sm font-black text-zinc-950 tracking-tight">{order.customer_name}</p>
+                        <p className="text-sm font-black text-zinc-950 tracking-tight">{customerDisplayName(order.customer_name, order.customer_phone)}</p>
                         <p className="text-[10px] font-bold text-zinc-500">{order.customer_phone}</p>
                       </td>
                       <td className="px-8 py-6 text-center">
@@ -664,7 +665,7 @@ export default function OrdersClient({ initialOrders, tenantId, amberThreshold, 
                 <div className="space-y-6">
                   <div>
                     <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 block">Customer</label>
-                    <p className="text-lg font-black text-zinc-950 tracking-tight">{selectedOrder.customer_name}</p>
+                    <p className="text-lg font-black text-zinc-950 tracking-tight">{customerDisplayName(selectedOrder.customer_name, selectedOrder.customer_phone)}</p>
                     <p className="text-xs font-bold text-zinc-500">{selectedOrder.customer_phone}</p>
                   </div>
                   <div>

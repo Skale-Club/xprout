@@ -215,7 +215,7 @@ const tenantId = randomUUID(), productId = randomUUID(), menuId = randomUUID(), 
 const caps = { kds: true, waiterOrdering: true, guestOrdering: true, dineIn: true, tips: true, itemNotes: true, ingredientCustomization: true }
 const result = <T>(data: T) => ({ data, error: null })
 const repository = {
-  tenantSettings: vi.fn(), capabilities: vi.fn(), stripeEnabled: vi.fn(), products: vi.fn(), optionGroups: vi.fn(), ingredients: vi.fn(),
+  tenantSettings: vi.fn(), checkoutFields: vi.fn(), capabilities: vi.fn(), stripeEnabled: vi.fn(), products: vi.fn(), optionGroups: vi.fn(), ingredients: vi.fn(),
   deliveryZones: vi.fn(), create: vi.fn(), recordAnalytics: vi.fn(), taxPromo: vi.fn(), recordTaxPromo: vi.fn(), scheduling: vi.fn(), recordScheduledFor: vi.fn(),
   loyaltyState: vi.fn(), recordLoyaltyRedeem: vi.fn(),
 }
@@ -234,6 +234,7 @@ describe('POST /api/orders with a loyalty reward', () => {
     mocks.rate.mockResolvedValue({ ok: true }); mocks.effective.mockResolvedValue(null)
     signedIn()
     mocks.transaction.mockImplementation(async (_t: string, _w: boolean, operation: (repo: unknown) => unknown) => operation(repository))
+    repository.checkoutFields.mockResolvedValue({ name: 'required', email: 'optional' })
     repository.tenantSettings.mockResolvedValue(result({ id: tenantId, is_active: true, tenant_settings: { orders_enabled: true, currency: 'USD', country: 'US' } }))
     repository.capabilities.mockResolvedValue(caps); repository.stripeEnabled.mockResolvedValue(false)
     // 2 x $10.00 = $20.00 subtotal.

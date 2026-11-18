@@ -45,7 +45,8 @@ export const orderItemSchema = z.object({
 
 export const createOrderSchema = z.object({
   tenant_id: uuid,
-  customer_name: text(120).refine((s) => s.trim().length > 0, 'Customer name is required'),
+  // Required or not depends on the restaurant (src/lib/orders/checkout-fields.ts); POST /api/orders checks it.
+  customer_name: text(120).default(''),
   customer_phone: text(40).refine((s) => s.trim().length > 0, 'Customer phone is required'),
   items: z.array(orderItemSchema).min(1, 'At least one item is required').max(50, 'Too many items in one order'),
   order_type: z.union([z.enum(['dine_in', 'pickup', 'delivery']), z.literal('')]).nullish(),

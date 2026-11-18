@@ -152,6 +152,8 @@ export interface TenantSettings {
   loyalty_cents_per_point?: number  // Spend (cents) that earns 1 point (100-100000)
   loyalty_reward_points?: number    // Points the reward costs (1-100000)
   loyalty_reward_cents?: number     // Discount (cents) the reward gives (1-1000000)
+  checkout_name_mode?: 'required' | 'optional' | 'hidden'  // Name at checkout; absent until docs/owned-schema/20261118120000 ran (= 'required')
+  checkout_email_mode?: 'required' | 'optional' | 'hidden' // Receipt email at checkout; absent until that step ran (= 'optional')
   tax_rate_bps?: number             // Sales tax in basis points (625 = 6.25%); absent until docs/owned-schema/20261116130000 ran
   updated_at: string
   // AI-04: New fields added in migration 022

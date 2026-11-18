@@ -5,6 +5,7 @@ import { googleReviewLink } from '@/lib/site/review-link'
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { idempotencyKeyFor, type IdempotencySlot } from '@/lib/orders/idempotency-client'
+import { checkoutFieldsFrom, isPlausibleEmail } from '@/lib/orders/checkout-fields'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { DeliveryImage } from '@/components/delivery-image'
@@ -263,6 +264,8 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
   const categoryFilterRef = useRef<HTMLDivElement | null>(null)
 
   const settings = tenant.tenant_settings
+  // What checkout asks besides the phone (Settings › Store › Customer details).
+  const customerFields = checkoutFieldsFrom(settings)
   const primaryColor = settings?.primary_color ?? BRAND_PRIMARY
   const accentColor = safeCssColor(settings?.accent_color, '#09090b')
   // Explicit price-text role, readable on both the menu ground and white sheets.
@@ -524,8 +527,17 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
 
   async function submitOrder() {
     if (!directOrdersEnabled) return
-    if (!customerName.trim() || !customerPhone.trim()) {
-      setOrderError(copy.errNamePhone)
+    // The phone is always required; the name and the receipt email as the restaurant set them.
+    if (!customerPhone.trim()) {
+      setOrderError(copy.errPhone)
+      return
+    }
+    if (customerFields.name === 'required' && !customerName.trim()) {
+      setOrderError(copy.errName)
+      return
+    }
+    if (customerFields.email === 'required' && !isPlausibleEmail(contact.email)) {
+      setOrderError(copy.errEmail)
       return
     }
     if (cart.length === 0) {
@@ -540,13 +552,13 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
     setSubmittingOrder(true)
     setOrderError(null)
 
-    const receiptEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email.trim()) ? contact.email.trim() : null
+    const receiptEmail = customerFields.email !== 'hidden' && isPlausibleEmail(contact.email) ? contact.email.trim() : null
 
     // Same cart again (double tap, retry after a lost response) → same key,
     // so the server returns the order it already created.
     const orderPayload = {
       tenant_id: tenant.id,
-      customer_name: customerName.trim(),
+      customer_name: customerFields.name === 'hidden' ? '' : customerName.trim(),
       customer_phone: customerPhone.trim(),
       ...orderFields,
       ...(taxPromoReady && promo ? { promo_code: promo.code } : {}),
@@ -1801,6 +1813,7 @@ export default function MenuPage({ tenant, categories: baseCategories, products:
           onCustomerPhoneChange={setCustomerPhone}
           restaurantName={tenant.name}
           contact={contact}
+          checkoutFields={customerFields}
           onContactChange={patch => setContact(prev => ({ ...prev, ...patch }))}
           onSubmit={submitOrder}
           orderTypeConfig={orderTypeConfig}

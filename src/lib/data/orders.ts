@@ -6,6 +6,7 @@ import { TAX_PROMO_NOT_READY, TAX_PROMO_READY_SQL, type PromoCodeRow, type TaxPr
 import { loyaltyReady, readLoyaltyState, redeemLoyalty, settleLoyalty } from './loyalty'
 import type { LoyaltyState } from '../orders/loyalty'
 import { DELIVERY_RULES_NOT_READY, DELIVERY_RULES_READY_SQL, type DeliveryRulesState } from '../orders/delivery-rules'
+import { CHECKOUT_FIELDS_READY_SQL, CHECKOUT_FIELDS_SQL, DEFAULT_CHECKOUT_FIELDS, checkoutFieldsFrom, type CheckoutFields } from '../orders/checkout-fields'
 import { SCHEDULING_NOT_READY, SCHEDULING_READY_SQL, schedulingTimeZone, type Hours, type SchedulingState } from '../orders/scheduled-orders'
 import { CONTACT_READY_SQL, buildOptedInContacts, type OptInOrderRow, type OrderContactValues } from '../orders/order-contact'
 import { EMAIL_COLUMN, EMAIL_STATUSES, buildEmailData } from '../orders/order-email-data'
@@ -267,6 +268,11 @@ export class OwnedOrderRepository {
     const minByZone: Record<string, number> = {}
     for (const zone of zones) minByZone[zone.id] = Number.isInteger(zone.min_order_cents) ? zone.min_order_cents : 0
     return { ready: true, zonesOnly: settings?.delivery_zones_only === true, minByZone }
+  }
+  /** Name and receipt email modes at checkout; the defaults until the schema step ran. */
+  async checkoutFields(): Promise<CheckoutFields> {
+    if ((await this.query(CHECKOUT_FIELDS_READY_SQL)).rows[0]?.ready !== true) return DEFAULT_CHECKOUT_FIELDS
+    return checkoutFieldsFrom(rows<Record<string, unknown>>(await this.query(CHECKOUT_FIELDS_SQL, [this.tenantId]), 1)[0])
   }
   /** Whether the tax and promo schema step ran; until it did, orders behave as before. */
   async taxPromoReady() {

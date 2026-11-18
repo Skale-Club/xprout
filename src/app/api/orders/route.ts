@@ -12,6 +12,8 @@ import { OptionSelectionError, resolveOptionSelection } from '@/lib/menu/option-
 import { legacyRecordTaxPromo, legacyTaxPromo } from '@/lib/orders/tax-promo-legacy'
 import { DELIVERY_RULES_NOT_READY, deliveryRuleViolation, type DeliveryRulesState } from '@/lib/orders/delivery-rules'
 import { legacyDeliveryRules } from '@/lib/orders/delivery-rules-legacy'
+import { DEFAULT_CHECKOUT_FIELDS, checkoutFieldViolation, type CheckoutFields } from '@/lib/orders/checkout-fields'
+import { legacyCheckoutFields } from '@/lib/orders/checkout-fields-legacy'
 import { TAX_PROMO_NOT_READY, normalizePromoCode, priceOrder, promoRejection, type PromoCodeRow, type TaxPromoState } from '@/lib/orders/tax-promo'
 import { LOYALTY_NOT_READY, REDEEM_MESSAGES, redeemRejection, rewardDiscountCents, type LoyaltyState } from '@/lib/orders/loyalty'
 import { legacyRecordScheduledFor, legacyScheduling } from '@/lib/orders/scheduled-orders-legacy'
@@ -236,6 +238,17 @@ async function handlePOST(request: Request) {
       if (orderType === 'delivery' && !deliveryStreet && !deliveryAddress) {
         return NextResponse.json({ error: 'Delivery address is required for delivery orders' }, { status: 400 })
       }
+
+      // Name and receipt email as this restaurant asks for them at checkout (the phone is always
+      // required, by the schema). Staff orders keep the default: a name, the email optional.
+      const checkoutFields: CheckoutFields = !isStaffOrder && capabilities.guestOrdering
+        ? await (owned ? owned.checkoutFields() : legacyCheckoutFields(service!, tenant_id))
+        : DEFAULT_CHECKOUT_FIELDS
+      const fieldViolation = checkoutFieldViolation(checkoutFields, { name: customer_name, email: rawCustomerEmail })
+      if (fieldViolation) return NextResponse.json(fieldViolation, { status: 400 })
+      // A field the restaurant does not ask for is never stored, whatever the client sent.
+      const customerName = checkoutFields.name === 'hidden' ? '' : customer_name.trim()
+      const customerEmail = checkoutFields.email === 'hidden' ? null : rawCustomerEmail
 
       // The schema bounds the tip (integer, 0..1,000,000 cents). A tip is only
       // accepted when the restaurant switched tips on.
@@ -516,7 +529,7 @@ async function handlePOST(request: Request) {
 
       const orderRow = {
         tenant_id,
-        customer_name: customer_name.trim(),
+        customer_name: customerName,
         customer_phone: customer_phone.trim(),
         // Legacy key, kept for old reports; it grants no access (src/lib/phone.ts).
         customer_phone_key: phoneMatchKey(customer_phone),
@@ -592,7 +605,7 @@ async function handlePOST(request: Request) {
       }
 
       // Receipt email and marketing opt-ins, once the schema step ran (a guest-checkout feature).
-      const contact = resolveContact({ email: rawCustomerEmail, language: rawCustomerLanguage, phone: customer_phone, smsOptIn: rawSmsOptIn, emailOptIn: rawEmailOptIn })
+      const contact = resolveContact({ email: customerEmail, language: rawCustomerLanguage, phone: customer_phone, smsOptIn: rawSmsOptIn, emailOptIn: rawEmailOptIn })
       if (!isStaffOrder && capabilities.guestOrdering && hasContactValues(contact) && !order.replayed) {
         if (owned) { if (await owned.contactReady()) await owned.recordContact(order.id, contact) }
         else if (await legacyContactReady(service!)) {
