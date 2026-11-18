@@ -3,6 +3,7 @@ import { before, beforeEach, after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import pg from 'pg'
+import { hashPhone } from '../../src/lib/crypto'
 import { blockAdminChatPhone, readAdminChatBlocked, readAdminChatConversations, readAdminChatSettings, readAdminChatThread, unblockAdminChatPhone, writeAdminChatNote, writeAdminChatSettings, type AdminChatContext } from '../../src/lib/data/admin-chat'
 import { savePublicChatTurn } from '../../src/lib/data/public-chat-turns'
 import { adminMenuTransaction, createAdminMenusPool } from '../../src/lib/data/admin-menus-runtime'
@@ -12,11 +13,11 @@ const target = new URL(raw)
 if (!['127.0.0.1', 'localhost'].includes(target.hostname) || target.pathname !== '/xmartmenu_identity_test' || target.search || target.hash) throw Error('Not a disposable admin chat target')
 const admin = new pg.Pool({ connectionString: raw, max: 2, statement_timeout: 5000 })
 const pool = createAdminMenusPool({ NODE_ENV: 'production', PROD_DATABASE_HOST: target.hostname, PROD_DATABASE_NAME: 'xmartmenu_identity_test', ADMIN_MENUS_DATABASE_URL: raw, ADMIN_MENUS_DATABASE_SSL: 'disable' })
-const a = randomUUID(), b = randomUUID(), actor = randomUUID(), staff = randomUUID(), superadmin = randomUUID(), plan = randomUUID(), conversation = randomUUID(), second = randomUUID(), foreign = randomUUID(), hash = 'tenant-scoped-anonymous-fixture', legacyCiphertext = randomUUID()
+const a = randomUUID(), b = randomUUID(), actor = randomUUID(), staff = randomUUID(), superadmin = randomUUID(), plan = randomUUID(), conversation = randomUUID(), second = randomUUID(), foreign = randomUUID(), hash = hashPhone('12025550101', a), legacyCiphertext = randomUUID()
 const context: AdminChatContext = { tenantId: a, actorId: actor, role: 'store-admin' }
 const run = <T>(write: boolean, operation: (query: Parameters<typeof readAdminChatSettings>[0]) => Promise<T>) => adminMenuTransaction(pool, write, operation)
 const block = () => run(true, query => blockAdminChatPhone(query, context, conversation, { reason: 'spam' }))
-const save = () => run(true, query => savePublicChatTurn(query, { slug: 'restaurant', tenantId: a, conversationId: second, user: 'Question', assistant: 'Answer', tokens: 12, voiceVerified: false }))
+const save = () => run(true, query => savePublicChatTurn(query, { slug: 'restaurant', tenantId: a, conversationId: second, guestPhone: '+12025550101', user: 'Question', assistant: 'Answer', tokens: 12, voiceVerified: false }))
 before(async () => {
   await admin.query(`DROP TABLE IF EXISTS public.chat_messages,public.chat_conversations,public.chat_blocked_phones,public.chat_addon_settings,public.tenant_subscriptions,public.plans,public.profiles,public.app_accounts,public.tenants CASCADE;
     CREATE TABLE public.tenants(id uuid PRIMARY KEY,slug text,name text,is_active boolean);
