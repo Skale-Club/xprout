@@ -26,6 +26,7 @@ export function publicHref(path: string, locale: PublicLocale): string {
 
 export const publicIntlLocale = (locale: PublicLocale) => ({ en: 'en-US', pt: 'pt-BR', es: 'es-ES' })[locale]
 
-export function publicAlternates(path: string, locale: PublicLocale = 'en') {
-  return { canonical: locale === 'en' ? path : publicHref(path, locale), languages: { en: publicHref(path, 'en'), pt: publicHref(path, 'pt'), es: publicHref(path, 'es'), 'x-default': path } }
+export function publicAlternates(path: string, locale: PublicLocale = 'en', origin?: string) {
+  const absolute = (value: string) => origin ? new URL(value, origin).href : value
+  return { canonical: absolute(locale === 'en' ? path : publicHref(path, locale)), languages: { en: absolute(publicHref(path, 'en')), pt: absolute(publicHref(path, 'pt')), es: absolute(publicHref(path, 'es')), 'x-default': absolute(path) } }
 }

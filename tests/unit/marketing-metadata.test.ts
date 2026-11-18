@@ -7,7 +7,7 @@ vi.mock('@/lib/data/platform-settings-runtime', () => ({ readOwnedPlatformSettin
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: () => { throw new Error('Unexpected legacy store') } }))
 vi.mock('next/dynamic', () => ({ default: () => () => null }))
 import { generateMetadata } from '@/app/(marketing)/page'
-import { buildSoftwareApplicationJsonLd } from '@/lib/seo'
+import { buildSoftwareApplicationJsonLd, PLATFORM_BASE } from '@/lib/seo'
 import copy from '@/lib/marketing/landing-copy.json'
 
 beforeEach(() => { vi.clearAllMocks(); mocks.locale.mockResolvedValue('en') })
@@ -19,8 +19,9 @@ describe('current landing positioning and metadata', () => {
     const metadata = await generateMetadata()
     expect(metadata.description).not.toBe(copy.seo.description)
     expect(metadata.openGraph).toMatchObject({ locale: 'pt_BR' })
-    expect(metadata.alternates?.canonical).toBe('/?lang=pt')
-    expect(metadata.alternates?.languages).toMatchObject({ es: '/?lang=es' })
+    expect(metadata.alternates?.canonical).toBe(`${PLATFORM_BASE}/?lang=pt`)
+    expect(metadata.alternates?.languages).toMatchObject({ es: `${PLATFORM_BASE}/?lang=es` })
+    expect(metadata.openGraph).toMatchObject({ url: `${PLATFORM_BASE}/?lang=pt` })
   })
   it('uses the visual menu positioning without claiming free software', async () => {
     mocks.settings.mockResolvedValue(null)

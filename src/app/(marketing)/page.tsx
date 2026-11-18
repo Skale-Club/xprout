@@ -56,11 +56,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const name = settings.appName ?? BRAND_NAME
   const title = settings.title ? t(settings.title) : `${name} | ${t(landingCopy.seo.titleSuffix)}`
   const description = t(settings.description ?? landingCopy.seo.description)
+  const alternates = publicAlternates('/', locale, PLATFORM_BASE)
   return {
     title: { absolute: title }, description,
-    alternates: publicAlternates('/', locale),
+    alternates,
     openGraph: {
-      title, description, url: PLATFORM_BASE, siteName: name, type: 'website', locale: publicIntlLocale(locale).replace('-', '_'),
+      title, description, url: alternates.canonical, siteName: name, type: 'website', locale: publicIntlLocale(locale).replace('-', '_'),
       images: [{ url: PLATFORM_SOCIAL_IMAGE, width: 1200, height: 630, alt: name }],
     },
     twitter: { card: 'summary_large_image', title, description },

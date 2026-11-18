@@ -34,6 +34,9 @@ describe('public language selection and navigation', () => {
     expect(publicHref('//example.org', 'es')).toBe('//example.org')
     expect(publicAlternates('/pricing', 'pt').canonical).toBe('/pricing?lang=pt')
     expect(publicAlternates('/pricing').languages.es).toBe('/pricing?lang=es')
+    const preview = publicAlternates('/', 'pt', 'http://localhost:3100')
+    expect(preview.canonical).toBe('http://localhost:3100/?lang=pt')
+    expect(preview.languages.en).toBe('http://localhost:3100/?lang=en')
   })
   it('keeps administrative and tenant paths outside the platform language scope', () => {
     for (const path of ['/', '/pricing', '/blog/archive/2026', '/auth/login', '/identity']) expect(isPublicPlatformPath(path)).toBe(true)
