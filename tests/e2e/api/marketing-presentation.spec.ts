@@ -62,10 +62,13 @@ test('a rejected sign-in document shows recovery instead of a collapsed overlay'
 })
 
 test('public language selection keeps the URL and saved preference across pages', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+  await page.setViewportSize({ width: 320, height: 844 })
   await page.goto('/pricing?campaign=locale-check#estimate')
   await page.getByRole('button', { name: 'Language: English', exact: true }).click()
   const languages = page.getByRole('listbox', { name: 'Language', exact: true })
+  const pickerBounds = (await languages.boundingBox())!
+  expect(pickerBounds.x).toBeGreaterThanOrEqual(0)
+  expect(pickerBounds.x + pickerBounds.width).toBeLessThanOrEqual(320)
   await expect(languages.getByRole('option', { name: 'English' })).toHaveAttribute('aria-selected', 'true')
   await page.keyboard.press('Escape')
   await expect(languages).toHaveCount(0)

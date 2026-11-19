@@ -18,7 +18,7 @@ export function usePublicLocale() {
 
 export function PublicLanguagePicker() {
   const { locale, t } = usePublicLocale()
-  return <LanguagePicker languages={[...PUBLIC_LOCALES]} value={locale} label={t('Language')} compact onChange={value => {
+  return <LanguagePicker languages={[...PUBLIC_LOCALES]} value={locale} label={t('Language')} compact align="left" onChange={value => {
       const selected = value as PublicLocale
       document.cookie = `${PUBLIC_LOCALE_COOKIE}=${selected}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
       location.assign(publicHref(`${location.pathname}${location.search}${location.hash}`, selected))

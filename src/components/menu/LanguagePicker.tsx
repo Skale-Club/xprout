@@ -15,13 +15,14 @@ function shortCode(code: string): string {
  * list of the menu's languages (flag, native name, a check on the current one).
  * Replaces a native <select>, whose system list looked out of place.
  */
-export default function LanguagePicker({ languages, value, onChange, label, compact = false }: {
+export default function LanguagePicker({ languages, value, onChange, label, compact = false, align = 'right' }: {
   languages: string[]
   value: string
   onChange: (lang: string) => void
   label: string
   /** Flag-only trigger on narrow platform headers; menu callers keep the full pill. */
   compact?: boolean
+  align?: 'left' | 'right'
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -90,7 +91,7 @@ export default function LanguagePicker({ languages, value, onChange, label, comp
           role="listbox"
           aria-label={label}
           onKeyDown={onListKey}
-          className="absolute right-0 top-full z-30 mt-2 max-h-[min(60vh,22rem)] min-w-44 overflow-y-auto rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5"
+          className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} top-full z-30 mt-2 max-h-[min(60vh,22rem)] min-w-44 overflow-y-auto rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-black/5`}
         >
           {languages.map(code => {
             const selected = code === value
