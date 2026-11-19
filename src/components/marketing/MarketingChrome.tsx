@@ -41,7 +41,7 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
       <Link href={href('/')} aria-label={`${appName ?? BRAND_NAME} ${t('home')}`} className="mk-nav-brand shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
       <div className="mk-nav-links">{links}</div>
       <div className="mk-nav-actions">
-        <PublicLanguagePicker />
+        <PublicLanguagePicker align="left" />
         {startHref ? <Link href={href(startHref)} onClick={() => setOpen(false)} className="mk-button mk-button--light mk-nav-cta">{t('Get started')}</Link>
           : <button type="button" onClick={() => { setOpen(false); onLoginOpen?.() }} className="mk-button mk-button--light mk-nav-cta">{t('Get started')}</button>}
         <button ref={toggle} type="button" className="mk-nav-toggle" aria-label={open ? t('Close navigation') : t('Open navigation')} aria-expanded={open} aria-controls="marketing-mobile-navigation" onClick={() => setOpen(value => !value)}>{open ? <X size={18} /> : <Menu size={18} />}</button>
