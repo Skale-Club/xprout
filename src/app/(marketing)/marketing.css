@@ -46,7 +46,7 @@
 .marketing-site .mk-nav-link:hover,.marketing-site .mk-nav-link[aria-current=page] { text-decoration:underline; text-underline-offset:6px; }
 .marketing-site .mk-nav-actions { display:flex; align-items:center; gap:8px; }
 @media(max-width:374px) { .marketing-site .mk-nav-brand > img { width:88px; min-width:88px; } }
-.marketing-site .mk-nav-cta { min-width:80px; min-height:44px; padding:10px 12px; font-size:12px; }
+.marketing-site .mk-nav-cta { min-width:80px; min-height:44px; padding:10px 12px; font-size:12px; white-space:nowrap; }
 .marketing-site .mk-nav-toggle { width:44px; height:44px; display:grid; place-items:center; border:1px solid #f3efe540; border-radius:50%; cursor:pointer; }
 .marketing-site .mk-mobile-nav { display:grid; gap:4px; padding:12px 20px 20px; border-top:1px solid var(--mk-line); }
 .marketing-site .mk-mobile-nav a { padding:12px; font-size:15px; border-radius:8px; }

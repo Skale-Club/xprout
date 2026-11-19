@@ -16,7 +16,7 @@ function Brand({ appName, logoUrl, tone }: { appName?: string | null; logoUrl?: 
   const name = appName ?? BRAND_NAME
   return name === BRAND_NAME && isDefaultPlatformLogo(logoUrl)
     ? <PlatformSignature tone={tone} />
-    : <span className="inline-flex items-center gap-3"><DeliveryImage src={platformLogoUrl(logoUrl)} width={32} height={32} sizes="32px" alt="" className="size-8 object-contain" /><span className="text-lg font-semibold">{name}</span></span>
+    : <span className="inline-flex min-w-0 items-center gap-2"><DeliveryImage src={platformLogoUrl(logoUrl)} width={32} height={32} sizes="32px" alt="" className="size-8 shrink-0 object-contain" /><span className="truncate text-lg font-semibold">{name}</span></span>
 }
 
 export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'home' }: {
@@ -38,9 +38,9 @@ export function Nav({ appName, logoUrl, onLoginOpen, startHref, activePage = 'ho
   </>
   return <nav className="mk-nav mk-dark" aria-label={t('Main navigation')}>
     <div className="mk-container mk-nav-inner">
-      <Link href={href('/')} aria-label={`${appName ?? BRAND_NAME} ${t('home')}`} className="mk-nav-brand shrink-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
+      <Link href={href('/')} aria-label={`${appName ?? BRAND_NAME} ${t('home')}`} className="mk-nav-brand min-w-0"><Brand appName={appName} logoUrl={logoUrl} tone="ivory" /></Link>
       <div className="mk-nav-links">{links}</div>
-      <div className="mk-nav-actions">
+      <div className="mk-nav-actions shrink-0">
         <PublicLanguagePicker align="left" />
         {startHref ? <Link href={href(startHref)} onClick={() => setOpen(false)} className="mk-button mk-button--light mk-nav-cta">{t('Get started')}</Link>
           : <button type="button" onClick={() => { setOpen(false); onLoginOpen?.() }} className="mk-button mk-button--light mk-nav-cta">{t('Get started')}</button>}
