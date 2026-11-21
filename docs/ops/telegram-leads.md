@@ -10,7 +10,7 @@ Both variables are required. Missing credentials, invalid targets, invalid topic
 
 Do not alter `OPS_TELEGRAM_*`, blog `telegram_settings`, approval routing or the shared bot webhook when configuring Leads. Production configuration and real provider messages require the owner's authorization. This document specifies the configuration contract and does not claim that the group or variables have been provisioned.
 
-Activation is pending: the owner deferred supplying the dedicated group IDs. Keep this as a local code checkpoint; do not configure production, publish this follow-up or send a test message until the IDs and destination verification are available and the owner resumes activation.
+Activated 2026-11-21: the **Xprout | Leads** group is configured in production with the shared bot (administrator there). Set or change it with the manual workflow `.github/workflows/set-leads-telegram.yml`, which reads the GitHub secrets `ACCESS_REQUEST_TELEGRAM_CHAT_IDS` (the group) and `OPS_TELEGRAM_BOT_TOKEN` (the shared bot), checks the bot is @skaleclubbot and a member of each target, refuses the Ops chat, writes only the two keys above with readback, and redeploys the image already in production through `scripts/coolify-deploy.sh`.
 
 ## Behavior and verification
 
